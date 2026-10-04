@@ -11,6 +11,7 @@ import {
   UPGRADES,
 } from "../src/sim.js";
 import { BALANCE, WAVE_DURATION } from "../src/config.js";
+import { mapById, steerAroundCover } from "../src/maps.js";
 const run = () => {
   const s = createGame(87);
   addPlayer(s, "a");
@@ -36,17 +37,12 @@ test("seeded simulations replay exactly and snapshots omit internals", () => {
   assert.ok(a.enemies.length <= BALANCE.maxEnemies);
   assert.ok(a.shots.length <= BALANCE.maxShots);
 });
-test("casting remembers movement and thread catches enemy shots", () => {
+test("broom sweep immediately clears nearby shots without needing movement", () => {
   const s = run();
-  for (let i = 0; i < 75; i++) step(s, { a: { x: 1 } });
   const p = s.players[0];
-  step(s, { a: { cast: true } });
-  assert.equal(s.echoes.length, 1);
-  const e = s.echoes[0];
-  assert.ok(p.x - e.x > 200);
   s.shots.push({
     id: 9999,
-    x: (p.x + e.x) / 2,
+    x: p.x + 50,
     y: p.y,
     vx: 0,
     vy: 0,
@@ -56,30 +52,35 @@ test("casting remembers movement and thread catches enemy shots", () => {
     life: 1,
     _hits: [],
   });
-  step(s, {});
+  step(s, { a: { cast: true } });
   assert.equal(s.caught, 1);
   assert.equal(
     s.shots.some((b) => b.id === 9999),
     false,
   );
+  assert.deepEqual(s.echoes, []);
+  assert.ok(
+    s.effects.some((e) => e.type === "sweep" && e.radius === p.sweepRadius),
+  );
   const before = p.castCooldown;
   step(s, { a: { cast: true } });
   assert.ok(p.castCooldown < before);
 });
-test("thread charges flowers, bursts damage creatures and heal allies", () => {
+test("nearby supplies activate and heal staff without sweeping", () => {
   const s = run(),
     p = s.players[0];
   p.hp = 50;
-  p._history = Array.from({ length: 90 }, () => ({ x: p.x - 100, y: p.y }));
-  s.flowers = [{ id: 222, x: p.x - 50, y: p.y, charge: 0.99, life: 10 }];
+  s.flowers = [
+    { id: 222, kind: "supply", x: p.x - 50, y: p.y, charge: 0.99, life: 10 },
+  ];
   s.enemies = [
     {
       id: 333,
       type: "mite",
       x: p.x - 50,
       y: p.y + 40,
-      hp: 50,
-      maxHp: 50,
+      hp: 25,
+      maxHp: 25,
       r: 10,
       hit: 0,
       phase: 0,
@@ -88,8 +89,8 @@ test("thread charges flowers, bursts damage creatures and heal allies", () => {
       slow: 0,
     },
   ];
-  step(s, { a: { cast: true } }, 0.1);
-  assert.ok(s.effects.some((e) => e.type === "bloom"));
+  step(s, {}, 0.1);
+  assert.ok(s.effects.some((e) => e.type === "supply"));
   assert.equal(s.kills, 1);
   assert.ok(p.hp > 50);
 });
@@ -145,7 +146,7 @@ test("ally revives nearby downed player; all down is loss", () => {
   assert.equal(startGame(s), true);
   assert.equal(s.wave, 1);
 });
-test("final warden defeat wins and malformed movement/traits stay bounded", () => {
+test("final Curator defeat wins and malformed movement/traits stay bounded", () => {
   const s = run();
   s.wave = 7;
   s.phase = "draft";
@@ -233,17 +234,26 @@ test("complete real-health runs remain winnable for one, two and four players", 
             down = s.players.find((q) => q.dead);
           const x = down ? down.x : 600 + Math.cos(angle) * 330,
             y = down ? down.y : 400 + Math.sin(angle) * 220;
+          const goal = steerAroundCover(mapById(s.mapId), p, { x, y }, 10);
           inputs[p.id] = {
-            x: (x - p.x) / 35,
-            y: (y - p.y) / 35,
-            cast: tick % 170 === 0,
+            x: (goal.x - p.x) / 35,
+            y: (goal.y - p.y) / 35,
+            cast:
+              s.enemies.some(
+                (e) => Math.hypot(e.x - p.x, e.y - p.y) <= p.sweepRadius + e.r,
+              ) ||
+              s.shots.some(
+                (b) =>
+                  b.hostile &&
+                  Math.hypot(b.x - p.x, b.y - p.y) <= p.sweepRadius,
+              ),
           };
         }
         step(s, inputs);
       }
       assert.ok(["won", "lost"].includes(s.phase), "a run must terminate");
       assert.ok(s.wave >= 7, "basic movement must survive introductory waves");
-      assert.ok(s.caught > 20, "echo play must intercept shots");
+      assert.ok(s.caught > 20, "broom and supplies must clear hostile shots");
       if (s.phase === "won") wins++;
     }
     assert.ok(

@@ -27,7 +27,7 @@ async (page) => {
       window.__threadwake.state.players.some((p) => p.name === "Moss"),
     );
     await page
-      .getByRole("button", { name: "Enter the grove", exact: true })
+      .getByRole("button", { name: "Start shift", exact: true })
       .click();
     await guest.waitForFunction(
       () => window.__threadwake.state.phase === "playing",
@@ -44,7 +44,7 @@ async (page) => {
     await guest.keyboard.up("d");
     await guest.keyboard.press("Space");
     await page.waitForFunction(
-      (id) => window.__threadwake.state.echoes.some((e) => e.owner === id),
+      (id) => window.__threadwake.state.effects.some((e) => e.type === "sweep" && e.owner === id),
       gid,
     );
     const after = await page.evaluate(

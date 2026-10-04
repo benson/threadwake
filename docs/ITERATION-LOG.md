@@ -1,5 +1,21 @@
 # Continuing craft work
 
+## Active direction — After Hours
+
+On October 4, Benson rejected the time-echo premise and selected a haunted museum night shift. The game is being redesigned as **After Hours**: a custodian with automatic marble shots, an immediate broom sweep, and borrowed curios that create unusual survivor builds. This supersedes the woodland/echo design documented below. Keep the existing hosting and earned progression while replacing the old mechanic.
+
+The integrated redesign replaces the old mechanic, art, sound and upgrade meanings. Four galleries have shared visible/collision geometry; marbles originate at the visible weapon socket; player damage follows the torso rather than the feet. Protocol 3 and replay 4 reject incompatible older sessions. Existing banked progression is retained.
+
+## 2026-10-04 — museum release and blind art review
+
+Start screen now shows permanent equipment, saved credits, best wave and the four-gallery route. Sixteen curios have original pixel illustrations. All game/UI ornament is raster pixel work, including the favicon, controls and workshop guides. The custodian has a planted stride, aimed slingshot/recoil and a gripped immediate broom action. A bottom-edge playtest exposed HUD occlusion; the existing sweep meter now feathers when the player's body passes underneath. Drafts hide the underlying HUD to prevent overlapping text.
+
+Independent OpenRouter image reviews covered 76 numbered assets/poses/effects/maps plus actual start, combat and draft screenshots. Findings and limits are in `ART-REVIEW.md`. Two revision passes corrected the arrowhead, metronome, paperweight, jack-in-the-box, beetle legs, cart charge states and exhibit silhouettes. Projectiles and impact/protection effects now separate from quieter floor ornament. Seven review requests cost $0.117284 total against the authorized cumulative $5 cap; preserve `.local/openrouter/budget.json` and do not reset it.
+
+Validation: all 75 tests passed, including geometry, map collision, legacy progression, recovery and real-health complete runs. Focused presentation/budget tests passed after the final presentation change. Build passed. Browser checks covered five field sizes, purchases applying next shift, held/buffered sweep, mocked controller input, smooth movement/pause, two-client local multiplayer and reconnect, and pixel-identical workshop replay/export/import. Actual keyboard play reached the first draft at 38 seconds with 31 kills and 110 HP, picked a curio and resumed. A focused bottom-edge check verified the meter at 12% opacity over the visible torso. Physical phone/controller hardware remains unverified. Bot wins and still-image reviews are not claims of AAA quality or human enjoyment.
+
+Next: temporal stride/attack contact sheets (the initial actor sheet is a pose sampler, not a frame sequence), crowded late-wave human play, remaining supply-state readability at 1×, and a clearer permanent-equipment entry label if approved. Ship through existing tests → Worker → live multiplayer → Pages gates.
+
 ## 2026-10-04 — field, opening, and footsteps
 
 The owner requested ongoing refinement after the original 50-change pass: UI contained inside the game field, a faster opening, discoverable permanent progression, richer motion and art, and genuine footsteps that preview an echo.
@@ -44,5 +60,5 @@ The boundary and core frames were visually reviewed: the near-edge pop is gone a
 - First field/opening increment shipped as `2bd5cc1`; Actions run `37236556555` passed tests/build, Worker, live multiplayer and Pages. The public browser confirmed the 38-second opening, fixed field and in-run shop.
 - Movement/contrast shipped as `73c61a4`; Actions run `37237224296` passed on rerun. The first live check saw a connection close before its latency reply, so Pages stayed gated; a fresh identical live check and the rerun passed without changing the gate.
 - Continue focused playtests for combat readability, visual crowding, movement/cast continuity, and frame pacing. Fix demonstrated friction rather than adding unrelated systems or UI.
-- OpenRouter reviews are requested, but the API-key location and spending cap are still pending. No paid call has been made. `scripts/openrouter-review.mjs` requires an explicitly approved ignored budget ledger and environment credential; it retains reservations for unknown costs. Reviews must distinguish screenshot/source evidence from actual play.
+- OpenRouter reviews are active under the cumulative $5 approval. `scripts/openrouter-review.mjs` requires the existing ignored budget ledger and environment credential; it retains reservations for unknown costs. Reviews must distinguish screenshot/source evidence from actual play. See the current museum review above; never reset the ledger.
 - The thread heartbeat `keep-improving-threadwake` is already active every 30 minutes. Preserve it rather than creating duplicates; notify only meaningful changes or blockers. The owner asked to keep improving until told to stop.

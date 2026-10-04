@@ -7,11 +7,12 @@ async page => {
   await page.getByRole('button',{name:'Reset motion',exact:true}).click();
   await page.getByRole('combobox',{name:'Pose',exact:true}).selectOption('cast');
   await page.getByRole('button',{name:'Pause',exact:true}).click();
-  await page.getByRole('slider',{name:'Rise · s',exact:true}).fill('0.5');
+  await page.getByRole('slider',{name:'Follow · s',exact:true}).fill('0.5');
   await page.getByRole('button',{name:'impact',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('#phase-name').textContent==='impact');
   const max=Number(await page.locator('#timeline').getAttribute('max'));
-  if(Math.abs(max-1.22)>.001)throw new Error('Phase duration did not update timeline');
+  const expected=await page.locator('#param-impact, #param-follow, #param-settle, #param-recover').evaluateAll(es=>es.reduce((n,e)=>n+Number(e.value),0));
+  if(Math.abs(max-expected)>.001)throw new Error('Phase duration did not update timeline');
   await page.getByRole('combobox',{name:'Direction',exact:true}).selectOption('up');
   await page.getByRole('combobox',{name:'Speed',exact:true}).selectOption('.25');
   await page.screenshot({path:'output/playwright/lab-motion.png',fullPage:true});

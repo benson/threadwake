@@ -4,8 +4,8 @@ async page => {
     window.testPad={axes:[0,0],buttons:Array.from({length:10},()=>({pressed:false}))};
     navigator.getGamepads=()=>[window.testPad];
   });
-  await page.goto('http://127.0.0.1:4319/');
-  await page.getByRole('button',{name:'Enter the grove',exact:true}).click();
+  await page.goto('http://127.0.0.1:4320/');
+  await page.getByRole('button',{name:'Start shift',exact:true}).click();
   const x=await page.evaluate(()=>window.__threadwake.state.players[0].x);
   await page.evaluate(()=>window.testPad.axes=[.1,.1]);
   await page.waitForTimeout(200);
@@ -22,7 +22,7 @@ async page => {
   await page.evaluate(()=>window.testPad.buttons[9].pressed=true);
   await page.waitForFunction(()=>!document.querySelector('#options').open);
   await page.evaluate(()=>{window.testPad.buttons[9].pressed=false;window.testPad.buttons[0].pressed=true;});
-  await page.waitForFunction(()=>window.__threadwake.state.echoes.length>0);
+  await page.waitForFunction(()=>window.__threadwake.state.players[0].castCooldown>4);
   await page.evaluate(()=>window.testPad.buttons[0].pressed=false);
   return {mockController:true,deadzone:true,movement:after-x,pauseAndResume:true,cast:true};
 }

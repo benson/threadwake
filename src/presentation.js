@@ -1,11 +1,12 @@
-import { TICK_RATE, WORLD } from "./config.js";
+import { TICK_RATE } from "./config.js";
+import { mapById, mapForWave, moveInMap } from "./maps.js";
 
 const STEP = 1 / TICK_RATE;
 const MAX_GAP = 0.2;
 const finite = (value, fallback = 0) =>
   Number.isFinite(value) ? value : fallback;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
-const groups = ["players", "enemies", "shots", "echoes"];
+const groups = ["players", "enemies", "shots", "echoes", "companions"];
 const motionFields = [
   "x",
   "y",
@@ -28,6 +29,7 @@ export function capturePresentation(state) {
     "runNumber",
     "phase",
     "wave",
+    "mapId",
     "time",
     "tick",
   ])
@@ -45,7 +47,7 @@ export function capturePresentation(state) {
 function compatible(previous, current) {
   if (!previous || previous.phase !== "playing" || current.phase !== "playing")
     return false;
-  for (const key of ["version", "seed", "runNumber", "wave"])
+  for (const key of ["version", "seed", "runNumber", "wave", "mapId"])
     if (previous[key] !== current[key]) return false;
   const elapsed = current.time - previous.time;
   return Number.isFinite(elapsed) && elapsed > 0 && elapsed <= MAX_GAP;
@@ -91,12 +93,9 @@ function clocks(entity, old, lead, elapsed) {
   const result = { ...entity };
   // An action reset is already authoritative. Advance from the current action,
   // never blend from the prior cast or from the idle sentinel.
-  if (
-    Number.isFinite(entity.castAge) &&
-    entity.castAge >= 0 &&
-    entity.castAge < 999
-  )
-    result.castAge = Math.min(999, entity.castAge + lead);
+  for (const key of ["castAge", "shotAge"])
+    if (Number.isFinite(entity[key]) && entity[key] >= 0 && entity[key] < 999)
+      result[key] = Math.min(999, entity[key] + lead);
   for (const key of ["life", "hit", "fireIn", "exposed"])
     if (Number.isFinite(entity[key]))
       result[key] = Math.max(0, entity[key] - lead);
@@ -141,6 +140,7 @@ export function presentState(
   const canBlend = compatible(previous, current);
   const elapsed = canBlend ? current.time - previous.time : 0;
   const view = { ...current, time: finite(current.time) + lead };
+  const map = current.mapId ? mapById(current.mapId) : mapForWave(current.wave);
   for (const group of groups) {
     const oldById = new Map(
       canBlend ? (previous[group] || []).map((p) => [p.id, p]) : [],
@@ -154,11 +154,16 @@ export function presentState(
         result.y = old.y + (entity.y - old.y) * blend;
         if (group === "players" && entity.id === localId && !entity.dead) {
           const velocity = movement(entity, input);
-          result.x = clamp(entity.x + velocity.vx * lead, 18, WORLD.width - 18);
-          result.y = clamp(
-            entity.y + velocity.vy * lead,
-            18,
-            WORLD.height - 18,
+          Object.assign(
+            result,
+            moveInMap(
+              map,
+              entity,
+              velocity.vx * lead,
+              velocity.vy * lead,
+              10,
+              18,
+            ),
           );
           result.vx = velocity.vx;
           result.vy = velocity.vy;

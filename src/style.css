@@ -13,8 +13,8 @@ body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: #101d21;
-  color: #f0dfb9;
+  background: #111722;
+  color: #f3e6c8;
   font-family: Weave, monospace;
   font-size: 24px;
   -webkit-tap-highlight-color: transparent;
@@ -31,8 +31,8 @@ input {
 }
 button {
   color: inherit;
-  background: #263e3b;
-  border: 2px solid #647464;
+  background: #24313e;
+  border: 2px solid #7b7767;
   padding: 9px 24px;
   cursor: pointer;
   box-shadow: none;
@@ -40,9 +40,9 @@ button {
   min-height: 44px;
 }
 button.primary {
-  background: #e7cea0;
-  color: #263d37;
-  border-color: #fff0c5;
+  background: #d8b775;
+  color: #192532;
+  border-color: #f3e6c8;
 }
 button:active {
   transform: translateY(2px);
@@ -60,12 +60,12 @@ input:focus-visible {
 }
 @media (hover: hover) and (pointer: fine) {
   button:hover:not(:disabled) {
-    background: #4a6351;
+    background: #3d4b59;
     color: #fff0cb;
   }
   button.primary:hover {
     background: #f4e5bf;
-    color: #17302f;
+    color: #192532;
   }
   a:hover {
     color: #fff0cb;
@@ -108,28 +108,28 @@ input:focus-visible {
 }
 .title-screen {
   justify-content: space-between;
-  padding: 34px 24px 20px;
-  background: linear-gradient(#0c222640, transparent 45%, #102222c9);
+  padding: 26px 24px 12px;
+  background: #11172255;
 }
 .title-lockup {
   text-align: center;
-  text-shadow: 0 4px #172c2b;
+  text-shadow: 0 4px #111722;
 }
 .eyebrow {
   font-size: 20px;
   letter-spacing: 3px;
-  color: #c7c8a1;
+  color: #c3bba7;
 }
 h1 {
-  font-size: 100px;
+  font-size: 86px;
   font-weight: 400;
   line-height: 0.9;
   letter-spacing: 5px;
   margin: 16px 0 5px;
-  color: #f9e3af;
+  color: #f3e6c8;
   text-shadow:
-    0 5px #87684d,
-    0 9px #172c2b;
+    0 5px #725947,
+    0 9px #111722;
 }
 h2 {
   font-size: 42px;
@@ -143,14 +143,154 @@ p {
 .title-ornament {
   font-size: 27px;
   letter-spacing: 7px;
-  color: #d9ae74;
+  color: #d8b775;
 }
 .menu-actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 260px;
-  margin-top: auto;
+  margin-top: 0;
+}
+.title-body {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  margin-top: 12px;
+}
+.title-screen .controls {
+  margin: 12px 0 4px;
+}
+.staff-record {
+  width: 330px;
+  padding: 16px 20px;
+  background: #192532ec;
+  border: 2px solid #7b7767;
+  text-align: left;
+}
+.record-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 17px;
+  color: #c3bba7;
+  align-items: center;
+}
+.record-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.record-label .menu-art {
+  width: 26px;
+  height: 26px;
+}
+.menu-art,
+.ability-art,
+.result-art {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  flex: none;
+}
+.illustrated-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 8px 16px;
+}
+.menu-actions > .illustrated-button .menu-art {
+  width: 40px;
+  height: 40px;
+}
+.small-actions #memories-button {
+  gap: 6px;
+  padding: 6px 10px;
+}
+.small-actions #options-button {
+  flex: 0 0 50px;
+  padding: 6px;
+}
+.small-actions .menu-art {
+  width: 28px;
+  height: 28px;
+}
+.illustrated-heading,
+.talent-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.illustrated-heading .menu-art {
+  width: 36px;
+  height: 36px;
+}
+.options-heading {
+  margin-bottom: 16px;
+}
+.options-heading #options-title {
+  margin: 0;
+}
+.talent-heading .menu-art {
+  width: 30px;
+  height: 30px;
+}
+.result-art {
+  width: 56px;
+  height: 56px;
+  display: block;
+  margin: 0 auto 10px;
+}
+#hud #ability {
+  padding-left: 52px;
+}
+.ability-art {
+  position: absolute;
+  left: 10px;
+  top: 12px;
+  width: 32px;
+  height: 32px;
+}
+#title-credits {
+  display: block;
+  font-size: 30px;
+  font-weight: 400;
+  color: #d8b775;
+  margin-top: 5px;
+}
+#title-equipment {
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 4px 0 12px;
+  color: #c4c5c2;
+}
+.route-heading {
+  font-size: 20px;
+  color: #f3e6c8;
+}
+#gallery-route {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  font-size: 18px;
+  color: #b8c5cd;
+}
+#gallery-route li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  line-height: 1.2;
+}
+#gallery-route span {
+  color: #d8b775;
+}
+#gallery-name {
+  display: block;
+  font-size: 17px;
+  color: #d8b775;
+  margin-bottom: 2px;
 }
 .small-actions {
   display: flex;
@@ -164,14 +304,14 @@ p {
 .controls {
   font-size: 20px;
   text-align: center;
-  color: #c0c6aa;
+  color: #c4c5c2;
   line-height: 1.5;
 }
 .workshop-link {
   position: absolute;
   right: 24px;
   bottom: 20px;
-  color: #a1af97;
+  color: #99a9b3;
   font-size: 18px;
   text-decoration: none;
 }
@@ -180,26 +320,26 @@ dialog {
   max-width: 520px;
   width: min(100%, 520px);
   padding: 32px;
-  background: #182e2ef5;
-  border: 3px solid #82917a;
+  background: #192532f5;
+  border: 3px solid #958973;
   box-shadow:
-    0 0 0 5px #142322,
-    0 12px 40px #0005;
+    0 0 0 5px #111722,
+    0 8px 0 #11172299;
   text-align: center;
-  color: #f0dfb9;
+  color: #f3e6c8;
 }
 input[type="text"],
 input:not([type]) {
   width: 100%;
   margin: 8px 0 12px;
-  background: #122424;
-  color: #f3e1bb;
-  border: 2px solid #647464;
+  background: #111c28;
+  color: #f3e6c8;
+  border: 2px solid #7b7767;
   padding: 8px 12px;
 }
 label {
   display: block;
-  color: #c4c5a7;
+  color: #c4c5c2;
 }
 label.check {
   display: flex;
@@ -231,15 +371,14 @@ input[type="checkbox"] {
   flex-direction: column;
   gap: 6px;
   padding: 10px 0;
-  color: #decc9e;
+  color: #d8b775;
 }
 #party span {
   padding: 5px;
-  background: #29413c;
+  background: #2c3947;
 }
 .shade {
-  background: #0b1b22c9;
-  backdrop-filter: blur(2px);
+  background: #101721dc;
 }
 .draft-content {
   text-align: center;
@@ -254,7 +393,7 @@ input[type="checkbox"] {
   padding: 25px 18px;
   min-height: 210px;
   text-align: left;
-  background: #233c37;
+  background: #253342;
   display: flex;
   flex-direction: column;
   align-items: start;
@@ -262,7 +401,7 @@ input[type="checkbox"] {
 }
 .upgrade .glyph {
   font-size: 42px;
-  color: #edc58a;
+  color: #d8b775;
 }
 .upgrade strong {
   font-weight: 400;
@@ -271,15 +410,15 @@ input[type="checkbox"] {
 .upgrade small {
   font-size: 20px;
   line-height: 1.2;
-  color: #c8c9ac;
+  color: #c8cccf;
 }
 .upgrade .key {
   font-size: 18px;
   margin-top: auto;
-  color: #9eaf98;
+  color: #a9b6bf;
 }
 .upgrade.selected {
-  background: #53664a;
+  background: #425267;
   border-color: #edd6a3;
 }
 dialog {
@@ -350,7 +489,7 @@ dialog::backdrop {
   position: absolute;
   right: 16px;
   top: 16px;
-  background: #193731bb;
+  background: #192532dd;
   padding: 0 12px;
   min-height: 36px;
   box-shadow: none;
@@ -362,7 +501,7 @@ dialog::backdrop {
   transform: translateX(-50%);
   text-align: center;
   font-size: 21px;
-  background: #19322dde;
+  background: #192532de;
   border: 2px solid #6a806c;
   padding: 8px 18px;
   min-width: 160px;
@@ -401,7 +540,7 @@ dialog::backdrop {
   bottom: 88px;
   transform: translateX(-50%);
   padding: 10px 20px;
-  background: #e5d1a5;
+  background: #e7d7b3;
   color: #213d37;
   z-index: 20;
   max-width: 90%;
@@ -436,7 +575,7 @@ dialog::backdrop {
   width: 100px;
   height: 100px;
   border: 2px solid #d1dabb66;
-  border-radius: 50%;
+  border-radius: 0;
   background: #233d3655;
   pointer-events: auto;
   touch-action: none;
@@ -449,7 +588,7 @@ dialog::backdrop {
   height: 36px;
   background: #c9d6b877;
   border: 2px solid #d1dabb88;
-  border-radius: 50%;
+  border-radius: 0;
 }
 #touch-cast {
   position: absolute;
@@ -493,7 +632,7 @@ dialog::backdrop {
 #loadout span {
   padding: 5px 8px;
   background: #273f3b;
-  border-radius: 5px;
+  border-radius: 0;
   font-size: 17px;
 }
 #milestones {
@@ -515,30 +654,37 @@ dialog {
   position: absolute;
   right: 16px;
   top: 62px;
-  background: #19322dde;
+  background: #192532de;
   padding: 7px 10px;
   font-size: 19px;
   min-height: 36px;
-  color: #e7cea0;
+  color: #d8b775;
 }
 #hud-memories .memory-label {
-  color: #bdc9ac;
+  color: #b8c5cd;
   margin-left: 5px;
 }
 #memories {
   width: 740px;
+  padding: 24px;
+}
+.kit-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
 }
 #memories h2 {
   margin: 5px 0 8px;
 }
 #memory-balance {
   font-size: 30px;
-  color: #e7cea0;
+  color: #d8b775;
   margin: 8px 0;
 }
 #memory-explainer {
   font-size: 19px;
-  color: #bcc6a9;
+  color: #b8c5cd;
   margin: 10px 0;
 }
 #talents {
@@ -552,31 +698,38 @@ dialog {
   align-items: center;
   text-align: center;
   gap: 9px;
-  padding: 18px 12px;
+  padding: 14px 12px;
   min-height: 158px;
+}
+.talent-effect {
+  display: block;
+  font-size: 18px;
+  line-height: 1.15;
+  white-space: pre-line;
+  color: #c4c5c2;
 }
 .talent strong {
   font-size: 30px;
   font-weight: 400;
 }
 .talent-ranks {
-  color: #dcbe83;
-  letter-spacing: 8px;
-  margin-left: 8px;
+  color: #d8b775;
+  letter-spacing: 0;
+  margin-left: 0;
   font-size: 21px;
 }
 .talent-price {
   font-size: 18px;
   margin-top: auto;
-  color: #eddbb5;
+  color: #f3e6c8;
 }
 #talents .talent:disabled {
   opacity: 1;
-  background: #1c3330;
-  border-color: #455c50;
+  background: #1d2a38;
+  border-color: #435361;
 }
 #talents .talent:disabled .talent-price {
-  color: #899c88;
+  color: #8d9ca8;
 }
 #milestone-details {
   font-size: 19px;
@@ -585,11 +738,102 @@ dialog {
 }
 #milestone-details summary {
   cursor: pointer;
-  color: #becbae;
+  color: #b8c5cd;
+  list-style: none;
+}
+#milestone-details summary::-webkit-details-marker {
+  display: none;
+}
+.pixel-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: -2px;
+  image-rendering: pixelated;
+  flex: none;
+}
+#squad > span {
+  margin-right: 12px;
+}
+input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  background: #111722;
+  border: 2px solid #7b7767;
+  border-radius: 0;
+  flex: none;
+}
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  left: 2px;
+  top: 6px;
+  background: #d8b775;
+  box-shadow:
+    2px 2px #d8b775,
+    4px 0 #d8b775,
+    6px -2px #d8b775,
+    8px -4px #d8b775;
+}
+input[type="range"] {
+  appearance: none;
+  background: transparent;
+  height: 22px;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #7b7767;
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 18px;
+  margin-top: -7px;
+  border: 2px solid #f3e6c8;
+  border-radius: 0;
+  background: #d8b775;
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: #7b7767;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 16px;
+  border: 2px solid #f3e6c8;
+  border-radius: 0;
+  background: #d8b775;
+}
+select:not([multiple]) {
+  appearance: none;
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+  padding-right: 28px;
+  image-rendering: pixelated;
+}
+input[type="number"] {
+  appearance: textfield;
+}
+input::-webkit-inner-spin-button,
+input::-webkit-outer-spin-button {
+  appearance: none;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background: #111722;
+}
+::-webkit-scrollbar-thumb {
+  background: #7b7767;
+  border: 2px solid #111722;
+  border-radius: 0;
 }
 #milestone-count {
   float: right;
-  color: #e7cea0;
+  color: #d8b775;
 }
 #options h2 {
   font-size: 36px;
@@ -618,5 +862,43 @@ dialog {
   margin-top: 16px;
 }
 body:has(#memories[open]) #hud-memories {
-  background: #435742;
+  background: #425267;
+}
+
+/* Borrowed objects stay legible at the fixed game scale. */
+.curio-icon {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+  flex: none;
+}
+.upgrade {
+  padding: 18px 16px;
+  gap: 10px;
+  min-height: 300px;
+}
+.upgrade strong {
+  font-size: 26px;
+}
+.upgrade small {
+  font-size: 18px;
+}
+.draft-content h2 {
+  font-size: 36px;
+  margin: 8px 0 16px;
+}
+.draft-content .eyebrow {
+  font-size: 18px;
+}
+#draft-status {
+  font-size: 18px;
+  margin: 12px 0 0;
+}
+
+.loadout-icon {
+  width: 22px;
+  height: 22px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 6px;
 }

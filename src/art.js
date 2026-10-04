@@ -1,167 +1,48 @@
 import { pose } from "./animation.js";
+import { bodyCircle, weaponMuzzle } from "./combat-geometry.js";
 
+// Moonlit slate, polished walnut, brass, porcelain, and a little red velvet.
 export const PALETTE = Object.freeze({
-  ink: "#14232c",
-  shadow: "#172e32",
-  ground: "#294337",
-  moss: "#36513b",
-  grass: "#436344",
-  leaf: "#597b4a",
-  light: "#82925a",
-  bark: "#374039",
-  wood: "#58604a",
-  stone: "#415452",
-  stoneLight: "#647568",
-  stoneTop: "#83917a",
-  cream: "#eee3b8",
-  creamShade: "#c4bd8e",
-  creamDark: "#949374",
-  skin: "#d6a980",
-  teal: "#428f8d",
-  tealLight: "#78beb0",
-  tealDark: "#2e646a",
-  red: "#cf665e",
-  redLight: "#f29b78",
-  redDark: "#883f4e",
-  gold: "#ecc881",
-  white: "#fff3cf",
-  violet: "#ad8bc0",
-  purple: "#645078",
-  blue: "#78b8d0",
-  coral: "#ef8c87",
-  echoDark: "#376c70",
-  echoMid: "#65a5a3",
-  echoLight: "#b4d2bd",
+  ink: "#101925",
+  shadow: "#192431",
+  ground: "#293645",
+  moss: "#303f4d",
+  grass: "#405162",
+  leaf: "#617185",
+  light: "#8e9aa4",
+  bark: "#3c3037",
+  wood: "#765341",
+  stone: "#485a6c",
+  stoneLight: "#788a99",
+  stoneTop: "#a4b0ae",
+  cream: "#f3e5c5",
+  creamShade: "#d0bb98",
+  creamDark: "#998c7d",
+  skin: "#d4a88a",
+  teal: "#4f8294",
+  tealLight: "#80b7c2",
+  tealDark: "#31596c",
+  red: "#ae4e59",
+  redLight: "#e58d7e",
+  redDark: "#6d333f",
+  gold: "#dbb96f",
+  white: "#fff5dd",
+  violet: "#ad9bc3",
+  purple: "#685979",
+  blue: "#9bc8d5",
+  coral: "#e69a87",
+  echoDark: "#31596c",
+  echoMid: "#6e9eab",
+  echoLight: "#b7d0ce",
 });
-export const PLAYER_COLORS = ["#7ec7bb", "#efbb76", "#b4a0d4", "#d88fa5"];
-const TEALS = [
-  ["#2e646a", "#428f8d", "#78beb0"],
-  ["#85563e", "#bd874b", "#edbc74"],
-  ["#595378", "#82749f", "#b0a0cf"],
-  ["#783f59", "#b3657a", "#e59caa"],
+export const PLAYER_COLORS = ["#75b9bd", "#e7b47d", "#b4a2d2", "#d8959f"];
+const UNIFORMS = [
+  ["#274b61", "#45798a", "#76afae"],
+  ["#635044", "#9e7560", "#d9b18b"],
+  ["#494867", "#756f99", "#afa6cc"],
+  ["#633d54", "#a3687e", "#d8a0ad"],
 ];
 
-// A sprite is a carefully authored cluster map. Dots are transparent; no image assets.
-const HOOD = [
-  "......oooooo......",
-  "....ooddddddoo....",
-  "...odcccccccddo...",
-  "..odccccccccccdo..",
-  ".odccwwccccccccdo.",
-  ".odcwwccccccccddo.",
-  "odccwccccccccccdo.",
-  "odcccddddddddccdo.",
-  "odccdoiiiiiiodcdo.",
-  ".ocdoiissssioddo..",
-  ".oddoiisissiioo...",
-  "..odoiissssioo....",
-  "...ooddssddoo.....",
-  ".....oooooo.......",
-];
-const BACK = [
-  "......oooooo......",
-  "....ooddddddoo....",
-  "...odcccccccddo...",
-  "..odccccccccccdo..",
-  ".odccwwccccccccdo.",
-  ".odcwwccccccccddo.",
-  "odccwccccccccccdo.",
-  "odcccccccccccccdo.",
-  "odccccccccccccddo.",
-  ".odcccccccccdddo..",
-  ".odccccccccdddoo..",
-  "..odccccddddoo....",
-  "...odddddddoo.....",
-  ".....oooooo.......",
-];
-const COAT = [
-  "....ooooooo....",
-  "...ottllltto...",
-  "..ottllllttto..",
-  ".odtllltltttto.",
-  "oddttlltltttdo.",
-  "odtttlltltttdo.",
-  "odttttttltttdo.",
-  ".odttttttttdo..",
-  ".oddtttttttddo.",
-  "odddttttttdddo.",
-  "oddddttttdddoo.",
-  ".ooooo..ooooo..",
-];
-const MITE = [
-  "....oo.....oo....",
-  "...ollo...ollo...",
-  "....ollo.ollo....",
-  "...oodoooooodo...",
-  "..odddrrrrddddo..",
-  ".odrrRRRRRRrrdo..",
-  "odrRRRRRRRRRRrdo.",
-  "odrRRRrrrRRRRrdo.",
-  "odrrRroorRRorrdo.",
-  ".odrrrooRRroodo..",
-  "..odrrrrrrrddo...",
-  "...oddddddddo....",
-  "..oodoooooodoo...",
-  ".oo..........oo..",
-];
-const THORN = [
-  ".......oo........",
-  "......oloo.......",
-  "...oo.olllo......",
-  "..olloollllo.....",
-  "..ollllolloo.....",
-  "...olloollo......",
-  "....oooooo.......",
-  "...orrRRrro......",
-  "..orrRRRRrro.....",
-  ".orrRRRRRRrro....",
-  ".orRooRRooRro....",
-  ".orRwoRRwoRro....",
-  "..orrrrrrrro.....",
-  "...odddddo.......",
-  "..odddddddo......",
-  ".oddooddooddo....",
-  "oo...oooo...oo...",
-];
-const MOTH = [
-  "..oo..............oo..",
-  ".ovvo............ovvo.",
-  "ovvvvo...oo.....ovvvvo",
-  "ovllvvo.ollo..ovvllvo.",
-  "ovlllvvooddooovvlllvvo",
-  ".ovllvvvoRRovvvllvvo..",
-  "..ovvvvvorrovvvvvvo...",
-  "...ovvvvoRRovvvvvo....",
-  "....ovvoorroovvo......",
-  "...ovvo.orro.ovvo.....",
-  "...ovo..oooo..ovo.....",
-  "....o..........o......",
-];
-const FERN = [
-  "......l......",
-  "..l...l...l..",
-  "...l..l..l...",
-  "ll..l.l.l..ll",
-  "..ll.lll.ll..",
-  "....lllll....",
-  "lll..lll..lll",
-  "...lllllll...",
-  ".....lll.....",
-  "......d......",
-];
-const FLOWER = [
-  "....ww....",
-  "..wwggww..",
-  "..wggggw..",
-  ".wggyyggw.",
-  ".wggyyggw.",
-  "..wggggw..",
-  "..wwggww..",
-  "....dd....",
-  ".ll.dd.ll.",
-  "..llddll..",
-  "....dd....",
-];
 export function pixel(ctx, x, y, w, h, color) {
   ctx.fillStyle = color;
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
@@ -217,381 +98,526 @@ export function oval(ctx, x, y, rx, ry, color) {
 export function shadow(ctx, x, y, r = 10) {
   oval(ctx, x, y, r, 3, PALETTE.shadow);
 }
-export function drawActor(ctx, actor, time, settings = {}) {
+
+function broom(ctx, handX, handY, tipX, tipY, face, striking) {
+  line(ctx, handX, handY, tipX, tipY, PALETTE.ink, 3);
+  line(ctx, handX + 1, handY, tipX + 1, tipY, PALETTE.wood, 1);
+  const baseX = tipX + face * (striking ? 2 : 0),
+    baseY = tipY + (striking ? 0 : 1);
+  pixel(ctx, baseX - 3, baseY - 1, 7, 3, PALETTE.ink);
+  pixel(ctx, baseX - 4, baseY, 9, 3, PALETTE.creamShade);
+  pixel(ctx, baseX - 5, baseY + 2, 11, 2, PALETTE.gold);
+  for (let i = -4; i <= 4; i += 2)
+    pixel(ctx, baseX + i, baseY + 4, 1, 2 + (i % 3), PALETTE.creamDark);
+  pixel(ctx, baseX - 2, baseY, 5, 1, PALETTE.white);
+}
+// Every point is rasterized; the release point is the simulation's exact muzzle.
+function slingshot(ctx, actor, p, shoulderX, shoulderY) {
+  const m = weaponMuzzle(actor),
+    ax = p.aimX,
+    ay = p.aimY,
+    nx = -ay,
+    ny = ax,
+    gripX = m.x - ax * (5 + p.recoil),
+    gripY = m.y - ay * (5 + p.recoil),
+    forkX = m.x - ax * 2,
+    forkY = m.y - ay * 2;
+  line(ctx, shoulderX, shoulderY, gripX, gripY, PALETTE.ink, 4);
+  line(ctx, shoulderX, shoulderY, gripX, gripY, PALETTE.tealDark, 2);
+  pixel(ctx, gripX - 1, gripY - 1, 3, 3, PALETTE.skin);
+  line(ctx, gripX, gripY, forkX + nx * 4, forkY + ny * 4, PALETTE.ink, 3);
+  line(ctx, gripX, gripY, forkX - nx * 4, forkY - ny * 4, PALETTE.ink, 3);
+  line(ctx, gripX, gripY, forkX + nx * 4, forkY + ny * 4, PALETTE.gold);
+  line(ctx, gripX, gripY, forkX - nx * 4, forkY - ny * 4, PALETTE.wood);
+  const pull = p.firing ? 0 : 3;
+  line(
+    ctx,
+    forkX + nx * 4,
+    forkY + ny * 4,
+    m.x - ax * pull,
+    m.y - ay * pull,
+    PALETTE.cream,
+  );
+  line(
+    ctx,
+    forkX - nx * 4,
+    forkY - ny * 4,
+    m.x - ax * pull,
+    m.y - ay * pull,
+    PALETTE.cream,
+  );
+  pixel(
+    ctx,
+    m.x - 1,
+    m.y - 1,
+    2,
+    2,
+    p.firing ? PALETTE.white : PALETTE.creamShade,
+  );
+  if (p.firing) {
+    line(
+      ctx,
+      m.x + nx * 5,
+      m.y + ny * 5,
+      m.x + nx * 7,
+      m.y + ny * 7,
+      PALETTE.white,
+    );
+    line(
+      ctx,
+      m.x - nx * 5,
+      m.y - ny * 5,
+      m.x - nx * 7,
+      m.y - ny * 7,
+      PALETTE.white,
+    );
+  }
+}
+function aimedEmitter(ctx, actor, ink, color, width) {
+  const c = bodyCircle(actor),
+    m = weaponMuzzle(actor),
+    dx = m.x - c.x,
+    dy = m.y - c.y,
+    length = Math.hypot(dx, dy) || 1,
+    ax = dx / length,
+    ay = dy / length,
+    recoil =
+      actor.shotAge >= 0 && actor.shotAge < 0.18
+        ? 2 * (1 - actor.shotAge / 0.18)
+        : 0;
+  line(
+    ctx,
+    c.x + dx * 0.35 - ax * recoil,
+    c.y + dy * 0.35 - ay * recoil,
+    m.x,
+    m.y,
+    ink,
+    width + 2,
+  );
+  line(ctx, c.x + dx * 0.4, c.y + dy * 0.4, m.x, m.y, color, width);
+  pixel(
+    ctx,
+    m.x - 1,
+    m.y - 1,
+    3,
+    3,
+    actor.shotAge < 0.08 ? PALETTE.white : PALETTE.gold,
+  );
+}
+export function drawCombatGeometry(ctx, actor) {
+  if (actor.dead) return;
+  const c = bodyCircle(actor),
+    m = weaponMuzzle(actor);
+  // Midpoint circle: a one-pixel outline of the collision body.
+  let x = Math.round(c.r),
+    y = 0,
+    error = 1 - x;
+  while (x >= y) {
+    for (const [dx, dy] of [
+      [x, y],
+      [y, x],
+      [-y, x],
+      [-x, y],
+      [-x, -y],
+      [-y, -x],
+      [y, -x],
+      [x, -y],
+    ])
+      pixel(ctx, c.x + dx, c.y + dy, 1, 1, PALETTE.tealLight);
+    y++;
+    if (error < 0) error += 2 * y + 1;
+    else {
+      x--;
+      error += 2 * (y - x) + 1;
+    }
+  }
+  line(ctx, c.x - 2, c.y, c.x + 2, c.y, PALETTE.tealLight);
+  line(ctx, c.x, c.y - 2, c.x, c.y + 2, PALETTE.tealLight);
+  line(ctx, m.x - 2, m.y - 2, m.x + 2, m.y + 2, PALETTE.redLight);
+  line(ctx, m.x - 2, m.y + 2, m.x + 2, m.y - 2, PALETTE.redLight);
+}
+function drawCustodian(ctx, actor, time, settings) {
   const p = pose(actor, time, settings),
+    face = p.face,
     x =
       Math.round(actor.x || 0) +
       (p.hit ? (Math.floor(time * 24) % 2 ? -1 : 1) : 0),
-    y = Math.round(actor.y || 0);
-  if (actor.type && actor.type !== "player") {
-    drawEnemy(ctx, actor, time, settings);
-    return;
-  }
-  const ghost = settings.ghost === true,
-    color = ghost
-      ? [PALETTE.echoDark, PALETTE.echoMid, PALETTE.echoLight]
-      : TEALS[(actor.color || 0) % 4],
-    ink = p.hit ? PALETTE.white : ghost ? PALETTE.echoLight : PALETTE.ink,
-    scarfDark = ghost ? PALETTE.echoDark : PALETTE.redDark,
-    scarfMid = ghost ? PALETTE.echoMid : PALETTE.red,
-    scarfLight = ghost ? PALETTE.echoLight : PALETTE.redLight;
-  const colors = {
-    o: ink,
-    d: ghost ? PALETTE.echoDark : PALETTE.creamDark,
-    c: ghost ? PALETTE.echoMid : PALETTE.creamShade,
-    w: ghost ? PALETTE.echoLight : PALETTE.cream,
-    i: ghost ? PALETTE.echoDark : "#303538",
-    s: ghost ? PALETTE.echoLight : PALETTE.skin,
-  };
+    y = Math.round(actor.y || 0),
+    top = y - 34 - p.bob - Math.round(p.lift),
+    lean = Math.round(p.lean) * face,
+    uniform = UNIFORMS[(actor.color || 0) % UNIFORMS.length],
+    ink = p.hit ? PALETTE.white : PALETTE.ink;
+  shadow(ctx, x, y, 11);
   if (actor.dead) {
-    shadow(ctx, x, y, 10);
-    stamp(ctx, HOOD, x - 9, y - 11, colors);
-    pixel(ctx, x - 5, y - 4, 10, 3, color[0]);
+    pixel(ctx, x - 13, y - 5, 25, 5, ink);
+    pixel(ctx, x - 10, y - 8, 19, 5, uniform[1]);
+    pixel(ctx, x + 7, y - 7, 4, 3, PALETTE.skin);
+    pixel(ctx, x - 13, y - 8, 6, 2, PALETTE.gold);
     return;
   }
-  shadow(ctx, x, y, 10);
-  const top = y - 28 - p.bob - Math.round(p.lift),
-    lean = Math.round(p.lean) * p.face;
-  // Cloth bends in integer segments, keeping its authored pixel edge crisp.
-  const side = -p.face,
-    scarfLength = Math.round(16 + p.scarf * 5);
-  for (let i = scarfLength; i >= 0; i--) {
-    const sy =
-      top +
-      14 +
-      Math.round(Math.sin(p.q * 7 - i * 0.25) * p.scarf * 2) +
-      Math.floor(i / 9);
-    pixel(ctx, x + side * i, sy, 2, 4, scarfDark);
-    pixel(ctx, x + side * i, sy, 2, 2, scarfMid);
-    if (i % 5 === 0) pixel(ctx, x + side * i, sy, 1, 1, scarfLight);
-  }
-  // The swinging boot rises; the planted one never dips below the ground line.
-  const leftBootX = x - 5 + p.leftStride * p.face,
-    rightBootX = x + 2 + p.rightStride * p.face,
-    leftBootY = y - 4 - p.leftLift,
-    rightBootY = y - 4 - p.rightLift;
-  pixel(ctx, leftBootX, leftBootY, 4, 4, ink);
-  pixel(ctx, rightBootX, rightBootY, 4, 4, ink);
-  pixel(ctx, leftBootX, leftBootY, 3, 1, PALETTE.creamDark);
-  pixel(ctx, rightBootX, rightBootY, 3, 1, PALETTE.creamDark);
-  pixel(ctx, leftBootX + (p.face > 0 ? 2 : 0), leftBootY + 2, 2, 1, color[0]);
-  pixel(ctx, rightBootX + (p.face > 0 ? 2 : 0), rightBootY + 2, 2, 1, color[0]);
-  stamp(
+  // Two separate planted boots keep the walk readable against patterned tile.
+  const leftX = x - 6 + p.leftStride * face,
+    rightX = x + 2 + p.rightStride * face;
+  pixel(ctx, leftX, y - 5 - p.leftLift, 5, 5, ink);
+  pixel(ctx, rightX, y - 5 - p.rightLift, 5, 5, ink);
+  pixel(ctx, leftX, y - 5 - p.leftLift, 4, 2, PALETTE.wood);
+  pixel(ctx, rightX, y - 5 - p.rightLift, 4, 2, PALETTE.wood);
+  // Work jacket, contrasting apron, and bright badge identify the custodian.
+  pixel(ctx, x - 10 + lean, top + 15, 20, 15, ink);
+  pixel(ctx, x - 9 + lean, top + 16, 18, 13, uniform[0]);
+  pixel(ctx, x - 8 + lean, top + 17, 16, 5, uniform[1]);
+  pixel(ctx, x - 7 + lean + p.coatSwing, top + 27, 14, 6, ink);
+  pixel(ctx, x - 6 + lean + p.coatSwing, top + 27, 12, 5, uniform[0]);
+  pixel(ctx, x - 5 + lean, top + 19, 10, 13, PALETTE.creamDark);
+  pixel(ctx, x - 4 + lean, top + 20, 8, 10, PALETTE.creamShade);
+  pixel(ctx, x - 4 + lean, top + 20, 2, 8, PALETTE.cream);
+  pixel(
     ctx,
-    COAT,
-    x - 7 + lean + p.coatSwing,
-    top + 14 + Math.round(p.stretch),
-    { o: ink, d: color[0], t: color[1], l: color[2] },
-    p.face < 0,
+    x + 1 + lean,
+    top + 21,
+    2,
+    3,
+    PLAYER_COLORS[(actor.color || 0) % 4],
   );
-  if (!ghost) {
-    // A tiny woven clasp and hem motif stay legible at the 640×360 game scale.
-    pixel(ctx, x - 1 + lean, top + 17, 3, 2, PALETTE.creamDark);
-    pixel(ctx, x + lean, top + 17, 1, 2, PALETTE.gold);
-    pixel(ctx, x - 4 + lean + p.coatSwing, top + 23 + Math.round(p.stretch), 2, 1, color[2]);
-    pixel(ctx, x + 3 + lean + p.coatSwing, top + 23 + Math.round(p.stretch), 2, 1, color[2]);
-  }
-  // The free sleeve counter-swings while running and tucks in for the unwind.
-  const freeX = x - p.face * (9 - p.coatSwing) + lean,
-    freeY = top + 21 + (p.moving ? p.rightLift - p.leftLift : 0) - Math.max(0, Math.round(p.needleReach * 0.35));
-  line(ctx, x - p.face * 5 + lean, top + 18, freeX, freeY, ink, 2);
-  pixel(ctx, freeX - 1, freeY - 1, 3, 3, color[0]);
-  pixel(ctx, freeX, freeY + 1, 2, 2, ghost ? PALETTE.echoLight : PALETTE.skin);
-  // Bone needle, leather grip, and the hand over it.
-  const handX = x + p.face * (10 + Math.round(p.needleReach)) + lean,
-    handY =
-      top +
-      20 -
-      Math.round(p.lift * 1.5) -
-      (p.actionPhase === "impact" ? 2 : 0);
-  line(ctx, handX, handY + 5, handX + p.face * 3, handY - 10, ink, 2);
-  line(
+  pixel(
+    ctx,
+    x - 4 + lean + p.coatSwing,
+    top + 29 + Math.round(p.stretch),
+    8,
+    2,
+    PALETTE.creamDark,
+  );
+  pixel(ctx, x - 2 + lean, top + 25, 4, 1, PALETTE.wood);
+  // The broom is carried in the other hand and strikes on the first frame.
+  const handX = x - face * 10 + lean,
+    handY = top + 21 + (p.moving ? p.leftLift : 0),
+    sweep = p.actionPhase === "impact" || p.actionPhase === "follow",
+    sweepAngle =
+      Math.atan2(p.aimY, p.aimX) +
+      (p.actionPhase === "follow"
+        ? p.actionProgress * 1.8
+        : -0.5 + p.actionProgress * 0.5);
+  line(ctx, x - face * 6 + lean, top + 19, handX, handY, ink, 3);
+  pixel(ctx, handX - 1, handY - 1, 3, 3, PALETTE.skin);
+  broom(
     ctx,
     handX,
-    handY + 4,
-    handX + p.face * 3,
-    handY - 9,
-    PALETTE.creamShade,
+    handY,
+    sweep ? x + Math.cos(sweepAngle) * (28 + p.broomReach) : x - face * 16,
+    sweep ? y - 18 + Math.sin(sweepAngle) * 22 : y - 5 - p.leftLift,
+    face,
+    sweep,
   );
-  pixel(ctx, handX, handY, 3, 3, ghost ? PALETTE.echoLight : PALETTE.skin);
-  pixel(ctx, handX + p.face * 3, handY - 10, 1, 3, PALETTE.white);
-  if (p.actionPhase === "impact" && !ghost) {
-    const tipX = handX + p.face * 3,
-      tipY = handY - 11;
-    pixel(ctx, tipX - 2, tipY, 5, 1, PALETTE.white);
-    pixel(ctx, tipX, tipY - 2, 1, 5, PALETTE.gold);
-  }
-  stamp(
-    ctx,
-    p.back ? BACK : HOOD,
-    x - 9 + (p.moving ? p.face : 0) + lean,
-    top,
-    colors,
-    p.face < 0,
-  );
+  // Fingers wrap over the shaft so a sweeping broom stays visibly held.
+  pixel(ctx, handX - 1, handY - 1, 4, 3, PALETTE.skin);
+  pixel(ctx, handX, handY + 1, 2, 1, PALETTE.creamShade);
+  // A square-billed cap and tired face replace the old hood silhouette.
+  pixel(ctx, x - 8 + lean, top + 5, 17, 11, ink);
+  pixel(ctx, x - 7 + lean, top + 6, 15, 9, PALETTE.skin);
+  pixel(ctx, x - 6 + lean, top + 7, 3, 7, PALETTE.creamDark);
   if (!p.back) {
-    const faceOffset = (p.face < 0 ? -1 : 1) + lean;
-    pixel(
-      ctx,
-      x - 3 + faceOffset,
-      top + 10,
-      1,
-      2,
-      p.blink ? colors.s : ghost ? PALETTE.echoLight : PALETTE.ink,
-    );
-    pixel(
-      ctx,
-      x + 2 + faceOffset,
-      top + 10,
-      1,
-      2,
-      p.blink ? colors.s : ghost ? PALETTE.echoLight : PALETTE.ink,
-    );
+    const eyeY = top + 11;
+    pixel(ctx, x - 4 + lean, eyeY, 2, 2, p.blink ? PALETTE.skin : ink);
+    pixel(ctx, x + 3 + lean, eyeY, 2, 2, p.blink ? PALETTE.skin : ink);
     if (!p.blink) {
-      pixel(ctx, x - 3 + faceOffset, top + 10, 1, 1, PALETTE.white);
-      pixel(ctx, x + 2 + faceOffset, top + 10, 1, 1, PALETTE.white);
+      pixel(ctx, x - 4 + lean, eyeY, 1, 1, PALETTE.white);
+      pixel(ctx, x + 3 + lean, eyeY, 1, 1, PALETTE.white);
+    }
+    pixel(ctx, x - 1 + lean, top + 14, 3, 1, PALETTE.wood);
+  } else pixel(ctx, x - 6 + lean, top + 10, 13, 4, uniform[0]);
+  pixel(ctx, x - 9 + lean, top + 1, 19, 7, ink);
+  pixel(ctx, x - 7 + lean, top + 1, 15, 5, uniform[0]);
+  pixel(ctx, x - 5 + lean, top + 1, 11, 2, uniform[2]);
+  pixel(ctx, x - 10 + lean, top + 7, 20, 3, ink);
+  pixel(ctx, x - 7 + lean, top + 7, 14, 1, uniform[1]);
+  pixel(ctx, x - 1 + lean, top + 4, 3, 3, PALETTE.gold);
+  pixel(ctx, x + lean, top + 4, 1, 1, PALETTE.white);
+  slingshot(ctx, actor, p, x + face * 6 + lean - p.aimX * p.recoil, top + 19);
+}
+function drawSoldier(ctx, actor, time) {
+  const x = Math.round(actor.x),
+    y = Math.round(actor.y),
+    bob = Math.floor(time * 8 + (actor.id || 0)) % 2;
+  shadow(ctx, x, y, 7);
+  pixel(ctx, x - 5, y - 5, 4, 4, PALETTE.ink);
+  pixel(ctx, x + 1, y - 5, 4, 4, PALETTE.ink);
+  pixel(ctx, x - 6, y - 17 - bob, 13, 13, PALETTE.ink);
+  pixel(ctx, x - 5, y - 16 - bob, 11, 11, PALETTE.redDark);
+  pixel(ctx, x - 3, y - 15 - bob, 7, 10, PALETTE.red);
+  for (const yy of [y - 13, y - 10, y - 7])
+    pixel(ctx, x, yy - bob, 2, 1, PALETTE.gold);
+  pixel(ctx, x - 5, y - 24 - bob, 11, 9, PALETTE.ink);
+  pixel(ctx, x - 4, y - 23 - bob, 9, 7, PALETTE.creamShade);
+  pixel(ctx, x - 6, y - 25 - bob, 13, 4, PALETTE.ink);
+  pixel(ctx, x - 3, y - 27 - bob, 7, 3, PALETTE.gold);
+  pixel(ctx, x + 2, y - 21 - bob, 1, 2, PALETTE.ink);
+  aimedEmitter(ctx, actor, PALETTE.ink, PALETTE.wood, 2);
+}
+export function drawActor(ctx, actor, time, settings = {}) {
+  if (actor.type === "soldier") return drawSoldier(ctx, actor, time);
+  if (actor.type && actor.type !== "player")
+    return drawEnemy(ctx, actor, time, settings);
+  drawCustodian(ctx, actor, time, settings);
+}
+
+function beetle(ctx, e, time, ink) {
+  const x = Math.round(e.x),
+    y = Math.round(e.y),
+    hop = Math.round(
+      Math.abs(Math.sin(Math.floor(time * 12) * 0.8 + (e.id || 0))) * 2,
+    );
+  shadow(ctx, x, y, 9);
+  for (const side of [-1, 1]) {
+    for (let leg = 0; leg < 3; leg++) {
+      const rootY = y - 12 + leg * 4 - hop,
+        kneeX = x + side * (11 + (leg === 1 ? 2 : 0)),
+        kneeY = rootY + (leg - 1) * 2,
+        toeX = kneeX + side * 3,
+        toeY =
+          kneeY + 3 + ((Math.floor(time * 12) + leg + (side > 0 ? 1 : 0)) % 2);
+      line(ctx, x + side * 5, rootY, kneeX, kneeY, ink, 2);
+      line(ctx, kneeX, kneeY, toeX, toeY, ink, 2);
+      line(ctx, x + side * 7, rootY, kneeX, kneeY, PALETTE.creamDark);
+      line(ctx, kneeX, kneeY, toeX, toeY, PALETTE.stoneTop);
     }
   }
-  pixel(ctx, x - 5 + lean, top + 13, 11, 2, scarfMid);
-  pixel(ctx, x - 5 + lean, top + 13, 5, 1, scarfLight);
-  // The two bright stitches identify each keeper in a crowded party.
-  if (!ghost) {
-    pixel(
+  oval(ctx, x, y - 7 - hop, 9, 7, ink);
+  oval(ctx, x, y - 8 - hop, 7, 6, PALETTE.creamShade);
+  oval(ctx, x - 2, y - 10 - hop, 5, 3, PALETTE.white);
+  line(ctx, x, y - 13 - hop, x, y - 3 - hop, PALETTE.stoneLight);
+  pixel(ctx, x - 6, y - 8 - hop, 3, 2, PALETTE.blue);
+  pixel(ctx, x + 4, y - 8 - hop, 3, 2, PALETTE.blue);
+  pixel(ctx, x - 3, y - 11 - hop, 1, 1, PALETTE.gold);
+  pixel(ctx, x + 3, y - 11 - hop, 1, 1, PALETTE.gold);
+  // Separate head plate and jointed antennae break the egg silhouette.
+  pixel(ctx, x - 4, y - 18 - hop, 9, 6, ink);
+  pixel(ctx, x - 3, y - 17 - hop, 7, 4, PALETTE.tealDark);
+  pixel(ctx, x - 3, y - 17 - hop, 2, 2, PALETTE.blue);
+  pixel(ctx, x + 2, y - 17 - hop, 2, 2, PALETTE.blue);
+  for (const side of [-1, 1]) {
+    line(
       ctx,
-      x - 5 + lean,
-      top + 18,
-      2,
-      2,
-      PLAYER_COLORS[(actor.color || 0) % 4],
+      x + side * 2,
+      y - 18 - hop,
+      x + side * 5,
+      y - 21 - hop,
+      PALETTE.creamDark,
     );
+    line(
+      ctx,
+      x + side * 5,
+      y - 21 - hop,
+      x + side * 8,
+      y - 21 - hop,
+      PALETTE.cream,
+    );
+    pixel(ctx, x + side * 8, y - 22 - hop, 2, 2, PALETTE.gold);
+  }
+}
+function moth(ctx, e, time, ink) {
+  const x = Math.round(e.x),
+    y = Math.round(e.y),
+    flap = Math.round(Math.sin(Math.floor(time * 12) * 0.65 + (e.id || 0)) * 2);
+  shadow(ctx, x, y, 10);
+  for (const side of [-1, 1]) {
+    oval(ctx, x + side * 7, y - 13 + flap, 8, 6, ink);
+    oval(ctx, x + side * 7, y - 14 + flap, 6, 5, PALETTE.violet);
+    oval(ctx, x + side * 8, y - 16 + flap, 4, 2, PALETTE.cream);
+    pixel(ctx, x + side * 9 - 1, y - 13 + flap, 3, 2, PALETTE.purple);
+    line(
+      ctx,
+      x + side * 3,
+      y - 12 + flap,
+      x + side * 12,
+      y - 16 + flap,
+      PALETTE.creamShade,
+    );
+    pixel(ctx, x + side * 16, y - 14 + flap, 2, 2, PALETTE.creamShade);
+  }
+  oval(ctx, x, y - 12 + flap, 3, 8, ink);
+  pixel(ctx, x - 2, y - 18 + flap, 5, 8, PALETTE.creamShade);
+  pixel(ctx, x - 1, y - 10 + flap, 3, 4, PALETTE.wood);
+  line(ctx, x - 1, y - 20 + flap, x - 4, y - 24 + flap, PALETTE.creamDark);
+  line(ctx, x + 1, y - 20 + flap, x + 4, y - 24 + flap, PALETTE.creamDark);
+  pixel(
+    ctx,
+    x - 1,
+    y - 19 + flap,
+    1,
+    1,
+    e.fireIn < 0.65 ? PALETTE.white : PALETTE.redLight,
+  );
+  pixel(
+    ctx,
+    x + 1,
+    y - 19 + flap,
+    1,
+    1,
+    e.fireIn < 0.65 ? PALETTE.white : PALETTE.redLight,
+  );
+}
+function armor(ctx, e, time, ink) {
+  const x = Math.round(e.x),
+    y = Math.round(e.y),
+    sway = Math.floor(time * 6 + (e.id || 0)) % 2;
+  shadow(ctx, x, y, 12);
+  for (const side of [-1, 1]) {
+    pixel(ctx, x + side * 5 - 2, y - 7, 5, 7, ink);
+    pixel(ctx, x + side * 5 - 1, y - 8, 3, 5, PALETTE.stoneLight);
+    oval(ctx, x + side * 9, y - 20 + sway, 5, 5, ink);
+    oval(ctx, x + side * 9, y - 21 + sway, 4, 3, PALETTE.stoneTop);
+    line(ctx, x + side * 11, y - 18, x + side * 13, y - 8, PALETTE.stone, 3);
+  }
+  pixel(ctx, x - 8, y - 26, 17, 19, ink);
+  pixel(ctx, x - 7, y - 25, 15, 16, PALETTE.stone);
+  pixel(ctx, x - 5, y - 23, 11, 9, PALETTE.stoneLight);
+  pixel(ctx, x - 2, y - 22, 5, 6, PALETTE.gold);
+  pixel(ctx, x - 4, y - 14, 9, 2, PALETTE.stoneTop);
+  pixel(ctx, x - 8, y - 34, 17, 11, ink);
+  pixel(ctx, x - 7, y - 33, 15, 8, PALETTE.stoneLight);
+  pixel(ctx, x - 5, y - 31, 11, 3, PALETTE.stoneTop);
+  pixel(ctx, x - 5, y - 28, 11, 3, ink);
+  pixel(
+    ctx,
+    x - 3,
+    y - 28,
+    7,
+    2,
+    e.fireIn < 0.65 ? PALETTE.white : PALETTE.redLight,
+  );
+  pixel(ctx, x - 2, y - 35, 5, 1, PALETTE.gold);
+  aimedEmitter(ctx, e, ink, PALETTE.stoneTop, 3);
+}
+function curator(ctx, e, time, ink) {
+  const x = Math.round(e.x),
+    y = Math.round(e.y),
+    bob = Math.round(Math.sin(Math.floor(time * 12) * 0.24));
+  shadow(ctx, x, y, 29);
+  for (const side of [-1, 1]) {
+    pixel(ctx, x + side * 12 - 5, y - 16, 11, 16, ink);
+    pixel(ctx, x + side * 12 - 3, y - 15, 7, 13, PALETTE.wood);
+    oval(ctx, x + side * 22, y - 38 + bob, 11, 11, ink);
+    oval(ctx, x + side * 22, y - 40 + bob, 9, 9, PALETTE.gold);
+    oval(ctx, x + side * 22, y - 40 + bob, 5, 5, PALETTE.wood);
+    pixel(ctx, x + side * 22 - 2, y - 44 + bob, 5, 2, PALETTE.cream);
+    line(ctx, x + side * 22, y - 31 + bob, x + side * 27, y - 13, ink, 6);
+    line(
+      ctx,
+      x + side * 22,
+      y - 31 + bob,
+      x + side * 27,
+      y - 13,
+      PALETTE.stone,
+      3,
+    );
+    pixel(ctx, x + side * 25 - 3, y - 14, 8, 6, PALETTE.gold);
+  }
+  pixel(ctx, x - 16, y - 49 + bob, 33, 39, ink);
+  pixel(ctx, x - 14, y - 47 + bob, 29, 36, PALETTE.wood);
+  pixel(ctx, x - 12, y - 45 + bob, 25, 31, PALETTE.gold);
+  pixel(ctx, x - 10, y - 43 + bob, 21, 28, PALETTE.stone);
+  for (const dx of [-9, 8])
+    pixel(ctx, x + dx, y - 43 + bob, 2, 28, PALETTE.creamShade);
+  oval(ctx, x, y - 28 + bob, 12, 12, ink);
+  oval(ctx, x, y - 29 + bob, 10, 10, PALETTE.creamShade);
+  oval(ctx, x, y - 29 + bob, 7, 7, PALETTE.cream);
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6;
     pixel(
       ctx,
-      x + 4 + lean,
-      top + 18,
-      2,
-      2,
-      PLAYER_COLORS[(actor.color || 0) % 4],
+      x + Math.cos(a) * 8,
+      y - 29 + bob + Math.sin(a) * 8,
+      1,
+      1,
+      PALETTE.wood,
     );
   }
+  line(ctx, x, y - 29 + bob, x + 4, y - 34 + bob, PALETTE.ink);
+  line(ctx, x, y - 29 + bob, x - 1, y - 23 + bob, PALETTE.redDark);
+  pixel(ctx, x - 2, y - 63 + bob, 5, 13, ink);
+  pixel(ctx, x - 1, y - 62 + bob, 3, 10, PALETTE.stoneTop);
+  oval(ctx, x, y - 65 + bob, 12, 4, PALETTE.gold);
+  oval(ctx, x, y - 55 + bob, 14, 9, ink);
+  oval(ctx, x, y - 56 + bob, 11, 7, PALETTE.creamShade);
+  pixel(ctx, x - 7, y - 57 + bob, 5, 2, PALETTE.redLight);
+  pixel(ctx, x + 3, y - 57 + bob, 5, 2, PALETTE.redLight);
+  pixel(ctx, x - 2, y - 50 + bob, 5, 2, PALETTE.gold);
+  if (e.stage >= 2) pixel(ctx, x - 14, y - 21, 28, 3, PALETTE.redDark);
+  if (e.stage >= 3) pixel(ctx, x - 5, y - 30 + bob, 11, 3, PALETTE.redLight);
+  // The radial volley exits a real brass clock rim, including diagonal ports.
+  const rim = bodyCircle(e);
+  for (let i = 0; i < 144; i++) {
+    const a = (i * Math.PI) / 72;
+    pixel(
+      ctx,
+      rim.x + Math.cos(a) * 27,
+      rim.y + Math.sin(a) * 27,
+      2,
+      2,
+      PALETTE.gold,
+    );
+  }
+  aimedEmitter(ctx, e, ink, PALETTE.gold, 4);
 }
 export function drawEnemy(ctx, e, time, settings = {}) {
-  const x = Math.round(e.x) + (e.hit > 0 ? ((e.id || 0) % 2 ? -1 : 1) : 0),
-    y = Math.round(e.y),
-    q = Math.floor(time * 12) / 12,
-    hit = e.hit > 0 || settings.state === "hit";
-  const ink = hit ? PALETTE.white : PALETTE.ink;
-  shadow(ctx, x, y, e.type === "warden" ? 27 : 9);
+  const hit = e.hit > 0 || settings.state === "hit",
+    ink = hit ? PALETTE.white : PALETTE.ink;
   if (e.type === "moth") {
-    const flap = Math.round(
-      Math.sin(q * (e.fireIn < 0.65 ? 20 : 12)) * (e.fireIn < 0.65 ? 3 : 2),
-    );
-    stamp(ctx, MOTH, x - 11, y - 16 + flap, {
-      o: ink,
-      v: PALETTE.purple,
-      l: PALETTE.violet,
-      d: PALETTE.creamDark,
-      r: PALETTE.creamShade,
-      R: PALETTE.cream,
-    });
-    pixel(
-      ctx,
-      x - 1,
-      y - 11 + flap,
-      1,
-      1,
-      e.fireIn < 0.65 ? PALETTE.white : PALETTE.redLight,
-    );
-    pixel(
-      ctx,
-      x + 2,
-      y - 11 + flap,
-      1,
-      1,
-      e.fireIn < 0.65 ? PALETTE.white : PALETTE.redLight,
-    );
-    // Paired wing veins keep the broad lilac silhouette from reading flat.
-    line(ctx, x - 10, y - 11 + flap, x - 6, y - 9 + flap, PALETTE.creamDark);
-    line(ctx, x + 10, y - 11 + flap, x + 6, y - 9 + flap, PALETTE.creamDark);
-  } else if (e.type === "thorn") {
-    stamp(ctx, THORN, x - 8, y - 18, {
-      o: ink,
-      l: PALETTE.leaf,
-      r: "#806976",
-      R: "#b58898",
-      w: e.fireIn < 0.65 ? PALETTE.white : PALETTE.gold,
-      d: PALETTE.wood,
-    });
-    pixel(ctx, x - 10, y - 13, 3, 1, PALETTE.leaf);
-    pixel(ctx, x + 8, y - 16, 3, 1, PALETTE.light);
-  } else if (e.type === "warden") {
-    const bob = Math.round(Math.sin(q * 3));
-    // Ancient hollow-tree guardian; branch antlers and a mask formed from bark.
-    for (const side of [-1, 1]) {
-      line(
-        ctx,
-        x + side * 12,
-        y - 29 + bob,
-        x + side * 28,
-        y - 52 + bob,
-        ink,
-        5,
-      );
-      line(
-        ctx,
-        x + side * 13,
-        y - 29 + bob,
-        x + side * 28,
-        y - 52 + bob,
-        PALETTE.wood,
-        3,
-      );
-      line(
-        ctx,
-        x + side * 22,
-        y - 42 + bob,
-        x + side * 36,
-        y - 43 + bob,
-        PALETTE.wood,
-        3,
-      );
-      line(
-        ctx,
-        x + side * 21,
-        y - 42 + bob,
-        x + side * 19,
-        y - 56 + bob,
-        PALETTE.stoneLight,
-        2,
-      );
-      line(
-        ctx,
-        x + side * 20,
-        y - 53 + bob,
-        x + side * 16,
-        y - 59 + bob,
-        PALETTE.stoneLight,
-      );
-      oval(ctx, x + side * 17, y - 18, 9, 15, ink);
-      oval(ctx, x + side * 17, y - 20, 6, 13, PALETTE.bark);
-      pixel(ctx, x + side * 19 - 2, y - 11, 5, 9, PALETTE.wood);
-    }
-    oval(ctx, x, y - 21 + bob, 17, 23, ink);
-    oval(
-      ctx,
-      x - 1,
-      y - 23 + bob,
-      14,
-      21,
-      e.ward ? PALETTE.tealDark : PALETTE.bark,
-    );
-    oval(
-      ctx,
-      x - 2,
-      y - 29 + bob,
-      12,
-      14,
-      e.ward ? PALETTE.stone : PALETTE.wood,
-    );
-    oval(ctx, x - 4, y - 32 + bob, 10, 10, PALETTE.stoneLight);
-    pixel(ctx, x - 10, y - 34 + bob, 8, 4, ink);
-    pixel(ctx, x + 3, y - 34 + bob, 7, 4, ink);
-    pixel(ctx, x - 8, y - 33 + bob, 5, 2, PALETTE.redLight);
-    pixel(ctx, x + 4, y - 33 + bob, 4, 2, PALETTE.redLight);
-    pixel(ctx, x - 2, y - 27 + bob, 3, 11, ink);
-    pixel(ctx, x - 5, y - 25 + bob, 2, 8, PALETTE.creamDark);
-    for (let i = 0; i < 5; i++)
-      line(ctx, x - 10 + i * 5, y - 12, x - 13 + i * 6, y, PALETTE.wood, 3);
-    oval(
-      ctx,
-      x,
-      y - 16,
-      4,
-      5,
-      e.ward
-        ? PALETTE.echoDark
-        : e.exposed > 0
-          ? PALETTE.gold
-          : e.stage >= 3
-            ? PALETTE.red
-            : PALETTE.redDark,
-    );
-    pixel(
-      ctx,
-      x - 1,
-      y - 20,
-      2,
-      6,
-      e.exposed > 0 || e.fireIn < 0.65
-        ? PALETTE.white
-        : e.ward
-          ? PALETTE.echoLight
-          : PALETTE.redLight,
-    );
-    if (e.ward) {
-      for (const [dx, dy] of [
-        [-15, -20],
-        [14, -20],
-        [-12, -31],
-        [11, -31],
-        [-8, -42],
-        [7, -42],
-      ])
-        pixel(ctx, x + dx, y + dy + bob, 2, 3, PALETTE.echoMid);
-    }
-    if (e.stage >= 2) {
-      pixel(ctx, x - 11, y - 19, 2, 7, PALETTE.redDark);
-      pixel(ctx, x + 9, y - 24, 2, 8, PALETTE.redLight);
-    }
-  } else {
-    const hop = Math.round(Math.abs(Math.sin(q * 9 + (e.id || 0))) * 2);
-    stamp(ctx, MITE, x - 8, y - 14 - hop, {
-      o: ink,
-      l: PALETTE.leaf,
-      d: "#483d48",
-      r: "#81505e",
-      R: "#be7780",
-    });
-    pixel(ctx, x - 3, y - 6 - hop, 1, 1, PALETTE.gold);
-    pixel(ctx, x + 3, y - 6 - hop, 1, 1, PALETTE.gold);
-  }
+    moth(ctx, e, time, ink);
+    aimedEmitter(ctx, e, ink, PALETTE.creamShade, 1);
+  } else if (e.type === "thorn") armor(ctx, e, time, ink);
+  else if (e.type === "warden") curator(ctx, e, time, ink);
+  else beetle(ctx, e, time, ink);
 }
+// The simulation still names supply stations `flowers` for save/replay stability.
 export function drawFlower(ctx, f, time) {
   const x = Math.round(f.x),
     y = Math.round(f.y),
     charge = Math.max(0, Math.min(1, f.charge || 0)),
-    waking = charge >= 0.45,
-    ready = charge >= 0.85;
-  shadow(ctx, x, y, 5);
-  stamp(ctx, FLOWER, x - 5, y - 10, {
-    w: ready ? PALETTE.white : waking ? PALETTE.cream : PALETTE.creamShade,
-    g: ready ? PALETTE.gold : waking ? PALETTE.redLight : PALETTE.red,
-    y: ready ? PALETTE.white : PALETTE.gold,
-    d: PALETTE.grass,
-    l: PALETTE.leaf,
-  });
-  if (waking) {
-    const q = Math.floor(time * 8),
-      orbit = ready ? 9 : 7;
-    for (let i = 0; i < (ready ? 4 : 2); i++) {
-      const angle = ((q + i * 8 + (f.id || 0)) * Math.PI) / 16;
-      pixel(
-        ctx,
-        x + Math.round(Math.cos(angle) * orbit),
-        y - 5 + Math.round(Math.sin(angle) * orbit * 0.6),
-        1,
-        1,
-        ready ? PALETTE.white : PALETTE.gold,
-      );
-    }
-    if (ready) {
-      pixel(ctx, x - 1, y - 13 - (q % 2), 3, 1, PALETTE.white);
-      pixel(ctx, x, y - 15 - (q % 2), 1, 4, PALETTE.gold);
-    }
+    ready = charge >= 0.85,
+    shine = Math.floor(time * 6 + (f.id || 0)) % 2;
+  shadow(ctx, x, y, 13);
+  // Two caster wheels and a tall push handle identify a working supply cart.
+  for (const dx of [-8, 8]) {
+    pixel(ctx, x + dx - 2, y - 5, 5, 5, PALETTE.ink);
+    pixel(ctx, x + dx - 1, y - 4, 3, 3, PALETTE.stoneLight);
+    pixel(ctx, x + dx, y - 3, 1, 1, PALETTE.creamShade);
+  }
+  line(ctx, x - 12, y - 6, x - 12, y - 23, PALETTE.ink, 3);
+  line(ctx, x - 11, y - 7, x - 11, y - 22, PALETTE.stoneLight);
+  line(ctx, x - 16, y - 23, x - 10, y - 23, PALETTE.gold, 2);
+  pixel(ctx, x - 10, y - 13, 23, 8, PALETTE.ink);
+  pixel(ctx, x - 9, y - 12, 21, 6, PALETTE.wood);
+  pixel(ctx, x - 9, y - 7, 21, 1, PALETTE.gold);
+  // Bandage rolls stacked beside the medical kit.
+  pixel(ctx, x + 6, y - 19, 6, 5, PALETTE.ink);
+  pixel(ctx, x + 7, y - 18, 4, 3, PALETTE.creamShade);
+  pixel(ctx, x + 7, y - 21, 4, 2, PALETTE.cream);
+  pixel(ctx, x + 8, y - 18, 1, 2, PALETTE.wood);
+  const opening = Math.round(charge * 4);
+  pixel(ctx, x - 2, y - 16, 8, 8, PALETTE.ink);
+  pixel(ctx, x - 1, y - 15, 6, 6, PALETTE.creamShade);
+  pixel(ctx, x - 2, y - 17 - opening, 8, 2, PALETTE.cream);
+  pixel(ctx, x, y - 14, 4, 1, PALETTE.red);
+  pixel(ctx, x + 1, y - 15, 2, 4, PALETTE.red);
+  // Charge is a physical liquid level, readable before the ready sparkle.
+  pixel(ctx, x - 8, y - 23, 6, 11, PALETTE.ink);
+  pixel(ctx, x - 7, y - 22, 4, 9, PALETTE.stone);
+  const fill = Math.round(charge * 8);
+  if (fill) pixel(ctx, x - 7, y - 13 - fill, 4, fill, PALETTE.tealLight);
+  pixel(ctx, x - 7, y - 22, 1, 8, PALETTE.creamShade);
+  pixel(ctx, x - 6, y - 25, 2, 2, PALETTE.white);
+  if (ready) {
+    pixel(ctx, x + 14, y - 23 - shine, 1, 5, PALETTE.gold);
+    pixel(ctx, x + 12, y - 21 - shine, 5, 1, PALETTE.white);
   }
 }
+// Kept as a small museum plant for any older art callers.
 export function drawFern(ctx, x, y, variant = 0) {
-  stamp(ctx, FERN, x - 6, y - 9, {
-    l: variant ? PALETTE.grass : PALETTE.leaf,
-    d: PALETTE.moss,
-  });
+  pixel(ctx, x - 5, y - 5, 10, 5, PALETTE.wood);
+  pixel(ctx, x - 4, y - 5, 8, 2, PALETTE.gold);
+  for (const side of [-1, 1]) {
+    line(ctx, x, y - 5, x + side * (variant ? 8 : 6), y - 15, PALETTE.leaf, 2);
+    line(ctx, x, y - 5, x + side * 4, y - 12, PALETTE.grass, 2);
+  }
 }

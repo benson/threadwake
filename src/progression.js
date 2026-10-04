@@ -2,32 +2,32 @@
 export const MILESTONES = Object.freeze([
   {
     id: "first-catch",
-    name: "First thread",
-    description: "Catch a shot.",
+    name: "Clean sweep",
+    description: "Clear a hostile shot.",
     test: (p) => p.stats?.catches >= 1,
   },
   {
     id: "gardener",
-    name: "Wild garden",
-    description: "Bloom five flowers in a run.",
+    name: "First aid",
+    description: "Activate five supply carts in a shift.",
     test: (p) => p.stats?.blooms >= 5,
   },
   {
     id: "mender",
-    name: "Mender",
-    description: "Revive a friend.",
+    name: "Good colleague",
+    description: "Help a colleague back up.",
     test: (p) => p.stats?.revives >= 1,
   },
   {
     id: "woven",
-    name: "Woven together",
-    description: "Resonate three times in a run.",
+    name: "Watch your back",
+    description: "Protect a colleague with three sweeps.",
     test: (p) => p.stats?.resonances >= 3,
   },
   {
     id: "dawn",
-    name: "Daybreak",
-    description: "Defeat the Unraveler.",
+    name: "Opening time",
+    description: "Defeat the Grand Clock.",
     test: (p, s) => s.phase === "won" && p.wavesSurvived >= 1,
   },
 ]);
@@ -36,7 +36,7 @@ const bounded = (n, max = 999999) =>
 export function normalizeMemory(raw = {}) {
   if (!raw || typeof raw !== "object") raw = {};
   return {
-    version: 2,
+    version: 3,
     balance: bounded(raw.balance),
     traits: Object.fromEntries(
       ["vitality", "haste", "echo"].map((k) => [

@@ -12,14 +12,40 @@ import { connectRoom } from "./net.js";
 import { AudioGarden } from "./audio.js";
 import { setAnimationSettings } from "./animation.js";
 import { MILESTONES, normalizeMemory, bankProgress } from "./progression.js";
-import { WAVE_DURATION } from "./config.js";
+import { WAVE_DURATION, BALANCE, PERMANENT } from "./config.js";
+import { MAPS, mapForWave } from "./maps.js";
 import { capturePresentation, presentState } from "./presentation.js";
+import { drawCurio } from "./curios.js";
+import { drawMenuArt } from "./menu-art.js";
+import {
+  pixelIcon,
+  iconText,
+  pixelMeter,
+  pixelTransition,
+  initializePixelIcons,
+  drawPixelIcon,
+} from "./pixel-ui.js";
 import { installViewport } from "./viewport.js";
 installViewport();
 const $ = (id) => document.getElementById(id),
   canvas = $("world"),
   renderer = createRenderer(canvas),
   audio = new AudioGarden();
+initializePixelIcons();
+for (const art of document.querySelectorAll(
+  "canvas[data-menu-art], canvas[data-curio-art]",
+)) {
+  art.width = art.height = 32;
+  if (art.dataset.menuArt)
+    drawMenuArt(art.getContext("2d"), art.dataset.menuArt);
+  else drawCurio(art.getContext("2d"), art.dataset.curioArt);
+}
+$("milestone-details").addEventListener("toggle", () =>
+  drawPixelIcon(
+    $("milestone-arrow"),
+    $("milestone-details").open ? "down" : "chevron",
+  ),
+);
 const store = {
   get(k, f) {
     try {
@@ -34,10 +60,10 @@ const store = {
     } catch {}
   },
 };
-setAnimationSettings(store.get("threadwake.motion", {}));
+setAnimationSettings(store.get("afterhours.motion", {}));
 window.addEventListener("storage", (e) => {
-  if (e.key === "threadwake.motion")
-    setAnimationSettings(store.get("threadwake.motion", {}));
+  if (e.key === "afterhours.motion")
+    setAnimationSettings(store.get("afterhours.motion", {}));
 });
 let settings = store.get("threadwake.settings", {
   sound: true,
@@ -85,20 +111,7 @@ let castUntil = 0,
   latency = null;
 let memoryReturnTo = "play";
 const lessonProgress = { moved: false, cast: false };
-const glyphs = {
-  fork: "⋔",
-  needle: "↗",
-  spark: "✦",
-  orbit: "◉",
-  echo: "◇",
-  thread: "⌁",
-  flower: "❋",
-  heart: "♥",
-  wing: "➶",
-  snow: "❄",
-  star: "✧",
-};
-const name = store.get("threadwake.name", "Weaver");
+const name = store.get("threadwake.name", "Custodian");
 $("name").value = name;
 audio.enabled = settings.sound;
 audio.musicVolume = (settings.musicVolume ?? 65) / 100;
@@ -115,7 +128,7 @@ function show(which) {
   screen = which;
   for (const s of ["menu", "lobby", "draft", "result"])
     $(s).hidden = s !== which;
-  $("hud").hidden = !["play", "draft"].includes(which);
+  $("hud").hidden = which !== "play";
   $("touch").hidden =
     which !== "play" || !matchMedia("(pointer:coarse)").matches;
 }
@@ -126,7 +139,7 @@ function toast(text) {
   toastTimer = setTimeout(() => ($("toast").hidden = true), 2800);
 }
 function safeName() {
-  const n = $("name").value.trim().slice(0, 16) || "Weaver";
+  const n = $("name").value.trim().slice(0, 16) || "Custodian";
   store.set("threadwake.name", n);
   return n;
 }
@@ -228,7 +241,7 @@ async function join(room) {
             : value === "reconnecting"
               ? "Reconnecting…"
               : value === "error"
-                ? detail || "Could not join this grove. Try again."
+                ? detail || "Could not join this shift. Try again."
                 : "Connecting…";
         if (value === "error") toast(detail || "Connection failed.");
         updateLobby();
@@ -258,14 +271,12 @@ function updateLobby() {
   $("party").replaceChildren(
     ...state.players.map((p) => {
       const el = document.createElement("span");
-      el.textContent = `${p.name}${p.id === id ? " · you" : ""}${p.id === state.hostId ? " · keeper" : ""}`;
+      el.textContent = `${p.name}${p.id === id ? " · you" : ""}${p.id === state.hostId ? " · host" : ""}`;
       return el;
     }),
   );
   $("begin").disabled = !identityReady || status !== "connected" || !host();
-  $("begin").textContent = host()
-    ? "Enter the grove"
-    : "Waiting for the keeper";
+  $("begin").textContent = host() ? "Start shift" : "Waiting for the host";
 }
 function updatePhase() {
   bank();
@@ -285,7 +296,7 @@ function updatePhase() {
   if (screen === "lobby") updateLobby();
   if (screen === "result") {
     $("again").disabled = !host();
-    $("again").textContent = host() ? "Weave again" : "Waiting for the keeper";
+    $("again").textContent = host() ? "Another shift" : "Waiting for the host";
   }
   if (phase === "draft") updateDraft();
 }
@@ -300,7 +311,9 @@ function updateDraft() {
   if (signature === draftSignature) return;
   draftSignature = signature;
   $("choices").replaceChildren();
-  $("draft-caption").textContent = `Wave ${state.wave} survived`;
+  const nextGallery = mapForWave(state.wave + 1);
+  $("draft-caption").textContent =
+    `Wave ${state.wave} cleared${nextGallery.id !== mapForWave(state.wave).id ? ` · Next: ${nextGallery.name}` : ""}`;
   $("draft-status").textContent = choices.length
     ? ""
     : "Waiting for the others…";
@@ -309,16 +322,22 @@ function updateDraft() {
     if (!u) return;
     const b = document.createElement("button");
     b.className = "upgrade";
-    const glyph = document.createElement("span");
-    glyph.className = "glyph";
-    glyph.textContent = glyphs[u.icon] || "✦";
+    const glyph = document.createElement("canvas");
+    glyph.width = glyph.height = 32;
+    glyph.className = "glyph curio-icon";
+    glyph.setAttribute("aria-hidden", "true");
+    drawCurio(glyph.getContext("2d"), u.id);
     const title = document.createElement("strong");
     const player = state.players.find((p) => p.id === id);
     const rank = player?.upgrades.filter((v) => v === u.id).length || 0;
     title.textContent = `${u.name} · ${rank + 1}`;
     const desc = document.createElement("small");
     const preview = upgradePreview(player, u.id);
-    desc.textContent = `${preview.before} → ${preview.after}. ${preview.synergy}`;
+    pixelTransition(
+      desc,
+      preview.before,
+      `${preview.after}. ${preview.synergy}`,
+    );
     const key = document.createElement("span");
     key.className = "key";
     key.textContent = `${i + 1} · choose`;
@@ -329,7 +348,7 @@ function updateDraft() {
 }
 function selectUpgrade(value) {
   if (online && status !== "connected") {
-    toast("Reconnect to choose a thread.");
+    toast("Reconnect to borrow a curio.");
     return;
   }
   audio.click();
@@ -353,7 +372,7 @@ function bank() {
     updateMemoryCount();
     if (result.newMilestones.length)
       toast(
-        `${result.newMilestones.join(" · ")} · +${result.newMilestones.length} memory`,
+        `${result.newMilestones.join(" · ")} · +${result.newMilestones.length} ${result.newMilestones.length === 1 ? "credit" : "credits"}`,
       );
   }
   return result.runEarned;
@@ -363,18 +382,17 @@ function showResult() {
   resetInputs();
   const won = state.phase === "won";
   $("result-caption").textContent = won
-    ? "The garden remembers"
-    : "A thread is never truly lost";
-  $("result-title").textContent = won
-    ? "Morning, at last."
-    : "Until the next dawn.";
+    ? "Doors open at nine"
+    : "The collection got away";
+  $("result-title").textContent = won ? "Shift complete." : "Clocked out.";
   $("result-stats").textContent =
-    `${state.kills || 0} unmade · ${state.caught || 0} shots woven · wave ${state.wave}`;
+    `${state.kills || 0} exhibits contained · ${state.caught || 0} shots cleared · wave ${state.wave}`;
   const earned = bank();
-  $("result-memory").hidden = earned === 0;
-  $("result-memory").textContent = `+${earned} memories`;
+  $("result-memory").hidden = false;
+  $("result-memory").textContent =
+    `+${earned} ${earned === 1 ? "credit" : "credits"} saved · ${memory.balance} available`;
   $("again").disabled = !host();
-  $("again").textContent = host() ? "Weave again" : "Waiting for the keeper";
+  $("again").textContent = host() ? "Another shift" : "Waiting for the host";
 }
 function backHome() {
   roomGeneration++;
@@ -400,7 +418,7 @@ function options() {
   paused = !online;
   resetInputs();
   $("options-title").textContent =
-    screen === "menu" ? "Options" : online ? "In the grove" : "Paused";
+    screen === "menu" ? "Options" : online ? "On shift" : "Paused";
   $("quit").hidden = screen === "menu";
   $("online-pause").hidden = !online;
   $("run-invite").hidden = !online;
@@ -413,7 +431,17 @@ function options() {
     ...[...new Set(player?.upgrades || [])].map((value) => {
       const el = document.createElement("span"),
         u = upgradeById(value);
-      el.textContent = `${glyphs[u.icon] || "✦"} ${u.name} · ${player.upgrades.filter((v) => v === value).length}`;
+      const icon = document.createElement("canvas");
+      icon.width = icon.height = 32;
+      icon.className = "loadout-icon";
+      icon.setAttribute("aria-hidden", "true");
+      drawCurio(icon.getContext("2d"), value);
+      el.append(
+        icon,
+        document.createTextNode(
+          `${u.name} · ${player.upgrades.filter((v) => v === value).length}`,
+        ),
+      );
       return el;
     }),
   );
@@ -427,7 +455,35 @@ function closeOptions() {
 function updateMemoryCount() {
   $("memory-count").textContent = `· ${memory.balance}`;
   $("hud-memory-count").textContent = memory.balance;
-  $("pause-memories").textContent = `Memories · ${memory.balance}`;
+  $("pause-memories").textContent = `Staff kit · ${memory.balance}`;
+  iconText(
+    $("title-credits"),
+    "credit",
+    `${memory.balance} ${memory.balance === 1 ? "credit" : "credits"}`,
+  );
+  $("title-best").textContent =
+    memory.best || memory.runs ? `Best ${memory.best} / 8` : "First shift";
+  const ranks = Object.values(memory.traits).reduce(
+    (sum, rank) => sum + rank,
+    0,
+  );
+  $("title-equipment").textContent = `${ranks} / 9 permanent upgrades`;
+  if (!$("gallery-route").children.length) {
+    for (const map of MAPS) {
+      const item = document.createElement("li"),
+        waves = document.createElement("span");
+      waves.textContent = `${map.waves[0]}–${map.waves[1]}`;
+      item.append(document.createTextNode(map.name), waves);
+      $("gallery-route").append(item);
+    }
+  }
+}
+function permanentStat(key, rank) {
+  if (key === "vitality")
+    return `${BALANCE.playerHp + rank * PERMANENT.healthPerRank}`;
+  if (key === "haste")
+    return `${Math.round(100 * (1 + rank * PERMANENT.speedPerRank))}%`;
+  return `${(BALANCE.castCooldown * (1 - rank * PERMANENT.cooldownPerRank)).toFixed(2)}s`;
 }
 function memories() {
   if (!$("memories").open) {
@@ -437,24 +493,31 @@ function memories() {
     resetInputs();
   }
   updateMemoryCount();
-  $("memory-balance").textContent =
-    `◆ ${memory.balance} ${memory.balance === 1 ? "memory" : "memories"} to plant`;
+  iconText(
+    $("memory-balance"),
+    "credit",
+    `${memory.balance} ${memory.balance === 1 ? "credit" : "credits"}`,
+  );
   $("milestone-count").textContent =
     `${memory.milestones.length} / ${MILESTONES.length}`;
   $("talents").replaceChildren();
   $("milestones").replaceChildren(
     ...MILESTONES.map((m) => {
       const el = document.createElement("p");
-      el.textContent = `${memory.milestones.includes(m.id) ? "◆" : "◇"} ${m.name} · ${m.description}`;
+      iconText(
+        el,
+        memory.milestones.includes(m.id) ? "credit" : "empty",
+        `${m.name} · ${m.description}`,
+      );
       return el;
     }),
   );
   const data = [
-    ["vitality", "Root", "+4 health per rank"],
-    ["haste", "Leaf", "+2% movement per rank"],
-    ["echo", "Spool", "2% faster unwind per rank"],
+    ["vitality", "Work coat", "Maximum health"],
+    ["haste", "Soft soles", "Movement speed"],
+    ["echo", "Grip tape", "Sweep cooldown"],
   ];
-  for (const [key, title, desc] of data) {
+  for (const [key, title, label] of data) {
     const rank = memory.traits[key],
       cost = rank + 1,
       b = document.createElement("button");
@@ -462,18 +525,37 @@ function memories() {
     b.dataset.trait = key;
     const titleEl = document.createElement("strong");
     titleEl.textContent = title;
+    const heading = document.createElement("span"),
+      illustration = document.createElement("canvas");
+    heading.className = "talent-heading";
+    illustration.width = illustration.height = 32;
+    illustration.className = "menu-art";
+    illustration.setAttribute("aria-hidden", "true");
+    drawCurio(
+      illustration.getContext("2d"),
+      { vitality: "vitality", haste: "speed", echo: "echo" }[key],
+    );
+    heading.append(illustration, titleEl);
     const ranks = document.createElement("span");
     ranks.className = "talent-ranks";
-    ranks.textContent = `${"◆".repeat(rank)}${"◇".repeat(3 - rank)}`;
+    pixelMeter(ranks, rank, 3);
     const price = document.createElement("span");
     price.className = "talent-price";
     price.textContent =
       rank < 3
-        ? `Plant · ${cost} ${cost === 1 ? "memory" : "memories"}`
-        : "Fully grown";
+        ? `Buy · ${cost} ${cost === 1 ? "credit" : "credits"}`
+        : "Fully equipped";
     const s = document.createElement("small");
-    s.textContent = desc;
-    b.append(titleEl, ranks, s, price);
+    s.className = "talent-effect";
+    s.textContent = `${label}\n`;
+    if (rank < 3)
+      pixelTransition(
+        s,
+        permanentStat(key, rank),
+        permanentStat(key, rank + 1),
+      );
+    else s.append(document.createTextNode(permanentStat(key, rank)));
+    b.append(heading, ranks, s, price);
     b.disabled = rank >= 3 || memory.balance < cost;
     b.onclick = () => {
       memory.balance -= cost;
@@ -520,6 +602,7 @@ $("quit").onclick = backHome;
 $("memories-button").onclick = memories;
 $("hud-memories").onclick = memories;
 $("pause-memories").onclick = memories;
+$("result-kit").onclick = memories;
 function closeMemories() {
   $("memories").close();
   paused = false;
@@ -718,49 +801,76 @@ function input() {
 function updateHud() {
   const p = state.players.find((p) => p.id === id);
   if (!p) return;
-  $("health").textContent = `♥ ${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`;
-  $("squad").textContent = state.players
-    .filter((p) => p.id !== id)
-    .map((p) => `${p.name} ${p.dead ? "✧" : Math.ceil(p.hp) + "♥"}`)
-    .join("  ");
+  iconText(
+    $("health"),
+    "heart",
+    `${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`,
+    "#edaa99",
+  );
+  const teammates = state.players.filter((p) => p.id !== id);
+  const squadKey = teammates
+    .map((p) => `${p.id}:${p.name}:${p.dead}:${Math.ceil(p.hp)}`)
+    .join("|");
+  if ($("squad").dataset.roster !== squadKey) {
+    $("squad").dataset.roster = squadKey;
+    $("squad").replaceChildren(
+      ...teammates.map((p) => {
+        const label = document.createElement("span");
+        label.append(
+          document.createTextNode(
+            `${p.name} ${p.dead ? "" : Math.ceil(p.hp)} `,
+          ),
+          pixelIcon(p.dead ? "cross" : "heart", 14, "#edaa99"),
+        );
+        return label;
+      }),
+    );
+  }
   $("wave").textContent = `WAVE ${state.wave} / 8`;
+  $("gallery-name").textContent = mapForWave(state.wave).name;
   $("clock").textContent =
     `${Math.max(0, Math.ceil((state.waveDuration || WAVE_DURATION) - state.waveTime))}s`;
   const boss = state.enemies.find((e) => e.type === "warden");
   $("boss-health").hidden = !boss;
-  if (boss) $("boss-health").textContent = `UNRAVELER · ${Math.ceil(boss.hp)}♥`;
+  if (boss)
+    iconText(
+      $("boss-health"),
+      "heart",
+      `GRAND CLOCK · ${Math.ceil(boss.hp)}`,
+      "#edaa99",
+    );
   const castKey =
     device === "controller" ? "A" : device === "touch" ? "TAP" : "SPACE";
+  // At the world edge the camera cannot keep staff away from the fixed HUD.
+  // Feather the existing meter rather than covering the player's torso.
+  const bodyX = p.x - renderer.camera.x + 320;
+  const bodyY = p.y - 18 - renderer.camera.y + 180;
+  const meterOverlap =
+    Math.max(0, Math.min(1, (104 - Math.abs(bodyX - 320)) / 24)) *
+    Math.max(0, Math.min(1, (bodyY - 292) / 15));
+  $("ability").style.opacity = String(1 - 0.88 * meterOverlap);
   $("ability-label").textContent =
     p.castCooldown > 0
-      ? `UNWIND · ${p.castCooldown.toFixed(1)}s`
-      : `${castKey} · UNWIND`;
-  $("ability-meter").textContent =
+      ? `SWEEP · ${p.castCooldown.toFixed(1)}s`
+      : `${castKey} · SWEEP`;
+  pixelMeter(
+    $("ability-meter"),
     p.castCooldown > 0
-      ? "◆".repeat(
-          Math.max(
-            0,
-            Math.floor(6 * (1 - p.castCooldown / (p.cooldownDuration || 5.5))),
-          ),
-        ) +
-        "◇".repeat(
-          Math.min(
-            6,
-            Math.ceil((6 * p.castCooldown) / (p.cooldownDuration || 5.5)),
-          ),
-        )
-      : "◆ ◆ ◆ ◆ ◆ ◆";
+      ? Math.floor(6 * (1 - p.castCooldown / (p.cooldownDuration || 5)))
+      : 6,
+    6,
+  );
   $("downed").hidden = !p.dead;
   $("downed").textContent =
-    `${p.revive ? `Mending ${Math.round(p.revive * 100)}%` : "Stay close to a friend to mend."}`;
+    `${p.revive ? `Helping up ${Math.round(p.revive * 100)}%` : "Stay close to a colleague to help them up."}`;
   $("lesson").textContent = !lessonProgress.moved
-    ? "Keep moving. Your needle finds the nearest foe."
+    ? "Keep moving. Your slingshot fires automatically."
     : !lessonProgress.cast
-      ? `${castKey} unwinds your footsteps into an echo. Hold to cast when ready.`
+      ? `${castKey} sweeps nearby exhibits away. Hold to sweep when ready.`
       : !(p.stats?.catches > 0)
-        ? "Catch red shots on the thread between you and your echo."
+        ? "Your broom also clears red shots."
         : !(p.stats?.blooms > 0)
-          ? "Hold your thread over flowers to charge them. Catches help them bloom."
+          ? "Stand near a supply cart to recover health."
           : "";
 }
 function interpolated(now) {

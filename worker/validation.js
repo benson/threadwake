@@ -18,10 +18,10 @@ export function allowedOrigin(origin) {
 }
 export function cleanName(value) {
   return (
-    String(value || "Weaver")
+    String(value || "Custodian")
       .replace(/[\u0000-\u001f\u007f]/g, "")
       .trim()
-      .slice(0, 18) || "Weaver"
+      .slice(0, 18) || "Custodian"
   );
 }
 export function cleanTraits(value = {}) {

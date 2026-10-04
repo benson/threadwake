@@ -4,7 +4,7 @@ async (page) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("http://127.0.0.1:4320/");
   await page
-    .getByRole("button", { name: "Enter the grove", exact: true })
+    .getByRole("button", { name: "Start shift", exact: true })
     .click();
   await page.waitForFunction(
     () => window.__threadwake.state.phase === "playing",
@@ -20,9 +20,10 @@ async (page) => {
   await page.waitForTimeout(100);
   const moved = await page.evaluate(() => ({
     x: window.__threadwake.state.players[0].x,
+    sweeps: window.__threadwake.state.effects.filter(e=>e.type === "sweep").length,
     echoes: window.__threadwake.state.echoes.length,
   }));
-  if (moved.x < before.x + 70 || moved.echoes !== 1)
+  if (moved.x < before.x + 70 || moved.sweeps !== 1 || moved.echoes !== 0)
     throw new Error(
       "Movement or keyboard cast failed: " + JSON.stringify(moved),
     );

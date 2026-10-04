@@ -1,7 +1,13 @@
-import { drawActor } from "./art.js";
-import { ANIMATION_DEFAULTS, setAnimationSettings, pose } from "./animation.js";
+import { drawActor, drawCombatGeometry } from "./art.js";
+import {
+  ANIMATION_DEFAULTS,
+  ACTION_PHASES,
+  setAnimationSettings,
+  pose,
+} from "./animation.js";
 import { createRenderer } from "./render.js";
-const REPLAY_VERSION = 3;
+import { initializePixelIcons, pixelLine, pixelText } from "./pixel-ui.js";
+const REPLAY_VERSION = 4;
 import {
   createGame,
   addPlayer,
@@ -12,25 +18,19 @@ import {
 } from "./sim.js";
 
 const $ = (id) => document.getElementById(id);
+initializePixelIcons();
 const canvas = $("preview"),
   ctx = canvas.getContext("2d"),
   sheet = $("sheet"),
   sc = sheet.getContext("2d");
 const curve = $("curves"),
   cc = curve.getContext("2d");
-const phaseKeys = [
-  "anticipation",
-  "rise",
-  "impact",
-  "follow",
-  "settle",
-  "recover",
-];
+const phaseKeys = ACTION_PHASES;
 const ranges = {
   fps: [4, 24, 1, "Pose rate"],
   stride: [0, 16, 0.5, "Stride"],
   bob: [0, 3, 0.1, "Bob"],
-  scarf: [0, 3, 0.1, "Scarf follow"],
+  scarf: [0, 3, 0.1, "Apron follow"],
   idle: [0, 3, 0.1, "Breathing"],
   hitFlash: [0, 1, 0.1, "Hit flash"],
   ...Object.fromEntries(
@@ -46,7 +46,7 @@ let settings = { ...ANIMATION_DEFAULTS },
   last = 0,
   mode = "motion";
 try {
-  const saved = JSON.parse(localStorage.getItem("threadwake.motion"));
+  const saved = JSON.parse(localStorage.getItem("afterhours.motion"));
   for (const k in settings)
     if (Number.isFinite(saved?.[k]))
       settings[k] = Math.max(
@@ -61,7 +61,7 @@ const duration = (s = settings) =>
 function save() {
   setAnimationSettings(settings);
   try {
-    localStorage.setItem("threadwake.motion", JSON.stringify(settings));
+    localStorage.setItem("afterhours.motion", JSON.stringify(settings));
   } catch {}
   $("timeline").max = duration();
   time %= duration();
@@ -116,6 +116,9 @@ function actor(t = time) {
           : 0,
     color: Number($("palette").value),
     face: direction === "left" ? -1 : 1,
+    aimX: direction === "left" ? -1 : direction === "right" ? 1 : 0,
+    aimY: direction === "up" ? -1 : direction === "down" ? 1 : 0,
+    shotAge: $("pose").value === "fire" ? t % 0.65 : 999,
     hp: 100,
     maxHp: 100,
     hit: $("pose").value === "hit" ? 0.2 : 0,
@@ -138,20 +141,21 @@ function paint(context, x, y, scale, t, s = settings) {
   context.translate(x, y);
   context.scale(scale, scale);
   drawActor(context, actor(t), t, rig(s, t));
+  if ($("geometry").checked) drawCombatGeometry(context, actor(t));
   context.restore();
 }
 function drawSheet() {
   sc.imageSmoothingEnabled = false;
-  sc.fillStyle = "#203b35";
+  sc.fillStyle = "#192532";
   sc.fillRect(0, 0, 800, 160);
   for (let i = 0; i < 8; i++) {
-    sc.fillStyle = "#2b473d";
+    sc.fillStyle = "#24313e";
     sc.fillRect(i * 100 + 2, 2, 96, 156);
     const t = (i / 8) * duration();
     paint(sc, i * 100 + 50, 118, 3, t);
     sc.font = "13px monospace";
-    sc.fillStyle = "#bdc8a2";
-    sc.fillText(`${t.toFixed(2)}s`, i * 100 + 8, 150);
+    sc.fillStyle = "#c4c5c2";
+    pixelText(sc, `${t.toFixed(2)}s`, i * 100 + 8, 139, 1);
   }
 }
 function drawPhases() {
@@ -178,15 +182,11 @@ function drawPhases() {
 function drawCurves() {
   const end = duration(),
     isCast = $("pose").value === "cast";
-  cc.fillStyle = "#162e2b";
+  cc.fillStyle = "#192532";
   cc.fillRect(0, 0, 800, 150);
-  cc.strokeStyle = "#395044";
-  cc.lineWidth = 1;
+  cc.fillStyle = "#354452";
   for (let i = 1; i < 6; i++) {
-    cc.beginPath();
-    cc.moveTo(0, i * 25 + 0.5);
-    cc.lineTo(800, i * 25 + 0.5);
-    cc.stroke();
+    cc.fillRect(0, i * 25, 800, 1);
   }
   const keys = isCast ? ["lift", "lean", "stretch"] : ["bob", "step", "scarf"];
   const colors = ["#dfc37d", "#86c8b6", "#c69cb6"];
@@ -204,54 +204,52 @@ function drawCurves() {
     samples.forEach((poses, base) => {
       if (base && !$("compare").checked) return;
       cc.globalAlpha = base ? 0.35 : 1;
-      cc.strokeStyle = colors[index];
-      cc.lineWidth = base ? 1 : 2;
-      cc.setLineDash(base ? [4, 5] : []);
-      cc.beginPath();
+      let previous = null;
       poses.forEach((p, i) => {
         const x = i * 5,
           y = 75 - (((Number(p[key]) || 0) - neutral) / max) * 59;
-        i ? cc.lineTo(x, y) : cc.moveTo(x, y);
+        if (previous)
+          pixelLine(
+            cc,
+            previous.x,
+            previous.y,
+            x,
+            y,
+            colors[index],
+            base ? 1 : 2,
+            !!base,
+          );
+        previous = { x, y };
       });
-      cc.stroke();
     });
   });
   cc.globalAlpha = 1;
-  cc.setLineDash([]);
-  cc.strokeStyle = "#f0dfb9";
-  cc.beginPath();
-  cc.moveTo((time / end) * 800, 0);
-  cc.lineTo((time / end) * 800, 150);
-  cc.stroke();
+  cc.fillStyle = "#f0dfb9";
+  cc.fillRect(Math.round((time / end) * 800), 0, 1, 150);
 }
 function draw() {
   ctx.imageSmoothingEnabled = false;
-  ctx.fillStyle = "#203b35";
+  ctx.fillStyle = "#192532";
   ctx.fillRect(0, 0, 640, 280);
-  ctx.fillStyle = "#27443a";
+  ctx.fillStyle = "#263441";
   ctx.fillRect(0, 212, 640, 68);
   if ($("grid").checked) {
-    ctx.strokeStyle = "#2c483c";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
+    ctx.fillStyle = "#354452";
     for (let x = 0; x < 640; x += 5) {
-      ctx.moveTo(x + 0.5, 0);
-      ctx.lineTo(x + 0.5, 280);
+      ctx.fillRect(x, 0, 1, 280);
     }
     for (let y = 0; y < 280; y += 5) {
-      ctx.moveTo(0, y + 0.5);
-      ctx.lineTo(640, y + 0.5);
+      ctx.fillRect(0, y, 640, 1);
     }
-    ctx.stroke();
   }
   const compare = $("compare").checked;
   if (compare) {
     paint(ctx, 160, 225, 5, time, ANIMATION_DEFAULTS);
     paint(ctx, 480, 225, 5, time);
-    ctx.fillStyle = "#ced4b2";
+    ctx.fillStyle = "#f3e6c8";
     ctx.font = "14px monospace";
-    ctx.fillText("DEFAULTS", 18, 25);
-    ctx.fillText("CURRENT", 338, 25);
+    pixelText(ctx, "DEFAULTS", 18, 12, 2);
+    pixelText(ctx, "CURRENT", 338, 12, 2);
   } else paint(ctx, 320, 225, 5, time);
   $("time").value = `${time.toFixed(2)}s`;
   $("timeline").value = time;
@@ -297,18 +295,18 @@ $("export").onclick = () =>
     new Blob(
       [
         JSON.stringify(
-          { schema: "threadwake.motion.v1", animation: settings },
+          { schema: "afterhours.motion.v1", animation: settings },
           null,
           2,
         ),
       ],
       { type: "application/json" },
     ),
-    "threadwake-motion.json",
+    "afterhours-motion.json",
   );
 $("sheet-export").onclick = () => {
   drawSheet();
-  sheet.toBlob((b) => download(b, "threadwake-poses.png"));
+  sheet.toBlob((b) => download(b, "afterhours-poses.png"));
 };
 $("import").onchange = async (e) => {
   try {
@@ -316,8 +314,8 @@ $("import").onchange = async (e) => {
     if (!file || file.size > 10000)
       throw new Error("Choose a motion preset under 10 KB.");
     const data = JSON.parse(await file.text());
-    if (data.schema !== "threadwake.motion.v1")
-      throw new Error("This is not a Threadwake motion preset.");
+    if (data.schema !== "afterhours.motion.v1")
+      throw new Error("This is not a After Hours motion preset.");
     const next = { ...ANIMATION_DEFAULTS };
     for (const [k, [min, max]] of Object.entries(ranges)) {
       if (!(k in next) || data.animation?.[k] === undefined) continue;
@@ -369,7 +367,7 @@ function readConfig() {
 }
 function initialize(c) {
   const s = createGame(c.seed);
-  const p = addPlayer(s, "lab", "Weaver");
+  const p = addPlayer(s, "lab", "Custodian");
   startGame(s);
   if (c.wave > 1) {
     s.wave = c.wave - 1;
@@ -418,6 +416,7 @@ function initialize(c) {
           id: ++s._id,
           x: 600 + Math.cos(a) * 110,
           y: 400 + Math.sin(a) * 110,
+          kind: "supply",
           charge: i / 8,
           life: 600,
         };
@@ -515,10 +514,11 @@ function drawEncounter() {
   renderer.draw(encounter, "lab", encounter.time, {
     animation: settings,
     shake: false,
+    hitboxes: $("encounter-geometry").checked,
   });
   const p = encounter.players[0];
   $("encounter-status").value =
-    `${replaying ? "Replay" : "Live"} · ${encounter.time.toFixed(1)}s · HP ${Math.ceil(p.hp)}/${p.maxHp} · ${encounter.caught} catches · ${p.stats?.blooms || 0} blooms · ${p.stats?.resonances || 0} resonances · ${encounter.phase}`;
+    `${replaying ? "Replay" : "Live"} · ${encounter.time.toFixed(1)}s · HP ${Math.ceil(p.hp)}/${p.maxHp} · ${encounter.caught} shots cleared · ${p.stats?.blooms || 0} supplies · ${p.stats?.resonances || 0} assists · ${encounter.phase}`;
   if (
     encounter.phase === "draft" &&
     !$("encounter-choices").children.length &&
@@ -570,7 +570,7 @@ $("replay-export").onclick = () => {
     new Blob(
       [
         JSON.stringify({
-          schema: "threadwake.take.v1",
+          schema: "afterhours.take.v1",
           simulationVersion: REPLAY_VERSION,
           config,
           animation: settings,
@@ -579,7 +579,7 @@ $("replay-export").onclick = () => {
       ],
       { type: "application/json" },
     ),
-    `threadwake-take-${config.seed}.json`,
+    `afterhours-take-${config.seed}.json`,
   );
 };
 $("replay-import").onchange = async (event) => {
@@ -589,7 +589,7 @@ $("replay-import").onchange = async (event) => {
     const data = JSON.parse(await file.text()),
       c = data.config;
     if (
-      data.schema !== "threadwake.take.v1" ||
+      data.schema !== "afterhours.take.v1" ||
       data.simulationVersion !== REPLAY_VERSION ||
       !c ||
       !Number.isInteger(c.seed) ||
@@ -609,7 +609,7 @@ $("replay-import").onchange = async (event) => {
       data.frames.length > MAX_TICKS ||
       !data.frames.length
     )
-      throw new Error("Invalid Threadwake take.");
+      throw new Error("Invalid After Hours take.");
     for (const f of data.frames)
       if (
         !(

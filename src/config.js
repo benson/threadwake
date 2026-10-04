@@ -3,17 +3,20 @@ export const TICK_RATE = 30;
 export const WAVE_COUNT = 8;
 export const WAVE_DURATION = 65;
 export const waveDuration = (wave) => (wave === 1 ? 38 : WAVE_DURATION);
+export const PERMANENT = Object.freeze({
+  healthPerRank: 10,
+  speedPerRank: 0.04,
+  cooldownPerRank: 0.05,
+});
 export const BALANCE = Object.freeze({
   speed: 155,
   playerHp: 110,
-  castCooldown: 5.5,
-  echoLife: 7.2,
-  echoMinSeparation: 80,
-  echoProjection: 105,
-  maxEchoesPerPlayer: 2,
-  historySeconds: 3,
-  threadRadius: 13,
-  flowerRadius: 118,
+  castCooldown: 5,
+  sweepRadius: 96,
+  sweepDamage: 52,
+  sweepKnockback: 90,
+  sweepStagger: 0.8,
+  supplyRadius: 118,
   shotDamage: 20,
   fireInterval: 0.65,
   reviveSeconds: 3,

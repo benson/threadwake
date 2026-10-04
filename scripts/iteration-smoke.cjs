@@ -2,21 +2,22 @@ async (page) => {
   const errors=[];
   page.on('pageerror', e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:4320/');
-  await page.getByRole('button',{name:'Enter the grove',exact:true}).click();
+  await page.getByRole('button',{name:'Start shift',exact:true}).click();
+  const cooldownDuration=await page.evaluate(()=>window.__threadwake.state.players[0].cooldownDuration);
   await page.keyboard.down('d');
   await page.keyboard.down('Space');
-  await page.waitForTimeout(5700);
-  await page.waitForFunction(()=>window.__threadwake.state.echoes.length===2,{},{timeout:2000});
+  await page.waitForTimeout((cooldownDuration+.15)*1000);
+  await page.waitForFunction(()=>window.__threadwake.state.players[0].castAge<1,{},{timeout:2000});
   await page.keyboard.up('Space');
   await page.keyboard.up('d');
-  const held=await page.evaluate(()=>({echoes:window.__threadwake.state.echoes.length,cooldown:window.__threadwake.state.players[0].castCooldown}));
-  if(held.echoes!==2 || held.cooldown<4) throw Error('Held cast did not produce overlapping echoes: '+JSON.stringify(held));
+  const held=await page.evaluate(()=>({castAge:window.__threadwake.state.players[0].castAge,echoes:window.__threadwake.state.echoes.length,cooldown:window.__threadwake.state.players[0].castCooldown}));
+  if(held.echoes!==0 || held.castAge>1 || held.cooldown<cooldownDuration-1) throw Error('Held sweep did not repeat: '+JSON.stringify(held));
   // A tap shortly before cooldown ends must survive until the ability is ready.
   await page.waitForFunction(()=>{const c=window.__threadwake.state.players[0].castCooldown; return c>0 && c<.18;});
   await page.keyboard.press('Space');
   await page.waitForTimeout(300);
   const buffered=await page.evaluate(()=>window.__threadwake.state.players[0].castCooldown);
-  if(buffered<5) throw Error('Near-ready cast was dropped: '+buffered);
+  if(buffered<cooldownDuration-.5) throw Error('Near-ready cast was dropped: '+buffered);
   await page.keyboard.press('Escape');
   await page.locator('#music-volume').fill('20');
   await page.locator('#effects-volume').fill('70');

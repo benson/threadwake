@@ -3,428 +3,317 @@ import assert from "node:assert/strict";
 import {
   createGame,
   addPlayer,
+  removePlayer,
   startGame,
   step,
-  chooseUpgrade,
   snapshot,
-  upgradePreview,
   UPGRADES,
+  upgradePreview,
 } from "../src/sim.js";
-import { BALANCE as B, WAVE_DURATION } from "../src/config.js";
+import { BALANCE as B, PERMANENT } from "../src/config.js";
 
-function quiet(size = 1) {
-  const s = createGame(91);
-  for (let i = 0; i < size; i++) addPlayer(s, String(i));
+const quiet = (upgrades = []) => {
+  const s = createGame(41);
+  addPlayer(s, "a");
   startGame(s);
-  s.enemies = [];
-  s.flowers = [];
+  const p = s.players[0];
   s._spawn = s._flower = 100;
-  for (const p of s.players) p._fire = 100;
-  return s;
-}
-function enemy(id, x, y, hp = 1000, type = "mite") {
-  return {
-    id,
-    x,
-    y,
-    hp,
-    maxHp: hp,
-    type,
-    r: type === "warden" ? 29 : 10,
-    hit: 0,
-    phase: 0,
-    _fire: 100,
-    slow: 0,
-    brittle: 0,
-    exposed: 0,
-    _locked: false,
-    aimX: 1,
-    aimY: 0,
-  };
-}
-function bullet(
+  s._opening = 2;
+  s.flowers = [];
+  p._fire = 100;
+  p.upgrades = upgrades;
+  p.invulnerable = 0;
+  return { s, p };
+};
+const enemy = (id, x, y, extra = {}) => ({
   id,
+  type: "moth",
   x,
   y,
-  vx = 0,
-  vy = 0,
-  hostile = true,
-  damage = 20,
-  pierce = 0,
-) {
-  return {
-    id,
-    owner: "0",
-    x,
-    y,
-    vx,
-    vy,
-    hostile,
-    damage,
-    pierce,
-    r: hostile ? 4 : 3,
-    color: 0,
-    life: 5,
-    _hits: [],
-  };
-}
-function thread(s, p, x, y) {
-  p._history = Array.from({ length: 90 }, () => ({ x, y }));
-  step(s, { [p.id]: { cast: true } });
-  return s.echoes.at(-1);
-}
-
-test("stationary casts project an honest anchor, including against arena edges", () => {
-  for (const x of [18, 600, 1182]) {
-    const s = quiet(),
-      p = s.players[0];
-    p.x = x;
-    p.aimX = x === 1182 ? -1 : 1;
-    step(s, { 0: { cast: true } });
-    const e = s.echoes[0];
-    assert.ok(Math.hypot(e.x - p.x, e.y - p.y) >= B.echoMinSeparation);
-    assert.equal(e.projected, true);
-    assert.ok(
-      e._path.every((q) => q.x === p.x && q.y === p.y),
-      "projection must not invent footsteps",
-    );
-    assert.ok(e.maxLife > p.cooldownDuration, "memory outlives the next cast");
-  }
+  r: 10,
+  hp: 500,
+  maxHp: 500,
+  hit: 0,
+  phase: 0,
+  slow: 0,
+  brittle: 0,
+  stagger: 100,
+  _fire: 100,
+  _locked: false,
+  _shatter: 0,
+  ...extra,
+});
+const bullet = (id, x, y, extra = {}) => ({
+  id,
+  owner: "a",
+  source: null,
+  x,
+  y,
+  vx: 0,
+  vy: 0,
+  hostile: true,
+  damage: 20,
+  pierce: 0,
+  r: 4,
+  life: 10,
+  color: 0,
+  _hits: [],
+  ...extra,
 });
 
-test("history uses seconds, replay preserves real footsteps, and tight loops find distant memory", () => {
-  const s = quiet(),
-    p = s.players[0];
-  for (let i = 0; i < 35; i++) step(s, { 0: { x: 1 } }, 0.1);
-  assert.ok(p._history.length >= 29 && p._history.length <= 31);
-  assert.ok(p._history[0].t >= s.time - B.historySeconds - 1e-6);
-  step(s, { 0: { cast: true } });
-  assert.ok(p.x - s.echoes[0].x > 400);
-  const q = quiet(),
-    a = q.players[0];
-  a._history = [
-    { x: a.x, y: a.y },
-    { x: a.x - 180, y: a.y },
-    { x: a.x, y: a.y },
-  ];
-  step(q, { 0: { cast: true } });
-  assert.equal(q.echoes[0].projected, false);
-  assert.equal(q.echoes[0].x, a.x - 180);
+test("sweep uses visible body bounds immediately and its fading effect cannot damage again", () => {
+  const { s, p } = quiet();
+  const inside = enemy(800, p.x + B.sweepRadius + 9.9, p.y + 13),
+    outside = enemy(801, p.x - B.sweepRadius - 10.1, p.y + 13);
+  s.enemies = [inside, outside];
+  step(s, { a: { cast: true } });
+  assert.equal(inside.hp, 500 - B.sweepDamage);
+  assert.equal(outside.hp, 500);
+  const e = s.effects.find((e) => e.type === "sweep");
+  assert.equal(e.radius, B.sweepRadius);
+  assert.equal(e.owner, "a");
+  assert.equal(e.maxLife, 0.35);
+  Object.assign(inside, { x: p.x + 30, y: p.y });
+  step(s, { a: { cast: true } });
+  assert.equal(inside.hp, 500 - B.sweepDamage);
+  assert.ok(p.castCooldown > 4.9);
+  assert.equal(p.castAge, 1 / 30);
+  assert.deepEqual(s.echoes, []);
+  assert.equal("echoPreview" in p, false);
+  assert.equal("_history" in p, false);
 });
-
-test("recasts keep the previous living memory and bound each owner's echoes", () => {
-  const s = quiet(2),
-    p = s.players[0];
-  step(s, { 0: { cast: true } });
-  const first = s.echoes[0].id;
-  for (let i = 0; i < 2; i++) {
-    step(s, {});
-    p.castCooldown = 0;
-    step(s, { 0: { cast: true }, 1: { cast: i === 0 } });
-    if (i === 0) assert.ok(s.echoes.some((e) => e.id === first));
-  }
-  assert.equal(
-    s.echoes.filter((e) => e.owner === "0").length,
-    B.maxEchoesPerPlayer,
-  );
-  assert.ok(!s.echoes.some((e) => e.id === first));
-  assert.equal(s.echoes.filter((e) => e.owner === "1").length, 1);
-});
-
-test("a press just before cooldown finishes is buffered once", () => {
-  const s = quiet(),
-    p = s.players[0];
-  p.castCooldown = 0.15;
-  step(s, { 0: { cast: true } });
-  assert.equal(s.echoes.length, 0);
-  for (let i = 0; i < 6; i++) step(s, {});
-  assert.equal(s.echoes.length, 1);
-  const id = s.echoes[0].id;
-  for (let i = 0; i < 180; i++) step(s, {});
-  assert.deepEqual(
-    s.echoes.map((e) => e.id),
-    [id],
-    "a buffered tap must not repeat itself",
-  );
-});
-
-test("thread catches swept shots from its side, but is not an all-direction body shield", () => {
-  const s = quiet(),
-    p = s.players[0];
-  p.invulnerable = 0;
-  thread(s, p, p.x - 180, p.y);
-  s.shots = [bullet(901, p.x - 90, p.y - 40, 0, 1000)];
-  step(s, {}, 0.1);
-  assert.equal(s.caught, 1);
-  assert.equal(p.hp, B.playerHp);
-  s.shots = [bullet(902, p.x + 40, p.y, -1000, 0)];
-  step(s, {}, 0.1);
-  assert.equal(
-    s.caught,
-    1,
-    "a shot reaches the body before the thread behind it",
-  );
-  assert.equal(p.hp, B.playerHp - 20);
-});
-
-test("piercing needles hit in travel order and cannot tunnel through small creatures", () => {
-  const s = quiet(),
-    p = s.players[0];
-  const near = enemy(910, 250, 200),
-    far = enemy(911, 300, 200);
-  s.enemies = [far, near];
-  s.shots = [bullet(912, 200, 200, 1200, 0, false, 20, 1)];
-  step(s, {}, 0.1);
-  assert.equal(near.hp, 980);
-  assert.equal(
-    far.hp,
-    982,
-    "second target receives 90% damage regardless of enemy array order",
-  );
-  assert.equal(p.hp, B.playerHp);
-});
-
-test("catches power the next whole volley and flow to a nearby off-thread flower", () => {
-  const s = quiet(),
-    p = s.players[0];
-  p.upgrades = ["fork"];
-  thread(s, p, p.x - 180, p.y);
-  s.flowers = [{ id: 920, x: p.x - 90, y: p.y + 150, charge: 0, life: 10 }];
-  s.shots = [bullet(921, p.x - 90, p.y), bullet(922, p.x - 100, p.y)];
-  step(s, {});
-  assert.equal(p.stats.catches, 2);
-  assert.equal(s.flowers[0].charge, 1);
-  s.enemies = [enemy(923, p.x + 200, p.y)];
-  p._fire = 0;
-  step(s, {});
-  const needles = s.shots.filter((b) => !b.hostile);
-  assert.equal(needles.length, 2);
-  assert.ok(
-    needles.every(
-      (b) => Math.abs(b.damage - 20 * 1.36) < 1e-8 && b.pierce === 1,
-    ),
-  );
-  assert.equal(p.stitchCharge, 0);
-});
-
-test("garden bursts heal actual missing HP, spread charge and help fallen friends", () => {
-  const s = quiet(2),
-    p = s.players[0],
-    ally = s.players[1];
-  p.upgrades = ["bloom", "heal", "magnet"];
-  p.hp = p.maxHp - 3;
-  ally.dead = true;
-  ally.hp = 0;
-  ally.revive = 0;
-  s.flowers = [
-    { id: 930, x: p.x - 50, y: p.y, charge: 1, life: 10 },
-    { id: 931, x: p.x - 50, y: p.y + 100, charge: 0.1, life: 10 },
-  ];
-  const foe = enemy(932, p.x - 50, p.y + 60, 80);
-  s.enemies = [foe];
-  thread(s, p, p.x - 180, p.y);
-  assert.equal(s.stats.blooms, 1);
-  assert.equal(p.stats.healed, 3, "overheal is not credited");
-  assert.equal(p.hp, p.maxHp);
-  assert.ok(
-    ally.revive > 0.25 && ally.dead,
-    "a burst helps a rescue but does not instantly revive",
-  );
-  assert.ok(s.flowers.find((f) => f.id === 931).charge > 0.3);
-  assert.ok(s.enemies.every((e) => e.id !== foe.id));
-  assert.ok(s.effects.some((e) => e.type === "heal"));
-});
-
-test("frost stacks improve shatter and a freeze is consumed by one needle", () => {
-  function damage(stacks) {
-    const s = quiet(),
-      p = s.players[0];
-    p.upgrades = Array(stacks).fill("frost");
-    const e = enemy(940, p.x - 90, p.y);
-    s.enemies = [e];
-    thread(s, p, p.x - 180, p.y);
-    const before = e.hp;
-    s.shots = [
-      bullet(941, e.x, e.y, 0, 0, false),
-      bullet(942, e.x, e.y, 0, 0, false),
-    ];
-    step(s, {});
-    return before - e.hp;
-  }
-  const one = damage(1),
-    four = damage(4);
-  assert.ok(
-    one >= 49 && one < 51,
-    "only the first 20 damage needle gets a 45% bonus",
-  );
-  assert.ok(
-    four - one > 5.9 && four - one < 6.1,
-    "later frost stacks add a real shatter benefit",
-  );
-});
-
-test("spindles catch shots without requiring an echo", () => {
-  const s = quiet(),
-    p = s.players[0];
-  p.upgrades = ["orbit"];
-  const angle = 2.7 / 30;
+test("radial sweep clears hostile shots behind the custodian but preserves outside and friendly marbles", () => {
+  const { s, p } = quiet();
   s.shots = [
-    bullet(950, p.x + Math.cos(angle) * 49, p.y + Math.sin(angle) * 49),
+    bullet(800, p.x - 99, p.y),
+    bullet(801, p.x + 101, p.y),
+    bullet(802, p.x + 20, p.y, { hostile: false }),
   ];
-  s.flowers = [{ id: 951, x: p.x + 90, y: p.y, charge: 0, life: 10 }];
+  step(s, { a: { cast: true } });
+  assert.equal(s.caught, 1);
+  assert.deepEqual(
+    s.shots.map((b) => b.id),
+    [801, 802],
+  );
+  assert.equal(p.stats.catches, 1);
+});
+test("stiff bristles, velvet rope and winding key change actual sweep damage, force, reach and cadence", () => {
+  const { s, p } = quiet(["echo", "thread", "recall"]),
+    e = enemy(800, p.x + 110, p.y, { stagger: 0, _fire: 0 });
+  s.enemies = [e];
+  step(s, { a: { cast: true } });
+  assert.equal(e.hp, 430);
+  assert.ok(Math.abs(e.x - p.x - 220) < 1e-8);
+  assert.ok(e.stagger > 0.7);
+  assert.equal(p.sweepRadius, 114);
+  assert.equal(p.castCooldown, 4);
+  assert.equal(s.shots.length, 0);
+  for (let i = 0; i < 118; i++) step(s, {});
+  step(s, { a: { cast: true } });
+  for (let i = 0; i < 3; i++) step(s, {});
+  assert.ok(p.castAge < 0.1, "a press just before ready is buffered");
+});
+test("supply care heals automatically, sweep boosts charge, and credit reflects actual restored health", () => {
+  const { s, p } = quiet(["bloom", "heal"]);
+  p.hp = p.maxHp - 5;
+  s.flowers = [
+    { id: 800, kind: "supply", x: p.x + 30, y: p.y, charge: 0.6, life: 10 },
+  ];
+  step(s, { a: { cast: true } });
+  assert.equal(p.hp, p.maxHp);
+  assert.equal(s.stats.healed, 5);
+  assert.equal(p.stats.blooms, 1);
+  assert.equal(
+    s.effects.find((e) => e.type === "supply").radius,
+    B.supplyRadius * 1.25,
+  );
+  const second = quiet();
+  second.p.hp = 50;
+  second.s.flowers = [
+    { id: 800, kind: "supply", x: 630, y: 400, charge: 0.99, life: 10 },
+  ];
+  step(second.s, {}, 0.1);
+  assert.equal(second.p.hp, 62);
+  assert.equal(second.p.stats.blooms, 1);
+});
+test("visitor bell charges multiple carts and each extra bell improves actual charge and pull", () => {
+  const sample = (n) => {
+    const { s, p } = quiet(Array(n).fill("magnet"));
+    s.flowers = [80, 150].map((d, i) => ({
+      id: 800 + i,
+      kind: "supply",
+      x: p.x + d,
+      y: p.y,
+      charge: 0,
+      life: 10,
+    }));
+    const carts = [...s.flowers];
+    s.shots = [bullet(850, p.x + 50, p.y)];
+    step(s, { a: { cast: true } });
+    return carts;
+  };
+  const none = sample(0),
+    one = sample(1),
+    two = sample(2);
+  assert.equal(none[1].charge, 0);
+  assert.ok(one[1].charge > 0.5);
+  assert.ok(two[1].charge > one[1].charge);
+  assert.ok(two[1].x < one[1].x);
+});
+test("glacier sweep enables one marble shatter and duplicate fragments strengthen it", () => {
+  for (const n of [1, 2]) {
+    const { s, p } = quiet(Array(n).fill("frost")),
+      e = enemy(800, p.x + 40, p.y);
+    s.enemies = [e];
+    step(s, { a: { cast: true } });
+    assert.ok(e.slow > 1.3);
+    s.shots.push(bullet(810, e.x, e.y, { hostile: false, damage: 20, r: 3 }));
+    step(s, {});
+    assert.equal(e.hp, 448 - 20 * (1.35 + 0.1 * n));
+    assert.equal(e.brittle, 0);
+    s.shots.push(bullet(811, e.x, e.y, { hostile: false, damage: 20, r: 3 }));
+    step(s, {});
+    assert.equal(e.hp, 428 - 20 * (1.35 + 0.1 * n));
+  }
+});
+test("tin soldier is a real single follower and inherits marble modifiers", () => {
+  const { s, p } = quiet([
+    "mirror",
+    "mirror",
+    "fork",
+    "pierce",
+    "heavy",
+    "quick",
+  ]);
+  s.enemies = [enemy(800, 900, 400)];
+  for (let i = 0; i < 7; i++) step(s, { a: { x: 1 } });
+  assert.equal(s.companions.length, 1);
+  assert.ok(s.companions[0].x > 575);
+  assert.equal(s.shots.length, 2);
+  assert.ok(
+    s.shots.every((b) => Math.abs(b.damage - 21.6) < 1e-8 && b.pierce === 2),
+  );
+  assert.ok(s.companions[0].fireIn <= 0.72000001);
+  removePlayer(s, "a");
+  assert.equal(s.companions.length, 0);
+});
+test("orrery clears real crossing shots and jack-in-the-box retaliates only on a real hit", () => {
+  const { s, p } = quiet(["orbit", "thorns"]);
+  s.shots = [bullet(800, p.x + 48.8, p.y + 4.4)];
   step(s, {});
   assert.equal(s.caught, 1);
-  assert.equal(p.stitchCharge, 1);
-  assert.equal(s.flowers[0].charge, 0.5);
-  assert.equal(s.echoes.length, 0);
-});
-
-test("allied crossing threads resonate, while repeated overlap cannot farm each tick", () => {
-  const s = quiet(2),
-    p = s.players[0],
-    q = s.players[1];
-  p.x = 600;
-  p.y = 400;
-  q.x = 500;
-  q.y = 300;
-  thread(s, p, 400, 400);
-  thread(s, q, 500, 500);
-  s.flowers = [{ id: 960, x: 500, y: 400, charge: 0, life: 10 }];
+  s.shots = [bullet(801, p.x, p.y - 18)];
   step(s, {});
-  assert.ok(s.echoes.every((e) => e.resonance === 1));
-  assert.equal(p.stats.resonances, 1);
-  assert.equal(q.stats.resonances, 1);
-  assert.equal(s.stats.resonances, 1);
-  assert.ok(
-    s.flowers[0].charge > 0.035,
-    "crossing threads charge gardens faster",
-  );
-  for (let i = 0; i < 40; i++) step(s, {});
-  assert.equal(s.stats.resonances, 1);
-  assert.equal(
-    s.stats.blooms,
-    1,
-    "sustained crossing threads burst the flower",
-  );
+  assert.equal(p.hp, 90);
+  assert.equal(s.shots.filter((b) => !b.hostile).length, 12);
+  s.shots.push(bullet(802, p.x, p.y - 18));
+  step(s, {});
+  assert.equal(p.hp, 90);
 });
-
-test("later boss stages change attacks and catching its volley opens the needle ward", () => {
-  const patterns = [];
-  for (const ratio of [1, 0.6, 0.3]) {
-    const s = quiet(),
-      p = s.players[0],
-      boss = enemy(970, 300, 200, 1000, "warden");
-    boss.hp *= ratio;
-    boss._fire = 0;
+test("nearby co-workers receive sweep protection and shared first aid with correct credits", () => {
+  const { s, p } = quiet(["heal"]),
+    friend = addPlayer(s, "b");
+  friend._fire = 100;
+  friend.hp = 80;
+  friend.invulnerable = 0;
+  step(s, { a: { cast: true } });
+  assert.equal(friend.hp, 84);
+  assert.ok(friend.invulnerable >= 0.31);
+  assert.equal(p.stats.resonances, 1);
+  assert.equal(friend.stats.resonances, 1);
+  assert.equal(s.stats.resonances, 1);
+  assert.equal(p.stats.healed, 4);
+});
+test("permanent equipment has shared exact formulas and survives restarting", () => {
+  const s = createGame();
+  addPlayer(s, "a", "Staff", { vitality: 3, haste: 3, echo: 3 });
+  startGame(s);
+  const p = s.players[0];
+  assert.equal(p.maxHp, B.playerHp + PERMANENT.healthPerRank * 3);
+  assert.equal(p.speed, B.speed * (1 + PERMANENT.speedPerRank * 3));
+  assert.equal(
+    p.cooldownDuration,
+    B.castCooldown * (1 - PERMANENT.cooldownPerRank * 3),
+  );
+  s.phase = "lost";
+  startGame(s);
+  assert.deepEqual(s.players[0].traits, p.traits);
+});
+test("held broom input repeats only when ready, independent of the fading impact effect", () => {
+  const { s, p } = quiet();
+  let sweeps = 0;
+  const seen = new Set();
+  for (let i = 0; i < 306; i++) {
+    step(s, { a: { cast: true } });
+    for (const e of s.effects)
+      if (e.type === "sweep" && !seen.has(e.id)) {
+        seen.add(e.id);
+        sweeps++;
+      }
+  }
+  assert.equal(sweeps, 3);
+  assert.ok(p.castCooldown > 4.8);
+});
+test("Curator has three distinct volleys and remains vulnerable to marbles in every phase", () => {
+  for (const [fraction, stage, attack, bullets] of [
+    [1, 1, "ring", 13],
+    [0.5, 2, "fan", 13],
+    [0.2, 3, "spiral", 19],
+  ]) {
+    const { s, p } = quiet();
+    s.wave = 8;
+    const boss = enemy(800, 1000, 700, {
+      type: "warden",
+      r: 29,
+      hp: 1000 * fraction,
+      maxHp: 1000,
+      stagger: 0,
+      _fire: 0,
+    });
     s.enemies = [boss];
     step(s, {});
-    patterns.push([
-      boss.stage,
-      boss.attack,
-      s.shots.filter((b) => b.hostile).length,
-    ]);
+    assert.equal(boss.stage, stage);
+    assert.equal(boss.attack, attack);
+    assert.equal(s.shots.filter((b) => b.hostile).length, bullets);
+    const hp = boss.hp;
+    s.shots = [bullet(810, boss.x, boss.y - 32, { hostile: false, r: 3 })];
+    step(s, {});
+    assert.equal(boss.hp, hp - 20);
+    assert.equal("warded" in boss, false);
   }
-  assert.deepEqual(patterns, [
-    [1, "ring", 13],
-    [2, "fan", 13],
-    [3, "spiral", 19],
-  ]);
-  const s = quiet(),
-    p = s.players[0],
-    boss = enemy(971, 300, 200, 1000, "warden");
-  boss.hp = 500;
-  s.enemies = [boss];
-  step(s, {});
-  const before = boss.hp;
-  s.shots = [bullet(972, boss.x, boss.y, 0, 0, false)];
-  step(s, {});
-  assert.equal(boss.hp, before - 12, "ward reduces needle damage");
-  thread(s, p, p.x - 180, p.y);
-  s.shots = [{ ...bullet(973, p.x - 90, p.y), source: boss.id }];
-  step(s, {});
-  assert.equal(boss.ward, false);
-  assert.ok(boss.exposed > 1.5);
-  const exposedHp = boss.hp;
-  s.shots = [bullet(974, boss.x, boss.y, 0, 0, false)];
-  step(s, {});
-  assert.equal(boss.hp, exposedHp - 20);
 });
-
-test("thorn fans commit their direction before firing so a late sidestep works", () => {
-  const s = quiet(),
-    p = s.players[0],
-    thorn = enemy(980, p.x - 200, p.y, 1000, "thorn");
-  thorn._fire = 0.6;
-  s.enemies = [thorn];
-  step(s, {});
-  p.y += 180;
-  for (let i = 0; i < 18; i++) step(s, {});
-  const center = s.shots.find((b) => b.hostile && Math.abs(b.vy) < 0.01);
-  assert.ok(
-    center && center.vx > 0,
-    "fan follows its telegraph, not the player's new location",
-  );
-});
-
-test("drafts offer real linked upgrades, every stack changes its preview, and caps are respected", () => {
-  const s = quiet(),
-    p = s.players[0];
-  p.upgrades = ["bloom"];
-  s.waveTime = WAVE_DURATION;
-  step(s, {});
-  assert.ok(
-    s.choices["0"].some((id) => ["magnet", "heal", "recall"].includes(id)),
-  );
+test("curio previews explain different next stacks without developer distance units", () => {
+  const { p } = quiet();
   for (const u of UPGRADES) {
-    p.upgrades = Array(u.maxStacks - 1).fill(u.id);
-    const preview = upgradePreview(p, u.id);
-    assert.notEqual(
-      preview.before,
-      preview.after,
-      `${u.id}'s last stack must offer real value`,
-    );
-    assert.ok(preview.synergy);
+    const a = upgradePreview(p, u.id);
+    assert.notEqual(a.before, a.after, u.id);
+    assert.ok(a.synergy);
+    assert.ok(!/px|echo|thread|flower|needle/i.test(u.description), u.id);
+    assert.ok(!/px/.test(a.after), u.id);
+    p.upgrades = [u.id];
+    const b = upgradePreview(p, u.id);
+    assert.notEqual(b.before, b.after, u.id);
+    p.upgrades = [];
   }
-  p.upgrades = [...Array(3).fill("orbit"), ...Array(4).fill("magnet")];
-  s.phase = "playing";
-  s.waveTime = WAVE_DURATION;
-  step(s, {});
-  assert.ok(
-    !s.choices["0"].includes("orbit") && !s.choices["0"].includes("magnet"),
+  assert.match(
+    upgradePreview(p, "mirror").after,
+    /beside you at 60% of your marble damage/,
   );
 });
-
-test("wave participation earns milestones, last-second joins do not receive the completed wave", () => {
-  const s = quiet(),
-    p = s.players[0];
-  for (let i = 0; i < 300; i++) step(s, {});
-  const late = addPlayer(s, "late");
-  s.waveTime = WAVE_DURATION;
-  step(s, {});
-  assert.equal(p.wavesSurvived, 1);
-  assert.equal(late.wavesSurvived, 0);
-  assert.equal(p.runTicks, 301);
-  assert.equal(late.runTicks, 1);
-  chooseUpgrade(s, "0", s.choices["0"][0]);
-  chooseUpgrade(s, "late", s.choices.late[0]);
-  assert.equal(p.wavesSurvived, 1, "milestones survive the next wave reset");
-});
-
-test("checkpoint replay preserves projection, resonance timers and combat credits", () => {
-  const s = quiet(2),
-    p = s.players[0];
-  p.upgrades = ["frost", "mirror", "recall"];
-  thread(s, p, p.x - 180, p.y);
-  s.shots = [bullet(990, p.x - 70, p.y)];
-  step(s, {});
-  const recovered = JSON.parse(JSON.stringify(s));
-  for (let i = 0; i < 400; i++) {
-    const input = {
-      0: { x: Math.sin(i * 0.01), y: Math.cos(i * 0.01), cast: i % 85 === 0 },
-    };
+test("JSON recovery retains live companions and projectile ownership for exact continuation", () => {
+  const { s, p } = quiet(["mirror"]);
+  p._fire = 0;
+  s.enemies = [enemy(800, 900, 400)];
+  for (let i = 0; i < 7; i++) step(s, {});
+  assert.ok(s.shots.length && s.companions.length);
+  const restored = JSON.parse(JSON.stringify(s));
+  assert.deepEqual(restored, s);
+  for (let i = 0; i < 120; i++) {
+    const input = { a: { y: 1, cast: i === 20 } };
     step(s, input);
-    step(recovered, input);
+    step(restored, input);
   }
-  assert.deepEqual(s, recovered);
+  assert.deepEqual(restored, s);
+  assert.equal(snapshot(s).version, 3);
   assert.ok(!JSON.stringify(snapshot(s)).includes('"_'));
 });

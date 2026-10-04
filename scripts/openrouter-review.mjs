@@ -17,7 +17,7 @@ const modelId = argv.includes("--model") ? value("--model") : null;
 const briefPath = argv.includes("--brief") ? value("--brief") : null;
 const images = argv.flatMap((v, i) => (v === "--image" ? [argv[i + 1]] : []));
 const dry = argv.includes("--dry-run");
-const MAX_OUTPUT = 3500;
+const MAX_OUTPUT = 6000;
 const safeRead = (name, maxBytes) => {
   const target = path.resolve(root, name || "");
   if (!target.startsWith(root + path.sep))
@@ -105,6 +105,7 @@ try {
     body: JSON.stringify({
       model: modelId,
       max_tokens: MAX_OUTPUT,
+      reasoning: { effort: "low", exclude: true },
       stream: false,
       provider: {
         sort: "price",

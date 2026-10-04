@@ -6,16 +6,16 @@
       name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <meta name="theme-color" content="#172b2a" />
+    <meta name="theme-color" content="#192532" />
     <meta
       name="description"
-      content="Weave your footsteps into weapons. A pixel woodland roguelike for 1–4 friends."
+      content="The exhibits are loose. Survive the museum night shift and borrow something strange. A pixel survivor for 1–4 friends."
     />
-    <title>Threadwake</title>
-    <meta property="og:title" content="Threadwake" />
+    <title>After Hours</title>
+    <meta property="og:title" content="After Hours" />
     <meta
       property="og:description"
-      content="Weave your footsteps into weapons. A pixel woodland roguelike for 1–4 friends."
+      content="The exhibits are loose. Survive the museum night shift and borrow something strange. A pixel survivor for 1–4 friends."
     />
     <meta
       property="og:image"
@@ -23,7 +23,7 @@
     />
     <meta property="og:url" content="https://threadwake.bensonperry.com/" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -32,93 +32,183 @@
         id="world"
         width="640"
         height="360"
-        aria-label="Threadwake game arena"
+        aria-label="After Hours game arena"
       ></canvas>
       <div id="hud" hidden>
         <div class="hud-left">
           <span id="health"></span><span id="squad"></span>
         </div>
         <div class="hud-center">
-          <span id="wave"></span><span id="clock"></span
-          ><span id="boss-health" hidden></span
+          <span id="gallery-name"></span><span id="wave"></span
+          ><span id="clock"></span><span id="boss-health" hidden></span
           ><span id="network-status" role="status" hidden></span>
         </div>
-        <button id="pause-button" aria-label="Pause or open menu">Ⅱ</button>
-        <button id="hud-memories" aria-label="Open memories">
-          ◆ <span id="hud-memory-count">0</span>
-          <span class="memory-label">Memories</span>
+        <button id="pause-button" aria-label="Pause or open menu">
+          <canvas
+            class="pixel-icon"
+            data-pixel-icon="pause"
+            aria-hidden="true"
+          ></canvas>
+        </button>
+        <button id="hud-memories" aria-label="Open staff kit">
+          <canvas
+            class="pixel-icon"
+            data-pixel-icon="credit"
+            aria-hidden="true"
+          ></canvas>
+          <span id="hud-memory-count">0</span>
+          <span class="memory-label">Credits</span>
         </button>
         <div id="ability">
-          <span id="ability-label">SPACE · UNWIND</span
+          <canvas
+            class="ability-art"
+            data-curio-art="echo"
+            aria-hidden="true"
+          ></canvas>
+          <span id="ability-label">SPACE · SWEEP</span
           ><span id="ability-meter"></span>
         </div>
         <div id="lesson"></div>
-        <div id="downed" hidden>Stay close to a friend to mend.</div>
+        <div id="downed" hidden>Stay close to a colleague to help them up.</div>
       </div>
       <section id="menu" class="overlay title-screen">
         <div class="title-lockup">
-          <span class="eyebrow">a woodland woven together</span>
-          <h1>THREADWAKE</h1>
-          <span class="title-ornament" aria-hidden="true">✦ ─── ◇ ─── ✦</span>
+          <span class="eyebrow"
+            >the museum is closed. the exhibits disagree.</span
+          >
+          <h1>AFTER HOURS</h1>
+          <span class="title-ornament" aria-hidden="true"
+            ><canvas class="pixel-icon" data-pixel-icon="credit"></canvas> EST.
+            1893 <canvas class="pixel-icon" data-pixel-icon="credit"></canvas
+          ></span>
         </div>
-        <div class="menu-actions">
-          <button id="solo" class="primary">Enter the grove</button
-          ><button id="friends">Play with friends</button>
-          <div class="small-actions">
-            <button id="memories-button">
-              Memories <span id="memory-count"></span></button
-            ><button id="options-button">Options</button>
+        <div class="title-body">
+          <div class="menu-actions">
+            <button id="solo" class="primary illustrated-button">
+              <canvas
+                class="menu-art"
+                data-menu-art="keyring"
+                aria-hidden="true"
+              ></canvas
+              ><span>Start shift</span></button
+            ><button id="friends" class="illustrated-button">
+              <canvas
+                class="menu-art"
+                data-menu-art="staff"
+                aria-hidden="true"
+              ></canvas
+              ><span>Play with friends</span>
+            </button>
+            <div class="small-actions">
+              <button id="memories-button" class="illustrated-button">
+                <canvas
+                  class="menu-art"
+                  data-menu-art="kit"
+                  aria-hidden="true"
+                ></canvas
+                ><span>Staff kit <span id="memory-count"></span></span></button
+              ><button id="options-button" aria-label="Options" title="Options">
+                <canvas
+                  class="menu-art"
+                  data-menu-art="gear"
+                  aria-hidden="true"
+                ></canvas>
+              </button>
+            </div>
           </div>
+          <aside class="staff-record" aria-label="Staff record">
+            <div class="record-heading">
+              <span class="record-label"
+                ><canvas
+                  class="menu-art"
+                  data-menu-art="museum"
+                  aria-hidden="true"
+                ></canvas>
+                STAFF RECORD</span
+              ><span id="title-best"></span>
+            </div>
+            <strong id="title-credits"></strong>
+            <p id="title-equipment"></p>
+            <div class="route-heading">Tonight’s route</div>
+            <ol id="gallery-route"></ol>
+          </aside>
         </div>
         <p class="controls">
-          WASD / arrows · move &nbsp; SPACE · unwind<br />Attacks find their own
-          mark.
+          WASD / arrows · move &nbsp; SPACE · sweep<br />Your slingshot fires
+          automatically.
         </p>
         <a class="workshop-link" href="/lab.html">Workshop</a>
       </section>
       <section id="lobby" class="overlay" hidden>
         <div class="panel">
-          <h2>The gathering</h2>
+          <h2 class="illustrated-heading">
+            <canvas
+              class="menu-art"
+              data-menu-art="staff"
+              aria-hidden="true"
+            ></canvas
+            >Night staff
+          </h2>
           <label for="name">Your name</label
           ><input
             id="name"
             maxlength="16"
             autocomplete="nickname"
-            placeholder="Weaver"
+            placeholder="Custodian"
           />
           <div id="party"></div>
           <p id="connection" role="status">Connecting…</p>
           <div class="actions">
             <button id="copy-link">Copy invite</button
-            ><button id="begin" class="primary" disabled>
-              Enter the grove
-            </button>
+            ><button id="begin" class="primary" disabled>Start shift</button>
           </div>
           <button id="leave-lobby" class="quiet">Back</button>
         </div>
       </section>
       <section id="draft" class="overlay shade" hidden>
         <div class="draft-content">
-          <span id="draft-caption" class="eyebrow">A quiet moment</span>
-          <h2>Choose a thread</h2>
+          <span id="draft-caption" class="eyebrow"
+            >Recovered from the collection</span
+          >
+          <h2 class="illustrated-heading">
+            <canvas
+              class="menu-art"
+              data-menu-art="kit"
+              aria-hidden="true"
+            ></canvas
+            >Borrow a curio
+          </h2>
           <div id="choices"></div>
           <p id="draft-status" role="status"></p>
         </div>
       </section>
       <section id="result" class="overlay shade" hidden>
         <div class="panel">
+          <canvas
+            class="result-art"
+            data-menu-art="museum"
+            aria-hidden="true"
+          ></canvas>
           <span class="eyebrow" id="result-caption"></span>
           <h2 id="result-title"></h2>
           <p id="result-stats"></p>
           <p id="result-memory"></p>
           <div class="actions">
-            <button id="again" class="primary">Weave again</button
+            <button id="again" class="primary">Another shift</button
+            ><button id="result-kit">Staff kit</button
             ><button id="home">Return</button>
           </div>
         </div>
       </section>
       <dialog id="options">
-        <h2 id="options-title">Options</h2>
+        <div class="illustrated-heading options-heading">
+          <canvas
+            class="menu-art"
+            data-menu-art="gear"
+            aria-hidden="true"
+          ></canvas>
+          <h2 id="options-title">Options</h2>
+        </div>
         <div class="volume-controls">
           <label
             >Music
@@ -132,30 +222,46 @@
           ><input type="checkbox" id="motion" /> Reduced motion</label
         >
         <p class="controls">
-          WASD / arrows · move<br />SPACE / click · unwind<br />ESC · menu
-          &nbsp; M · mute<br />Controller: left stick · move, A · unwind
+          WASD / arrows · move<br />SPACE / click · sweep<br />ESC · menu &nbsp;
+          M · mute<br />Controller: left stick · move, A · sweep
         </p>
-        <p id="online-pause" hidden>The grove keeps moving online.</p>
+        <p id="online-pause" hidden>The shift keeps going online.</p>
         <p id="connection-health" hidden></p>
         <div id="loadout" hidden></div>
         <button id="run-invite" hidden>Copy invite</button>
         <div class="actions">
           <button id="resume" class="primary">Continue</button
-          ><button id="pause-memories">Memories</button
+          ><button id="pause-memories">Staff kit</button
           ><button id="quit" hidden>Leave run</button>
         </div>
       </dialog>
       <dialog id="memories">
-        <span class="eyebrow">The roots you keep</span>
-        <h2>Memories</h2>
-        <p id="memory-balance"></p>
+        <div class="kit-heading">
+          <h2 class="illustrated-heading">
+            <canvas
+              class="menu-art"
+              data-menu-art="kit"
+              aria-hidden="true"
+            ></canvas
+            >Staff kit
+          </h2>
+          <p id="memory-balance"></p>
+        </div>
         <p id="memory-explainer">
-          Earn memories from waves and milestones. Planted traits take effect
-          next run.
+          Keep credits after every shift. Earn one per cleared wave and
+          milestone. Permanent equipment applies next shift.
         </p>
         <div id="talents"></div>
         <details id="milestone-details">
-          <summary>Milestones <span id="milestone-count"></span></summary>
+          <summary>
+            <canvas
+              class="pixel-icon"
+              id="milestone-arrow"
+              data-pixel-icon="chevron"
+              aria-hidden="true"
+            ></canvas>
+            Milestones <span id="milestone-count"></span>
+          </summary>
           <div id="milestones"></div>
         </details>
         <button id="close-memories">Back</button>
@@ -163,7 +269,7 @@
       <div id="toast" role="status" hidden></div>
       <div id="touch" hidden>
         <div id="stick" aria-label="Move"><i></i></div>
-        <button id="touch-cast">Unwind</button>
+        <button id="touch-cast">Sweep</button>
       </div>
     </main>
     <script type="module" src="/src/main.js"></script>

@@ -3,15 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#172b2a" />
-    <title>Threadwake · Workshop</title>
-    <link rel="icon" href="/favicon.svg" />
+    <meta name="theme-color" content="#192532" />
+    <title>After Hours · Workshop</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/lab.css" />
   </head>
   <body class="lab">
     <header>
-      <a href="/">← Threadwake</a>
+      <a href="/"
+        ><canvas
+          class="pixel-icon"
+          data-pixel-icon="museum"
+          aria-hidden="true"
+        ></canvas>
+        After Hours</a
+      >
       <h1>Workshop</h1>
       <nav aria-label="Workshop">
         <button id="motion-tab" aria-pressed="true">Motion</button
@@ -29,24 +36,25 @@
       <aside>
         <label for="subject">Subject</label
         ><select id="subject">
-          <option value="player">Stitchkeeper</option>
-          <option value="mite">Briar mite</option>
-          <option value="moth">Lantern moth</option>
-          <option value="thorn">Thorn keeper</option>
-          <option value="warden">The Unraveler</option></select
+          <option value="player">Custodian</option>
+          <option value="mite">Porcelain beetle</option>
+          <option value="moth">Specimen moth</option>
+          <option value="thorn">Animated armor</option>
+          <option value="warden">Grand Clock</option></select
         ><label for="pose">Pose</label
         ><select id="pose">
           <option value="idle">Idle</option>
           <option value="run">Run</option>
-          <option value="cast">Unwind</option>
+          <option value="cast">Sweep</option>
+          <option value="fire">Fire</option>
           <option value="hit">Hit</option>
           <option value="blink">Blink</option></select
-        ><label for="palette">Cloak</label
+        ><label for="palette">Uniform</label
         ><select id="palette">
-          <option value="0">Fern</option>
-          <option value="1">Rose</option>
+          <option value="0">Navy</option>
+          <option value="1">Burgundy</option>
           <option value="2">Ochre</option>
-          <option value="3">Iris</option></select
+          <option value="3">Teal</option></select
         ><label for="direction">Direction</label
         ><select id="direction">
           <option value="right">Right</option>
@@ -70,6 +78,9 @@
             defaults</label
           ><label class="check"
             ><input id="grid" type="checkbox" checked /> Pixel grid</label
+          ><label class="check"
+            ><input id="geometry" type="checkbox" /> Hitboxes &amp;
+            muzzles</label
           >
         </div>
         <canvas
@@ -99,7 +110,7 @@
         ></canvas>
         <div class="curve-key">
           <span>Lift / bob</span><span>Lean / step</span
-          ><span>Stretch / scarf</span>
+          ><span>Stretch / apron</span>
         </div>
         <div class="sheet-header">
           <h2>Pose sheet</h2>
@@ -136,11 +147,11 @@
         ><label for="scenario">Scenario</label
         ><select id="scenario">
           <option value="wave">Full wave</option>
-          <option value="melee">Mite circle</option>
-          <option value="barrage">Moth barrage</option>
-          <option value="garden">Thread garden</option>
-          <option value="thorns">Thorn volleys</option>
-          <option value="resonance">Crossed threads</option></select
+          <option value="melee">Porcelain swarm</option>
+          <option value="barrage">Specimen barrage</option>
+          <option value="garden">Supply carts</option>
+          <option value="thorns">Armor volleys</option>
+          <option value="resonance">Co-op protection</option></select
         ><label for="build">Upgrades</label
         ><select
           id="build"
@@ -151,6 +162,9 @@
         ><small id="build-hint">Ctrl / ⌘ to pick several.</small
         ><label class="check"
           ><input id="invincible" type="checkbox" /> Invincible</label
+        ><label class="check"
+          ><input id="encounter-geometry" type="checkbox" /> Hitboxes &amp;
+          muzzles</label
         ><button id="encounter-reset">Start / reset</button>
       </aside>
       <section class="lab-stage">
@@ -173,11 +187,11 @@
           width="640"
           height="360"
           tabindex="0"
-          aria-label="Encounter preview. WASD to move, space to unwind."
+          aria-label="Encounter preview. WASD to move, space to sweep."
         ></canvas>
         <div class="encounter-bar">
           <output id="encounter-status"></output
-          ><span>WASD · Space to unwind</span>
+          ><span>WASD · Space to sweep</span>
         </div>
         <div id="encounter-choices"></div>
         <p id="take-status" role="status"></p>

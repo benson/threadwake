@@ -1,7 +1,7 @@
 // Real UI containment across letterboxed browser shapes; no gameplay mutation.
 async page => {
   const errors=[]; page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:4319/');
+  await page.goto('http://127.0.0.1:4320/');
   const results=[];
   const check = async selector => page.evaluate(selector=>{
     const field=document.querySelector('#world').getBoundingClientRect();
@@ -13,7 +13,8 @@ async page => {
   for(const [width,height] of [[1280,720],[1000,900],[1800,700],[390,844],[844,390]]) {
     await page.setViewportSize({width,height});
     await page.waitForTimeout(80);
-    await check('#solo'); await check('#options-button');
+    await check('#solo'); await check('#options-button'); await check('.staff-record');
+    if(await page.locator('#menu').evaluate(e=>e.scrollHeight>e.clientHeight+1))throw Error('Start screen needs scrolling');
     await page.getByRole('button',{name:'Options',exact:true}).click();
     await check('#options');
     await page.getByRole('button',{name:'Continue',exact:true}).click();
@@ -23,9 +24,9 @@ async page => {
     results.push({width,height,contained:true});
   }
   await page.setViewportSize({width:1280,height:900});
-  await page.getByRole('button',{name:'Enter the grove',exact:true}).click();
+  await page.getByRole('button',{name:'Start shift',exact:true}).click();
   for(const selector of ['#health','#wave','#clock','#ability','#pause-button','#hud-memories']) await check(selector);
-  await page.getByRole('button',{name:'Open memories',exact:true}).click();
+  await page.getByRole('button',{name:'Open staff kit',exact:true}).click();
   await check('#memories');
   const before=await page.evaluate(()=>window.__threadwake.state.time);
   await page.waitForTimeout(200);

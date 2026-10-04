@@ -5,7 +5,7 @@ body.lab {
   overflow: auto;
 }
 .lab {
-  background: #142827;
+  background: #111722;
   font-size: 22px;
 }
 .lab header {
@@ -14,7 +14,7 @@ body.lab {
   justify-content: space-between;
   gap: 20px;
   padding: 18px 28px;
-  border-bottom: 1px solid #4b6355;
+  border-bottom: 1px solid #435361;
 }
 .lab header h1 {
   font-size: 34px;
@@ -23,7 +23,7 @@ body.lab {
   margin: 0;
 }
 .lab a {
-  color: #cbd5b6;
+  color: #c4c5c2;
   text-decoration: none;
 }
 .lab header > div,
@@ -37,17 +37,17 @@ body.lab {
   padding: 7px 12px;
 }
 .file-button {
-  border: 2px solid #647464;
+  border: 2px solid #7b7767;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  background: #263e3b;
+  background: #24313e;
 }
 .lab button[aria-pressed="true"] {
-  background: #c5c59a;
-  color: #203c34;
-  border-color: #dce0b8;
+  background: #d8b775;
+  color: #192532;
+  border-color: #f3e6c8;
 }
 .lab-layout {
   display: grid;
@@ -166,7 +166,7 @@ body.lab {
   font-size: 17px;
   overflow: hidden;
   min-height: 34px;
-  border: 1px solid #647464;
+  border: 1px solid #7b7767;
   box-shadow: none;
 }
 #curves {

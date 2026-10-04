@@ -43,3 +43,27 @@ test("legacy and malformed local saves keep valid purchased traits", () => {
   ])
     assert.equal(normalizeMemory(value).balance, 0);
 });
+
+test("museum redesign preserves earned credits, equipment and completed milestones", () => {
+  const previous = {
+    version: 2,
+    balance: 12,
+    runs: 4,
+    best: 6,
+    traits: { vitality: 2, haste: 1, echo: 3 },
+    milestones: ["first-catch", "gardener"],
+    records: [],
+  };
+  const migrated = normalizeMemory(previous);
+  assert.equal(migrated.version, 3);
+  assert.equal(migrated.balance, 12);
+  assert.deepEqual(migrated.traits, previous.traits);
+  assert.deepEqual(migrated.milestones, previous.milestones);
+  assert.equal(migrated.runs, 4);
+  const award = bankProgress(
+    migrated,
+    { seed: 7, runNumber: 1, phase: "playing" },
+    { id: "staff", wavesSurvived: 0, stats: { catches: 3, blooms: 5 } },
+  );
+  assert.equal(award.earned, 0, "renaming a milestone must not award it again");
+});

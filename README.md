@@ -1,16 +1,18 @@
-# Threadwake
+# After Hours
 
-A pixel woodland survivor for one to four friends. Play at **https://threadwake.bensonperry.com**. No account or install.
+The museum is closed. The exhibits disagree. A pixel survivor for one to four friends at **https://threadwake.bensonperry.com**.
 
-Move with WASD or arrows. Needles fire automatically. Space (or click) unwinds your recent footsteps into an echo; holding casts again when ready. Two echoes can overlap, and a ring around each shows its remaining life. Stretch threads to cut harder and cross a friend's thread to resonate. Catches strengthen your next volley and charge flowers. Holding a thread over a flower also charges it; a full flower bursts, clearing threats and healing the party. Stay beside a fallen friend to revive them.
+You are the night custodian. Move with WASD or arrows; a gift-shop slingshot fires marbles automatically. Space, click, or controller A sweeps the broom around you, knocking exhibits back and clearing nearby projectiles. Hold to sweep again when ready. Supply carts restore health, and staying beside a fallen colleague helps them back up.
 
-Eight waves, sixteen stackable upgrades, and the Unraveler at dawn. A run usually takes around ten minutes including upgrade choices. A controller uses the left stick and A. Touch controls are included; real phone hardware has not been verified.
+Between waves, borrow a curio: a porcelain prism splits shots, a miniature orrery circles you, and a tin soldier lends a hand. Sixteen stackable curios change your build. Survive eight waves and the Grand Clock before opening time. The first wave lasts 38 seconds. Touch controls are included; real phone hardware has not been verified.
+
+The shift crosses four maps: Antiquities (waves 1–2), Natural History (3–4), Sculpture Court (5–6), and the Clock Gallery (7–8). Each has its own exhibit layout. Shared map geometry drives the renderer and authoritative collisions.
 
 ## Iteration workshop
 
 Open **/lab.html** or choose Workshop on the title screen. The workshop and game share the same sprite drawing functions, animation parameters, renderer, and simulation. There is no separate mock animation to keep in sync.
 
-- Pose preview, direction and cloak variants, frame stepping, timeline and contact sheets.
+- Pose preview, direction and uniform variants, frame stepping, timeline and contact sheets.
 - Motion presets are saved locally and can be exported/imported as JSON. Open game tabs pick up saved motion settings; presets affect visuals only.
 - PNG contact sheets help inspect silhouettes and action extremes.
 - The encounter workbench runs the actual combat simulation with repeatable seeds and loadouts.
@@ -42,17 +44,17 @@ One Cloudflare Durable Object owns each room and runs the simulation at 30 Hz. B
 
 An opaque token stored in session storage resumes a disconnected player. Seats are reserved for 60 seconds. A disconnected player's draft receives an automatic choice after 10 seconds, so the party can continue. Empty rooms stop ticking. Private wave/upgrade checkpoints support short server interruptions; a server restart can roll the run back to the last checkpoint. Ordinary socket reconnects retain the current in-memory run. Active rooms consume server time and do not hibernate while a run is ticking.
 
-Memories bank after each participated wave, plus a win bonus and five one-time play milestones. Small permanent traits are browser-local, bounded on the server, and designed for casual co-op, not competitive rankings. They are not an account save or cheat-resistant economy. Clearing browser storage removes them. Protocol 2 rejects incompatible clients and recovery checkpoints; reload after an update and create a new room if an old room cannot resume.
+Credits bank after each participated wave, plus a win bonus and five one-time play milestones. Small permanent traits are browser-local, bounded on the server, and designed for casual co-op, not competitive rankings. They are not an account save or cheat-resistant economy. Clearing browser storage removes them. Protocol 3 rejects incompatible clients and recovery checkpoints; reload after an update and create a new room if an old room cannot resume.
 
-Open Memories from the in-run balance, Pause, or the title screen. Purchases apply to the next run, including online restarts. The first wave now lasts 38 seconds. Visible footsteps and a hollow prospective anchor show where an echo will form; all game controls share the arena's fixed frame.
+The start screen shows your credits, best wave, permanent equipment, and tonight's gallery route. Open Staff kit from the credit balance, Pause, results, or the title screen. Three ranks each add health, movement speed, or shorter sweep cooldowns; the shop shows exact before-and-after values. Purchases apply to the next shift, including online restarts. Existing Threadwake balances, purchased traits and completed milestones are preserved. All controls share the arena's fixed frame. Workshop recordings use version 4 for the new simulation rules.
 
 ## Validation and release
 
-`npm test` covers deterministic replay, casts and catches, flower bursts, every upgrade, late joins, synchronized drafts, disconnects, revives, win/loss, invalid input, recovery checkpoints, and full-run reference players. Automated balance runs are regression evidence, not a substitute for human playtesting.
+`npm test` covers deterministic replay, broom sweeps, supplies, upgrades, late joins, synchronized drafts, disconnects, revives, win/loss, invalid input, recovery checkpoints, and full-run reference players. Automated balance runs are regression evidence, not a substitute for human playtesting.
 
 `npm run test:multiplayer` runs a real WebSocket room exercise against local Wrangler. Pass a deployed WebSocket base to `node worker/smoke.mjs` for the same live check. `scripts/ui-smoke.cjs` is a Playwright CLI real-control smoke test against the production preview on port 4320; it checks movement, cast, pause, and combat progress without modifying game state.
 
-The 50-improvement pass and its playtest evidence are recorded in `docs/ITERATION-50.md`. Additional browser regressions cover held/buffered casts, input resets, separate sound controls, a mocked controller, multiplayer reconnects, and pixel-identical workshop replay including thorn and co-op scenarios. Controller API tests and mobile viewport checks do not replace physical-device testing.
+The historical Threadwake pass is recorded in `docs/ITERATION-50.md`. Browser regressions cover held/buffered sweeps, input resets, separate sound controls, a mocked controller, multiplayer reconnects, and pixel-identical workshop replay. Controller API tests and mobile viewport checks do not replace physical-device testing.
 
 Continuing craft work and pending review priorities are recorded in `docs/ITERATION-LOG.md`.
 

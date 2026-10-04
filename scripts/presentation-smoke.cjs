@@ -3,8 +3,8 @@ async page => {
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.setViewportSize({width:1280,height:720});
-  await page.goto('http://127.0.0.1:4319/');
-  await page.getByRole('button',{name:'Enter the grove',exact:true}).click();
+  await page.goto('http://127.0.0.1:4320/');
+  await page.getByRole('button',{name:'Start shift',exact:true}).click();
   await page.keyboard.down('d');
   const sample=await page.evaluate(()=>new Promise(resolve=>{
     const frames=[];

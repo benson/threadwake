@@ -2,11 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { capturePresentation, presentState } from "../src/presentation.js";
 import { TICK_RATE, WORLD } from "../src/config.js";
+import { mapForWave, isBlocked } from "../src/maps.js";
 
 const STEP = 1 / TICK_RATE;
 function world() {
   return {
-    version: 2,
+    version: 3,
     seed: 1,
     runNumber: 1,
     phase: "playing",
@@ -49,6 +50,9 @@ function world() {
       },
     ],
     echoes: [{ id: 4, owner: "a", x: 500, y: 400, life: 7, maxLife: 7.2 }],
+    companions: [
+      { id: 7, owner: "a", type: "soldier", x: 580, y: 420, fireIn: 1 },
+    ],
     effects: [
       { id: 5, type: "cast", x: 600, y: 400, life: 0.2, maxLife: 0.35 },
     ],
@@ -68,6 +72,7 @@ function pair() {
   current.enemies[0].phase += STEP;
   current.shots[0].x += 360 * STEP;
   current.echoes[0].x += 2;
+  current.companions[0].x += 4;
   return { previous, current };
 }
 
@@ -90,7 +95,7 @@ test("all moving groups interpolate with bounded alpha while gameplay values sta
   current.enemies[0].hp = 12;
   current.enemies[0].stage = 2;
   const view = presentState(previous, current, { alpha: 0.5 });
-  for (const key of ["players", "enemies", "shots", "echoes"])
+  for (const key of ["players", "enemies", "shots", "echoes", "companions"])
     assert.ok(
       Math.abs(view[key][0].x - (previous[key][0].x + current[key][0].x) / 2) <
         1e-6,
@@ -207,6 +212,7 @@ test("presentation freezes in pause and nonplaying phases", () => {
 test("the render clock and cast advance smoothly while cooldown and idle sentinel stay authoritative", () => {
   const { previous, current } = pair();
   current.players[0].castAge = 0;
+  current.players[0].shotAge = 0;
   current.players[0].castCooldown = 5.5;
   const view = presentState(previous, current, {
     alpha: 0.5,
@@ -219,6 +225,7 @@ test("the render clock and cast advance smoothly while cooldown and idle sentine
     "a new cast starts from its reset, not the old sentinel",
   );
   assert.equal(view.players[0].castCooldown, 5.5);
+  assert.equal(view.players[0].shotAge, STEP / 2);
   assert.ok(
     Math.abs(
       view.players[0].orbitPhase -
@@ -371,4 +378,40 @@ test("solo interpolation stops without a backwards correction and reverses monot
   }
   assert.equal(current.tick, 30);
   assert.ok(lastVisual < stoppedAt, "reversal actually moves left");
+});
+
+test("online prediction respects gallery cover while preserving a slide along its edge", () => {
+  const current = world();
+  current.mapId = "antiquities";
+  Object.assign(current.players[0], { x: 240, y: 275, vx: 0, vy: 0 });
+  const previous = capturePresentation(current);
+  current.time += STEP;
+  const into = presentState(previous, current, {
+    localId: "a",
+    input: { x: 1, y: 0 },
+    leadSeconds: 0.067,
+    maxLeadSeconds: 0.067,
+  });
+  assert.equal(
+    into.players[0].x,
+    240,
+    "prediction must not enter the case and snap back",
+  );
+  const along = presentState(previous, current, {
+    localId: "a",
+    input: { x: 1, y: 1 },
+    leadSeconds: 0.067,
+    maxLeadSeconds: 0.067,
+  });
+  assert.equal(along.players[0].x, 240);
+  assert.ok(
+    along.players[0].y > 275,
+    "blocked x still permits motion along the display",
+  );
+  assert.equal(isBlocked(mapForWave(1), along.players[0], 10), false);
+  assert.deepEqual(
+    { x: current.players[0].x, y: current.players[0].y },
+    { x: 240, y: 275 },
+    "presentation must not mutate authority",
+  );
 });

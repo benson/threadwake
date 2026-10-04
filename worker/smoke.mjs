@@ -69,7 +69,7 @@ const heartbeat = setInterval(() => {
 }, 100);
 try {
   const incompatible = new WebSocket(
-    new URL(`/room/${room}?protocol=1`, base),
+    new URL(`/room/${room}?protocol=2`, base),
     { origin },
   );
   await new Promise((resolve, reject) => {
@@ -126,8 +126,11 @@ try {
     "server movement",
   );
   await until(
-    () => host.state.echoes.some((e) => e.owner === guest.identity.id),
-    "shared cast",
+    () =>
+      host.state.effects.some(
+        (e) => e.type === "sweep" && e.owner === guest.identity.id,
+      ),
+    "shared broom sweep",
   );
   const oldId = guest.identity.id;
   const oldToken = guest.identity.token;
@@ -143,7 +146,7 @@ try {
   assert.equal(overflow.error?.code, "full");
   assert.equal(reconnected.state.players.length <= 4, true);
   console.log(
-    "PASS: protocol rejection, latency ping, authoritative start, movement, echo, four seats, room-full rejection, and token reconnect.",
+    "PASS: protocol rejection, latency ping, authoritative start, movement, sweep, four seats, room-full rejection, and token reconnect.",
   );
 } catch (error) {
   console.error(error);

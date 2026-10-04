@@ -20,69 +20,117 @@ function context(store = new Map()) {
   return ctx;
 }
 
-test("purchased traits wait for authorized restart and survive private recovery and reconnect", async t => {
+test("purchased traits wait for authorized restart and survive private recovery and reconnect", async (t) => {
   const originals = new Map();
   for (const [key, value] of Object.entries({
     WebSocketPair: class {
       constructor() {
-        const socket = () => ({ accept() {}, addEventListener() {}, send() {}, close() {} });
-        this[0] = socket(); this[1] = socket();
+        const socket = () => ({
+          accept() {},
+          addEventListener() {},
+          send() {},
+          close() {},
+        });
+        this[0] = socket();
+        this[1] = socket();
       }
     },
-    Response: class { constructor(body, init) { Object.assign(this, init); } },
+    Response: class {
+      constructor(body, init) {
+        Object.assign(this, init);
+      }
+    },
   })) {
     originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
-    Object.defineProperty(globalThis, key, { value, writable: true, configurable: true });
+    Object.defineProperty(globalThis, key, {
+      value,
+      writable: true,
+      configurable: true,
+    });
   }
   t.after(() => {
     for (const [key, descriptor] of originals)
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
       else delete globalThis[key];
   });
-  const store = new Map(), ctx = context(store), room = new Room(ctx);
+  const store = new Map(),
+    ctx = context(store),
+    room = new Room(ctx);
   await ctx.ready;
   t.after(() => clearInterval(room.timer));
   const join = (target, token, traits = {}) => {
-    const url = new URL("https://example.test/room/test-room?protocol=2");
+    const url = new URL("https://example.test/room/test-room?protocol=3");
     url.searchParams.set("traits", JSON.stringify(traits));
     if (token) url.searchParams.set("token", token);
     target.fetch(new Request(url));
   };
-  const message = (target, peer, value) => target.message(peer, peer.socket, { data: JSON.stringify(value) });
+  const message = (target, peer, value) =>
+    target.message(peer, peer.socket, { data: JSON.stringify(value) });
   join(room, null, { vitality: 1, haste: 99 });
   const host = room.sessions.get(room.hostId);
   assert.deepEqual(host.pendingTraits, { vitality: 1, haste: 3, echo: 0 });
   join(room);
-  const guest = [...room.sessions.values()].find(p => p.id !== host.id);
+  const guest = [...room.sessions.values()].find((p) => p.id !== host.id);
   message(room, host, { type: "start" });
   const active = structuredClone(room.game.players);
-  message(room, host, { type: "traits", traits: { vitality: 99, haste: -1, echo: 2.9 } });
-  message(room, guest, { type: "traits", traits: { vitality: 2, haste: 1, echo: 1 } });
-  assert.deepEqual(room.game.players, active, "purchase does not alter current HP, stats, or active traits");
+  message(room, host, {
+    type: "traits",
+    traits: { vitality: 99, haste: -1, echo: 2.9 },
+  });
+  message(room, guest, {
+    type: "traits",
+    traits: { vitality: 2, haste: 1, echo: 1 },
+  });
+  assert.deepEqual(
+    room.game.players,
+    active,
+    "purchase does not alter current HP, stats, or active traits",
+  );
   message(room, host, { type: "start" });
-  assert.deepEqual(room.game.players, active, "even host cannot apply purchases during active play");
+  assert.deepEqual(
+    room.game.players,
+    active,
+    "even host cannot apply purchases during active play",
+  );
   room.disconnect(host, host.socket);
   await Promise.all(ctx.pending);
-  const nextCtx = context(store), recovered = new Room(nextCtx);
+  const nextCtx = context(store),
+    recovered = new Room(nextCtx);
   await nextCtx.ready;
   t.after(() => clearInterval(recovered.timer));
   const restored = recovered.sessions.get(host.id);
   assert.deepEqual(restored.pendingTraits, { vitality: 3, haste: 0, echo: 2 });
-  assert.deepEqual(recovered.game.players, active, "recovery retains current-run stats unchanged");
+  assert.deepEqual(
+    recovered.game.players,
+    active,
+    "recovery retains current-run stats unchanged",
+  );
   join(recovered, host.token, { vitality: 0 });
-  assert.equal(recovered.sessions.size, 2, "token reconnect reuses original seat");
-  assert.deepEqual(restored.pendingTraits, { vitality: 3, haste: 0, echo: 2 }, "stale reconnect URL does not erase pending purchases");
+  assert.equal(
+    recovered.sessions.size,
+    2,
+    "token reconnect reuses original seat",
+  );
+  assert.deepEqual(
+    restored.pendingTraits,
+    { vitality: 3, haste: 0, echo: 2 },
+    "stale reconnect URL does not erase pending purchases",
+  );
   recovered.game.phase = "lost";
   const restoredGuest = recovered.sessions.get(guest.id);
   message(recovered, restoredGuest, { type: "start" });
-  assert.equal(recovered.game.phase, "lost", "non-host cannot consume staged traits");
+  assert.equal(
+    recovered.game.phase,
+    "lost",
+    "non-host cannot consume staged traits",
+  );
   message(recovered, restored, { type: "start" });
   assert.equal(recovered.game.phase, "playing");
-  const nextHost = recovered.game.players.find(p => p.id === host.id);
-  const nextGuest = recovered.game.players.find(p => p.id === guest.id);
+  const nextHost = recovered.game.players.find((p) => p.id === host.id);
+  const nextGuest = recovered.game.players.find((p) => p.id === guest.id);
   assert.deepEqual(nextHost.traits, { vitality: 3, haste: 0, echo: 2 });
   assert.deepEqual(nextGuest.traits, { vitality: 2, haste: 1, echo: 1 });
-  assert.equal(nextHost.maxHp, active.find(p => p.id === host.id).maxHp + 8);
+  assert.equal(nextHost.maxHp, active.find((p) => p.id === host.id).maxHp + 20);
   assert.equal(nextHost.hp, nextHost.maxHp);
   await Promise.all(nextCtx.pending);
 });
@@ -103,9 +151,9 @@ test("private checkpoint restores simulation internals and reconnect identity", 
   });
   first.checkpoint();
   await Promise.all(firstContext.pending);
-  assert.equal(store.get("checkpoint").protocol, 2);
-  assert.equal(store.get("checkpoint").game.version, 2);
-  // Existing protocol-2 rooms predate pending purchases; retain their traits.
+  assert.equal(store.get("checkpoint").protocol, 3);
+  assert.equal(store.get("checkpoint").game.version, 3);
+  // Missing pending-purchase metadata falls back to active purchased traits.
   delete store.get("checkpoint").peers[0].pendingTraits;
   const nextContext = context(store);
   const next = new Room(nextContext);
@@ -113,7 +161,10 @@ test("private checkpoint restores simulation internals and reconnect identity", 
   assert.deepEqual(next.game, first.game);
   assert.equal(next.sessions.get("host").token, "opaque-secret");
   assert.equal(next.sessions.get("host").socket, null);
-  assert.deepEqual(next.sessions.get("host").pendingTraits, first.game.players[0].traits);
+  assert.deepEqual(
+    next.sessions.get("host").pendingTraits,
+    first.game.players[0].traits,
+  );
   assert.equal(next.hostId, "host");
   step(first.game, { host: { x: 0, y: 1, cast: false } });
   step(next.game, { host: { x: 0, y: 1, cast: false } });
@@ -126,8 +177,8 @@ test("private checkpoint restores simulation internals and reconnect identity", 
 
 test("recovery fails closed for incompatible checkpoint protocol or simulation", async () => {
   for (const mismatch of [
-    { protocol: 1, version: 2 },
-    { protocol: 2, version: 1 },
+    { protocol: 2, version: 3 },
+    { protocol: 3, version: 2 },
   ]) {
     const saved = {
       protocol: mismatch.protocol,
@@ -149,12 +200,12 @@ test("recovery fails closed for incompatible checkpoint protocol or simulation",
   }
 });
 
-test("worker advertises protocol 2 and echoes only bounded ping IDs", async () => {
+test("worker advertises protocol 3 and echoes only bounded ping IDs", async () => {
   const response = await worker.fetch(
     new Request("https://example.test/health"),
     {},
   );
-  assert.equal((await response.json()).protocol, 2);
+  assert.equal((await response.json()).protocol, 3);
   const ctx = context(),
     room = new Room(ctx);
   await ctx.ready;

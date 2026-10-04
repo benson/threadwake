@@ -1,19 +1,21 @@
-# Threadwake: craft review
+# After Hours: craft review
 
-Threadwake is an original pixel woodland survivor for 1–4 players, built with a 640×360 Canvas renderer, DOM controls, and a shared authoritative JavaScript simulation. You receive screenshots and this description; you have not played it. Review the game for legibility, coherence, animation intent, and whether the distinctive mechanic is understandable.
+After Hours is an original haunted-museum survivor for 1–4 players, built with a 640×360 Canvas renderer, DOM controls, and a shared authoritative JavaScript simulation. If supplied only screenshots, you have not played it: distinguish visible evidence from hypotheses requiring play.
 
-The owner specifically found the UI floating outside the arena, the first wave too slow, and permanent progression too hard to discover. They want continuing refinement, more intricate readable art, polished motion, and visible footsteps that preview the echo.
+The owner wants sustained refinement of original hand-drawn art, crisp animation, accurate hitboxes, responsive combat, and coherent UI. They rejected the former woodland echo mechanic and selected the haunted museum direction. Evaluate this game on its own terms.
 
-Current revision:
+Current direction:
 
 - Canvas and all HUD/dialogs share a fixed 960×540 coordinate system scaled together into the browser. Letterboxing sits outside the whole game field.
-- First wave is 38 seconds; enemies arrive before one second and ranged attacks before eight. Later waves are 65 seconds.
-- Automatic needles target nearby enemies. Space creates an echo from the actual previous three seconds of movement. The thread between player and echo cuts enemies and catches hostile projectiles. Longer threads deal more damage. Up to two echoes coexist for 7.2 seconds each; baseline recast is 5.5 seconds.
-- Discrete footstep marks are actual history samples. A hollow prospective anchor shares the cast calculation; gold denotes a projected anchor when there is insufficient movement history. The preview dims while recharging.
-- Catches empower the next volley and charge flowers; thread contact also charges them. Full flowers burst for damage and nearby healing. Allied crossed threads resonate; frost and garden upgrades create combinations.
-- Memories are banked per completed wave and one-time milestone. A HUD balance opens a three-trait shop during play; spending applies to the next run. Traits are small bounded permanent bonuses. This is casual browser-local progression.
-- Character motion includes planted alternating feet, cloth follow-through, cast preparation and release, enemy windups, hit reactions, echo expiry rings, and flower charge stages.
+- A night custodian automatically fires gift-shop marbles. Space, click, or controller A triggers an immediate broom sweep that damages and knocks back nearby exhibits and clears hostile projectiles. Holding the action repeats when ready.
+- Porcelain beetles, specimen moths, and animated armor occupy a tiled museum hall. The Grand Clock ends the eight-wave shift.
+- Four maps carry the shift through Antiquities, Natural History, Sculpture Court, and the Clock Gallery. Exhibit geometry is shared by rendering and authoritative collisions.
+- Between waves, borrow curios with distinct object illustrations and mechanical upgrades. The setting supplies the twist without requiring another minigame.
+- Supply carts charge through proximity and sweeping, then heal and clear nearby threats. Cooperative play preserves shared combat and ally recovery.
+- Credits are banked at completed waves and one-time milestones. The Staff kit offers three bounded permanent bonuses that apply next shift. Browser-local progression from the previous version is preserved.
+- The start screen presents credits, best wave, permanent equipment, and the gallery route. Upgrade purchases show exact before-and-after stats; results provide direct access to permanent equipment.
+- An animation workshop supports action timing, scenarios, and deterministic replay. Reduced-motion support must remain useful.
 
-Constraints: keep the HUD restrained, no decorative edge stripes/selection rails, preserve crisp pixel art and combat contrast, keep input responsive, preserve reduced-motion support, do not add generic dashboard chrome or unnecessary explanations. Propose improvements before recommending new systems. Be candid rather than flattering.
+Constraints: keep the HUD restrained, no decorative edge stripes or selection rails, preserve crisp pixel art and combat contrast, keep input responsive, and do not add generic dashboard chrome or unnecessary explanations. Visible additions and copy rewrites require owner approval. Propose new systems rather than assuming they are authorized.
 
-Return at most five ranked findings. For each: evidence type, precise problem, smallest concrete improvement, and a practical verification. Also identify the single change most likely to make this feel crafted rather than merely functional. Avoid claiming animation timing or gameplay difficulty from a still image alone.
+Return at most five ranked findings. For each, give the evidence type, precise problem, smallest concrete improvement, and practical verification. Identify the single change most likely to improve craft. Do not infer animation quality, collision accuracy, or difficulty from a still image alone.
