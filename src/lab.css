@@ -1,0 +1,292 @@
+html:has(.lab),
+body.lab {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+}
+.lab {
+  background: #142827;
+  font-size: 22px;
+}
+.lab header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 28px;
+  border-bottom: 1px solid #4b6355;
+}
+.lab header h1 {
+  font-size: 34px;
+  letter-spacing: 1px;
+  text-shadow: none;
+  margin: 0;
+}
+.lab a {
+  color: #cbd5b6;
+  text-decoration: none;
+}
+.lab header > div,
+.lab nav {
+  display: flex;
+  gap: 8px;
+}
+.lab button,
+.file-button {
+  font-size: 20px;
+  padding: 7px 12px;
+}
+.file-button {
+  border: 2px solid #647464;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  background: #263e3b;
+}
+.lab button[aria-pressed="true"] {
+  background: #c5c59a;
+  color: #203c34;
+  border-color: #dce0b8;
+}
+.lab-layout {
+  display: grid;
+  grid-template-columns: 225px minmax(0, 1fr);
+  gap: 28px;
+  padding: 28px;
+  max-width: 1450px;
+  margin: auto;
+}
+.lab aside {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-self: start;
+}
+.lab select,
+.lab input[type="number"] {
+  width: 100%;
+  background: #243f37;
+  color: #e7d7b2;
+  border: 1px solid #687b64;
+  padding: 7px;
+  font-size: 21px;
+  min-height: 42px;
+}
+.lab aside > label:not(.check) {
+  margin-top: 6px;
+}
+.lab input[type="range"] {
+  accent-color: #ccba8b;
+  width: 100%;
+  cursor: pointer;
+}
+.parameter {
+  margin-top: 16px;
+}
+.parameter label {
+  display: flex;
+  justify-content: space-between;
+}
+.lab-stage {
+  min-width: 0;
+}
+.stage-header,
+.sheet-header,
+.timeline-header,
+.encounter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.stage-header select {
+  width: auto;
+}
+.stage-header output {
+  min-width: 55px;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  font-size: 20px;
+}
+.check input {
+  accent-color: #b9c894;
+  width: 17px;
+  height: 17px;
+}
+.lab canvas {
+  image-rendering: pixelated;
+  display: block;
+  width: 100%;
+  background: #1a3330;
+  border: 1px solid #536b57;
+  margin: 18px 0;
+  object-fit: contain;
+}
+.sheet-header {
+  justify-content: space-between;
+  margin-top: 22px;
+}
+.sheet-header h2 {
+  font-size: 27px;
+  margin: 0;
+}
+#sheet {
+  max-height: 160px;
+}
+#lab-status,
+#take-status,
+.lab small {
+  font-size: 18px;
+  color: #aabd9f;
+}
+#lab-status:empty {
+  display: none;
+}
+.lab aside #reset {
+  margin-top: 16px;
+}
+.timeline-header output:last-child {
+  margin-left: auto;
+  text-transform: capitalize;
+}
+#phases {
+  display: flex;
+  gap: 3px;
+  margin-top: 10px;
+}
+#phases button {
+  flex-basis: 0;
+  min-width: 0;
+  padding: 5px 1px;
+  font-size: 17px;
+  overflow: hidden;
+  min-height: 34px;
+  border: 1px solid #647464;
+  box-shadow: none;
+}
+#curves {
+  max-height: 150px;
+  margin-bottom: 8px;
+}
+.curve-key {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  font-size: 18px;
+}
+.curve-key span:first-child {
+  color: #dfc37d;
+}
+.curve-key span:nth-child(2) {
+  color: #86c8b6;
+}
+.curve-key span:nth-child(3) {
+  color: #c69cb6;
+}
+#preview {
+  max-height: 43vh;
+}
+.encounter-bar {
+  justify-content: space-between;
+  font-size: 19px;
+  color: #bbc9a7;
+}
+#encounter {
+  max-height: 65vh;
+  cursor: crosshair;
+}
+#encounter:focus-visible {
+  outline: 2px solid #e9d49c;
+  outline-offset: 4px;
+}
+#encounter-choices {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+#build {
+  height: 210px;
+}
+#build option {
+  padding: 3px;
+}
+.lab select:focus-visible {
+  outline: 3px solid #fae2a7;
+  outline-offset: 3px;
+}
+@media (max-width: 950px) {
+  .lab header h1 {
+    display: none;
+  }
+  .lab-layout {
+    grid-template-columns: 190px minmax(0, 1fr);
+    padding: 18px;
+    gap: 18px;
+  }
+  .lab header {
+    padding: 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .stage-header {
+    gap: 8px;
+  }
+  #phases button {
+    font-size: 14px;
+  }
+  .curve-key {
+    gap: 10px;
+    font-size: 16px;
+  }
+}
+@media (max-width: 600px) {
+  .lab-layout {
+    grid-template-columns: 1fr;
+  }
+  .lab aside {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+  #sliders,
+  #reset,
+  #build-hint {
+    grid-column: 1/-1;
+  }
+  #sliders {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+  }
+  .lab header a {
+    font-size: 19px;
+  }
+  .lab header > div {
+    margin-left: auto;
+  }
+  .lab-stage {
+    grid-row: 1;
+  }
+  #preview {
+    max-height: 35vh;
+  }
+  .lab header {
+    gap: 12px;
+  }
+  .lab button,
+  .file-button {
+    font-size: 18px;
+  }
+  #encounter {
+    max-height: 48vh;
+  }
+  #phases button {
+    font-size: 13px;
+  }
+}

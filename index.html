@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#172b2a" />
+    <meta
+      name="description"
+      content="Weave your footsteps into weapons. A pixel woodland roguelike for 1–4 friends."
+    />
+    <title>Threadwake</title>
+    <meta property="og:title" content="Threadwake" />
+    <meta property="og:description" content="Weave your footsteps into weapons. A pixel woodland roguelike for 1–4 friends." />
+    <meta property="og:image" content="https://threadwake.bensonperry.com/cover.png" />
+    <meta property="og:url" content="https://threadwake.bensonperry.com/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main id="game">
+      <canvas
+        id="world"
+        width="640"
+        height="360"
+        aria-label="Threadwake game arena"
+      ></canvas>
+      <div id="hud" hidden>
+        <div class="hud-left">
+          <span id="health"></span><span id="squad"></span>
+        </div>
+        <div class="hud-center">
+          <span id="wave"></span><span id="clock"></span
+          ><span id="network-status" role="status" hidden></span>
+        </div>
+        <button id="pause-button" aria-label="Pause or open menu">Ⅱ</button>
+        <div id="ability">
+          <span id="ability-label">SPACE · UNWIND</span
+          ><span id="ability-meter"></span>
+        </div>
+        <div id="lesson"></div>
+        <div id="downed" hidden>Stay close to a friend to mend.</div>
+      </div>
+      <section id="menu" class="overlay title-screen">
+        <div class="title-lockup">
+          <span class="eyebrow">a woodland woven together</span>
+          <h1>THREADWAKE</h1>
+          <span class="title-ornament" aria-hidden="true">✦ ─── ◇ ─── ✦</span>
+        </div>
+        <div class="menu-actions">
+          <button id="solo" class="primary">Enter the grove</button
+          ><button id="friends">Play with friends</button>
+          <div class="small-actions">
+            <button id="memories-button">
+              Memories <span id="memory-count"></span></button
+            ><button id="options-button">Options</button>
+          </div>
+        </div>
+        <p class="controls">
+          WASD / arrows · move &nbsp; SPACE · unwind<br />Attacks find their own
+          mark.
+        </p>
+        <a class="workshop-link" href="/lab.html">Workshop</a>
+      </section>
+      <section id="lobby" class="overlay" hidden>
+        <div class="panel">
+          <h2>The gathering</h2>
+          <label for="name">Your name</label
+          ><input
+            id="name"
+            maxlength="16"
+            autocomplete="nickname"
+            placeholder="Weaver"
+          />
+          <div id="party"></div>
+          <p id="connection" role="status">Connecting…</p>
+          <div class="actions">
+            <button id="copy-link">Copy invite</button
+            ><button id="begin" class="primary" disabled>
+              Enter the grove
+            </button>
+          </div>
+          <button id="leave-lobby" class="quiet">Back</button>
+        </div>
+      </section>
+      <section id="draft" class="overlay shade" hidden>
+        <div class="draft-content">
+          <span id="draft-caption" class="eyebrow">A quiet moment</span>
+          <h2>Choose a thread</h2>
+          <div id="choices"></div>
+          <p id="draft-status" role="status"></p>
+        </div>
+      </section>
+      <section id="result" class="overlay shade" hidden>
+        <div class="panel">
+          <span class="eyebrow" id="result-caption"></span>
+          <h2 id="result-title"></h2>
+          <p id="result-stats"></p>
+          <p id="result-memory"></p>
+          <div class="actions">
+            <button id="again" class="primary">Weave again</button
+            ><button id="home">Return</button>
+          </div>
+        </div>
+      </section>
+      <dialog id="options">
+        <h2 id="options-title">Options</h2>
+        <label class="check"><input type="checkbox" id="sound" /> Sound</label
+        ><label class="check"
+          ><input type="checkbox" id="motion" /> Reduced motion</label
+        >
+        <p class="controls">
+          WASD / arrows · move<br />SPACE / click · unwind<br />ESC · menu
+          &nbsp; M · mute<br />Controller: left stick · move, A · unwind
+        </p>
+        <p id="online-pause" hidden>The grove keeps moving online.</p>
+        <div class="actions">
+          <button id="resume" class="primary">Continue</button
+          ><button id="quit" hidden>Leave run</button>
+        </div>
+      </dialog>
+      <dialog id="memories">
+        <h2>What the grove remembers</h2>
+        <p id="memory-balance"></p>
+        <div id="talents"></div>
+        <button id="close-memories">Back</button>
+      </dialog>
+      <div id="toast" role="status" hidden></div>
+      <div id="touch" hidden>
+        <div id="stick" aria-label="Move"><i></i></div>
+        <button id="touch-cast">Unwind</button>
+      </div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

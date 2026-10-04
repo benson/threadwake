@@ -1,0 +1,682 @@
+import {
+  PALETTE as P,
+  PLAYER_COLORS,
+  drawActor,
+  drawFlower,
+  drawFern,
+  stamp,
+  pixel,
+  line,
+  oval,
+  shadow,
+} from "./art.js";
+
+const W = 1200,
+  H = 800;
+function random(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+function surface(w, h) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  return c;
+}
+function stone(ctx, x, y, w, h) {
+  pixel(ctx, x + 2, y + 3, w, h, P.shadow);
+  pixel(ctx, x, y, w, h, P.stone);
+  pixel(ctx, x + 1, y, w - 2, 2, P.stoneTop);
+  pixel(ctx, x, y + 2, 2, h - 2, P.stoneLight);
+  pixel(ctx, x + w - 2, y + 3, 2, h - 3, P.bark);
+  pixel(ctx, x + 3, y + 4, w - 6, 1, P.stoneLight);
+}
+function grassCluster(ctx, x, y, r, rand) {
+  for (let j = 0; j < r; j++) {
+    const gx = x + (rand() - 0.5) * r * 2,
+      gy = y + (rand() - 0.5) * r * 0.65;
+    const h = 2 + Math.floor(rand() * 4),
+      color = rand() > 0.5 ? P.grass : P.moss;
+    line(ctx, gx, gy, gx - 2, gy - h, color);
+    line(ctx, gx + 1, gy, gx + 2, gy - h - 1, color);
+    if (j % 4 === 0) pixel(ctx, gx + 2, gy - h, 1, 1, P.leaf);
+  }
+}
+function loomSprite() {
+  const c = surface(114, 96),
+    ctx = c.getContext("2d");
+  oval(ctx, 57, 88, 46, 6, P.shadow);
+  // A weathered wooden loom with a half-woven constellation cloth.
+  for (const x of [20, 87]) {
+    pixel(ctx, x - 2, 13, 10, 74, P.ink);
+    pixel(ctx, x, 13, 6, 72, P.bark);
+    pixel(ctx, x, 13, 2, 69, P.wood);
+    pixel(ctx, x - 5, 84, 15, 5, P.bark);
+    pixel(ctx, x - 5, 84, 15, 2, P.wood);
+    pixel(ctx, x - 3, 8, 12, 7, P.ink);
+    pixel(ctx, x - 2, 8, 10, 5, P.wood);
+    pixel(ctx, x, 8, 5, 2, P.stoneLight);
+  }
+  pixel(ctx, 21, 16, 72, 8, P.ink);
+  pixel(ctx, 22, 17, 70, 5, P.wood);
+  pixel(ctx, 23, 17, 67, 1, P.stoneLight);
+  pixel(ctx, 24, 70, 65, 5, P.bark);
+  pixel(ctx, 24, 70, 65, 1, P.wood);
+  for (let x = 31; x < 84; x += 4) line(ctx, x, 24, x, 76, P.creamDark);
+  for (let y = 34; y < 65; y++) {
+    pixel(ctx, 30, y, 56, 1, y % 4 === 0 ? P.tealDark : "#3b7373");
+    if (y % 4 === 0)
+      for (let x = 32; x < 84; x += 4) pixel(ctx, x, y, 1, 1, P.teal);
+  }
+  for (let y = 0; y < 9; y++) {
+    const span = Math.abs(4 - y) * 3;
+    pixel(ctx, 56 - span, 41 + y * 2, 2, 2, P.creamShade);
+    pixel(ctx, 58 + span, 41 + y * 2, 2, 2, P.creamShade);
+  }
+  pixel(ctx, 55, 45, 6, 8, P.gold);
+  pixel(ctx, 57, 43, 2, 12, P.cream);
+  for (let x = 32; x < 84; x += 4)
+    pixel(ctx, x, 65, 1, 5 + (x % 3) * 2, P.creamDark);
+  line(ctx, 29, 30, 87, 27, P.redDark, 2);
+  line(ctx, 29, 29, 87, 26, P.red);
+  oval(ctx, 96, 80, 7, 4, P.ink);
+  oval(ctx, 96, 78, 6, 4, P.redDark);
+  pixel(ctx, 94, 75, 3, 6, P.red);
+  pixel(ctx, 97, 75, 1, 6, P.redLight);
+  line(ctx, 94, 81, 79, 84, P.redDark);
+  drawFern(ctx, 17, 86);
+  drawFern(ctx, 86, 86, 1);
+  return c;
+}
+function treeSprite(seed, scale = 1) {
+  const c = surface(116, 144),
+    ctx = c.getContext("2d"),
+    r = random(seed);
+  // Roots and trunk remain readable below overlapping, asymmetric leaf masses.
+  oval(ctx, 58, 133, 37, 7, P.shadow);
+  line(ctx, 55, 75, 45, 134, P.ink, 15);
+  line(ctx, 60, 75, 70, 134, P.ink, 12);
+  line(ctx, 55, 72, 47, 131, P.bark, 12);
+  line(ctx, 59, 77, 66, 131, P.wood, 7);
+  line(ctx, 54, 94, 45, 131, P.stoneLight, 2);
+  line(ctx, 62, 82, 57, 128, P.bark, 4);
+  line(ctx, 46, 124, 30, 136, P.bark, 5);
+  line(ctx, 63, 126, 82, 137, P.bark, 5);
+  line(ctx, 52, 103, 31, 72, P.bark, 7);
+  line(ctx, 61, 89, 85, 65, P.wood, 6);
+  const masses = [
+    [42, 59, 32, 27],
+    [75, 57, 32, 25],
+    [56, 32, 36, 28],
+    [27, 43, 24, 21],
+    [87, 36, 23, 20],
+    [60, 16, 22, 15],
+  ];
+  for (const [x, y, rx, ry] of masses) {
+    oval(ctx, x, y + 3, rx, ry, P.shadow);
+    oval(ctx, x - 2, y - 2, rx - 1, ry - 3, P.ground);
+    oval(ctx, x - 4, y - 6, rx - 5, ry - 6, P.moss);
+    oval(ctx, x - 7, y - 9, rx - 10, ry - 9, P.grass);
+  }
+  for (let i = 0; i < 115; i++) {
+    const x = 10 + r() * 96,
+      y = 7 + r() * 77;
+    const covered = masses.some(
+      ([a, b, rx, ry]) => ((x - a) / rx) ** 2 + ((y - b) / ry) ** 2 < 0.72,
+    );
+    if (!covered) continue;
+    const color = r() > 0.65 ? P.leaf : P.grass;
+    pixel(ctx, x, y, 3 + r() * 4, 2, color);
+    pixel(ctx, x - 1, y + 2, 3, 1, color);
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = 25 + r() * 50,
+      y = 115 + r() * 20;
+    drawFern(ctx, x, y, 1);
+  }
+  return c;
+}
+function ruinSprite(kind = 0) {
+  const c = surface(62, 80),
+    ctx = c.getContext("2d");
+  oval(ctx, 31, 73, 28, 5, P.shadow);
+  stone(ctx, 8, 60, 45, 10);
+  stone(ctx, 13, 55, 34, 7);
+  stone(ctx, 18, 20, 24, 38);
+  stone(ctx, 15, 15, 30, 7);
+  stone(ctx, 20, 11, 20, 4);
+  for (let y = 23; y < 55; y += 9) line(ctx, 19, y, 40, y, P.bark);
+  line(ctx, 25, 17, 25, 56, P.stoneTop);
+  line(ctx, 35, 22, 35, 55, P.bark);
+  pixel(ctx, 30, 28, 3, 11, P.shadow);
+  pixel(ctx, 27, 32, 9, 3, P.shadow);
+  pixel(ctx, 30, 29, 1, 8, P.tealDark);
+  pixel(ctx, 28, 33, 6, 1, P.tealDark);
+  pixel(ctx, 16, 17, 9, 2, P.moss);
+  pixel(ctx, 21, 19, 4, 7, P.grass);
+  drawFern(ctx, 13, 69);
+  drawFern(ctx, 45, 70, 1);
+  return c;
+}
+function mushroom(ctx, x, y, r) {
+  pixel(ctx, x, y - 6, 2, 7, P.creamDark);
+  oval(ctx, x, y - 7, r, 3, P.redDark);
+  oval(ctx, x - 1, y - 8, r - 1, 2, P.red);
+  pixel(ctx, x - 3, y - 9, 2, 1, P.creamShade);
+  pixel(ctx, x + 2, y - 8, 1, 1, P.creamShade);
+}
+function bake(seed) {
+  const c = surface(W, H),
+    ctx = c.getContext("2d"),
+    r = random(seed || 31337);
+  pixel(ctx, 0, 0, W, H, P.ground);
+  // Interlocking, low-contrast earth tiles avoid obvious procedural circles.
+  for (let i = 0; i < 280; i++) {
+    const x = Math.floor((r() * W) / 4) * 4,
+      y = Math.floor((r() * H) / 3) * 3,
+      wide = 12 + Math.floor(r() * 20) * 3;
+    const color = i % 3 === 0 ? "#2d493a" : "#2b4538";
+    for (let row = 0; row < 5; row++) {
+      const inset = Math.floor(r() * 7) * 3;
+      pixel(ctx, x + inset, y + row * 3, Math.max(3, wide - inset), 3, color);
+    }
+  }
+  // The cracked circular shrine is a quiet piece of world geometry, not a UI ring.
+  for (let i = 0; i < 52; i++) {
+    const a = (i * Math.PI * 2) / 52,
+      x = 600 + Math.cos(a) * 147,
+      y = 400 + Math.sin(a) * 96;
+    if (i % 7 === 0 || i % 11 === 0) continue;
+    stone(
+      ctx,
+      Math.round(x) - 8,
+      Math.round(y) - 4,
+      14 + Math.floor(r() * 5),
+      7 + Math.floor(r() * 4),
+    );
+    if (i % 3 === 0) pixel(ctx, x - 5, y - 5, 8, 2, P.moss);
+    if (i % 4 === 0) {
+      line(ctx, x, y - 3, x - 2, y + 2, P.shadow);
+      pixel(ctx, x + 5, y + 2, 4, 3, P.ground);
+    }
+  }
+  // Broken paths reach the ring from opposite forest gates.
+  for (let i = 0; i < 34; i++) {
+    const y = i * 25 + 6,
+      x = 585 + Math.sin(y * 0.014) * 32;
+    if (y > 300 && y < 500) continue;
+    for (let j = 0; j < 3; j++)
+      if (r() > 0.18)
+        stone(
+          ctx,
+          x + j * 17 + Math.round(r() * 3),
+          y + Math.round(r() * 4),
+          12 + Math.floor(r() * 6),
+          7 + Math.floor(r() * 5),
+        );
+  }
+  for (let i = 0; i < 4400; i++) {
+    const x = Math.floor(r() * W),
+      y = Math.floor(r() * H),
+      color = i % 5 === 0 ? P.grass : P.moss;
+    pixel(ctx, x, y, 2 + Math.floor(r() * 4), 1, color);
+    if (i % 4 === 0) {
+      pixel(ctx, x + 1, y - 2, 1, 3, color);
+      pixel(ctx, x + 3, y - 1, 1, 2, color);
+    }
+  }
+  for (let i = 0; i < 125; i++)
+    grassCluster(ctx, r() * W, r() * H, 8 + Math.floor(r() * 9), r);
+  // Flowering banks flank the paths. Tiny pale buds stay dimmer than spell shots.
+  for (const [cx, cy] of [
+    [412, 376],
+    [788, 450],
+    [509, 552],
+    [734, 259],
+    [315, 493],
+  ]) {
+    for (let i = 0; i < 25; i++) {
+      const x = cx + (r() - 0.5) * 65,
+        y = cy + (r() - 0.5) * 23;
+      line(ctx, x, y, x - 1, y - 4, P.grass);
+      if (i % 3 === 0) {
+        pixel(ctx, x - 2, y - 5, 3, 2, "#a98d83");
+        pixel(ctx, x - 1, y - 6, 1, 1, P.creamDark);
+      } else {
+        pixel(ctx, x, y - 4, 2, 1, P.leaf);
+      }
+    }
+  }
+  for (let i = 0; i < 110; i++) {
+    const x = r() * W,
+      y = r() * H;
+    if (i % 5 === 0) mushroom(ctx, x, y, 3 + Math.floor(r() * 3));
+    else if (i % 3 === 0) {
+      oval(ctx, x, y, 4, 2, P.shadow);
+      oval(ctx, x - 1, y - 1, 3, 2, P.stone);
+      pixel(ctx, x - 2, y - 2, 3, 1, P.stoneLight);
+    } else drawFern(ctx, x, y, i % 2);
+  }
+  // The physical boundary is a dense hedge. Collision remains unobscured inside it.
+  for (let x = 0; x < W; x += 9) {
+    oval(ctx, x, 7, 13, 10, P.shadow);
+    oval(ctx, x, H - 5, 15, 10, P.shadow);
+  }
+  for (let y = 0; y < H; y += 9) {
+    oval(ctx, 6, y, 10, 13, P.shadow);
+    oval(ctx, W - 5, y, 10, 15, P.shadow);
+  }
+  const trees = [
+    treeSprite(seed + 4),
+    treeSprite(seed + 8),
+    treeSprite(seed + 17),
+  ];
+  const props = [];
+  // Thick woodland around the perimeter, small islands well clear of the center.
+  for (let x = -15; x < W + 60; x += 65) {
+    props.push({
+      x,
+      y: 78 + Math.floor(r() * 25),
+      type: "tree",
+      variant: Math.floor(r() * 3),
+    });
+    props.push({
+      x: x + 20,
+      y: H + 45 + Math.floor(r() * 20),
+      type: "tree",
+      variant: Math.floor(r() * 3),
+    });
+  }
+  for (let y = 140; y < H; y += 90) {
+    props.push({
+      x: 25 + r() * 20,
+      y,
+      type: "tree",
+      variant: Math.floor(r() * 3),
+    });
+    props.push({
+      x: W - 25 - r() * 15,
+      y: y + 25,
+      type: "tree",
+      variant: Math.floor(r() * 3),
+    });
+  }
+  for (const [x, y] of [
+    [270, 225],
+    [930, 235],
+    [300, 340],
+    [907, 357],
+    [280, 540],
+    [960, 600],
+    [408, 240],
+    [823, 256],
+    [367, 650],
+    [855, 630],
+  ])
+    props.push({ x, y, type: "tree", variant: Math.floor(r() * 3) });
+  for (const [x, y] of [
+    [445, 315],
+    [755, 315],
+    [445, 530],
+    [755, 530],
+  ])
+    props.push({ x, y, type: "ruin" });
+  props.push({ x: 606, y: 326, type: "loom" });
+  // Knotted roots curl around the old walls, grounded in the grass layer.
+  for (const [x, y, dir] of [
+    [368, 391, -1],
+    [846, 455, 1],
+    [373, 600, 1],
+  ]) {
+    line(ctx, x, y, x + dir * 48, y + 10, P.shadow, 6);
+    line(ctx, x, y, x + dir * 48, y + 10, P.bark, 4);
+    line(ctx, x, y - 1, x + dir * 46, y + 9, P.wood);
+    line(ctx, x + dir * 20, y + 4, x + dir * 33, y - 7, P.bark, 3);
+    grassCluster(ctx, x + dir * 38, y + 12, 18, r);
+  }
+  // Low broken wall fragments give the forest an inhabited past.
+  for (const [x, y] of [
+    [329, 355],
+    [849, 355],
+    [340, 530],
+    [845, 530],
+  ])
+    for (let j = 0; j < 3; j++) stone(ctx, x + j * 18, y, 16, 9);
+  props.sort((a, b) => a.y - b.y);
+  return { ground: c, props, trees, ruin: ruinSprite(), loom: loomSprite() };
+}
+export function createRenderer(canvas) {
+  canvas.width = 640;
+  canvas.height = 360;
+  const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.imageSmoothingEnabled = false;
+  const camera = { x: 600, y: 400 };
+  let art = null,
+    lastSeed = null,
+    lastTime = null,
+    damage = 0,
+    previousHP = null;
+  const sorted = [];
+  function screenToWorld(x, y) {
+    return { x: x + camera.x - 320, y: y + camera.y - 180 };
+  }
+  function draw(state, localId, time = 0, options = {}) {
+    const seed = state?.seed || 17;
+    if (!art || seed !== lastSeed) {
+      art = bake(seed);
+      lastSeed = seed;
+    }
+    const player =
+      state?.players?.find((p) => p.id === localId) || state?.players?.[0];
+    const dt =
+      lastTime === null ? 1 / 60 : Math.min(0.05, Math.max(0, time - lastTime));
+    lastTime = time;
+    const tx = player?.x ?? 600,
+      ty = player?.y ?? 400;
+    const follow = 1 - Math.exp(-dt * 8);
+    camera.x += (Math.max(320, Math.min(W - 320, tx)) - camera.x) * follow;
+    camera.y += (Math.max(180, Math.min(H - 180, ty)) - camera.y) * follow;
+    if (player && previousHP !== null && player.hp < previousHP) damage = 0.15;
+    previousHP = player?.hp ?? null;
+    damage = Math.max(0, damage - dt);
+    const shake =
+      options.reducedMotion || options.shake === false
+        ? 0
+        : Math.round(Math.sin(time * 87) * damage * 12);
+    const ox = Math.round(camera.x - 320) + shake,
+      oy = Math.round(camera.y - 180);
+    pixel(ctx, 0, 0, 640, 360, P.shadow);
+    ctx.save();
+    ctx.translate(-ox, -oy);
+    ctx.drawImage(art.ground, 0, 0);
+    // Threads are rendered underneath combatants; captured bullets become warm blooms.
+    for (const echo of state?.echoes || []) {
+      const owner = state.players.find((p) => p.id === echo.owner);
+      if (!owner) continue;
+      const color = PLAYER_COLORS[(owner.color || 0) % 4];
+      line(ctx, echo.x, echo.y - 8, owner.x, owner.y - 8, P.tealDark, 3);
+      line(ctx, echo.x, echo.y - 8, owner.x, owner.y - 8, color);
+      const len = Math.hypot(owner.x - echo.x, owner.y - echo.y),
+        count = Math.min(12, Math.floor(len / 15));
+      for (let i = 1; i < count; i++) {
+        const t = (i + (time % 1)) / count;
+        pixel(
+          ctx,
+          echo.x + (owner.x - echo.x) * t,
+          echo.y - 8 + (owner.y - echo.y) * t,
+          2,
+          2,
+          P.white,
+        );
+      }
+      ctx.globalAlpha = 0.48;
+      drawActor(
+        ctx,
+        { ...owner, x: echo.x, y: echo.y, hit: 0, vx: 0, vy: 0 },
+        time,
+        { state: "idle" },
+      );
+      ctx.globalAlpha = 1;
+    }
+    for (const f of state?.flowers || []) drawFlower(ctx, f, time);
+    sorted.length = 0;
+    for (const prop of art.props)
+      if (
+        prop.x > ox - 120 &&
+        prop.x < ox + 760 &&
+        prop.y > oy - 20 &&
+        prop.y < oy + 510
+      )
+        sorted.push(prop);
+    for (const e of state?.enemies || [])
+      if (e.x > ox - 60 && e.x < ox + 700 && e.y > oy - 20 && e.y < oy + 440)
+        sorted.push(e);
+    for (const p of state?.players || []) sorted.push(p);
+    sorted.sort((a, b) => a.y - b.y);
+    for (const item of sorted) {
+      if (item.type === "tree") {
+        // Fade overlapping canopies only while a player is actually beneath them.
+        const overlaps = (state?.players || []).some(
+          (p) =>
+            Math.abs(p.x - item.x) < 43 &&
+            p.y < item.y - 25 &&
+            p.y > item.y - 125,
+        );
+        ctx.globalAlpha = overlaps ? 0.4 : 1;
+        ctx.drawImage(
+          art.trees[item.variant],
+          Math.round(item.x - 58),
+          Math.round(item.y - 140),
+        );
+        ctx.globalAlpha = 1;
+      } else if (item.type === "ruin") {
+        ctx.drawImage(
+          art.ruin,
+          Math.round(item.x - 31),
+          Math.round(item.y - 74),
+        );
+      } else if (item.type === "loom") {
+        ctx.drawImage(
+          art.loom,
+          Math.round(item.x - 57),
+          Math.round(item.y - 90),
+        );
+      } else {
+        drawActor(ctx, item, time, options.animation || {});
+        if (
+          item.type &&
+          item.type !== "mite" &&
+          Number.isFinite(item.fireIn) &&
+          item.fireIn < 0.65
+        ) {
+          const charge = 1 - item.fireIn / 0.65,
+            rad = (item.type === "warden" ? 30 : 13) - charge * 5;
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3 + time * 3;
+            pixel(
+              ctx,
+              item.x + Math.cos(angle) * rad,
+              item.y - 10 + Math.sin(angle) * rad,
+              charge > 0.65 ? 2 : 1,
+              charge > 0.65 ? 2 : 1,
+              charge > 0.8 ? P.white : P.redLight,
+            );
+          }
+          pixel(
+            ctx,
+            item.x - 1,
+            item.y - (item.type === "warden" ? 18 : 8),
+            2,
+            2 + charge * 3,
+            P.redLight,
+          );
+        }
+        if (item.type === "warden") {
+          pixel(ctx, item.x - 23, item.y - 67, 46, 4, P.ink);
+          pixel(
+            ctx,
+            item.x - 22,
+            item.y - 66,
+            Math.max(0, (44 * item.hp) / item.maxHp),
+            2,
+            P.red,
+          );
+        }
+        if (!item.type && item.id !== localId && !item.dead) {
+          pixel(ctx, item.x - 8, item.y - 34, 16, 2, P.shadow);
+          pixel(
+            ctx,
+            item.x - 8,
+            item.y - 34,
+            (16 * item.hp) / item.maxHp,
+            2,
+            PLAYER_COLORS[(item.color || 0) % 4],
+          );
+        }
+        if (item.dead) {
+          const t = Math.floor(time * 3) % 2;
+          pixel(ctx, item.x - 2, item.y - 25 - t, 5, 2, P.cream);
+          pixel(ctx, item.x, item.y - 27 - t, 1, 6, P.cream);
+          if (item.revive > 0) {
+            pixel(ctx, item.x - 9, item.y - 17, 18, 2, P.shadow);
+            pixel(
+              ctx,
+              item.x - 9,
+              item.y - 17,
+              18 * item.revive,
+              2,
+              P.tealLight,
+            );
+          }
+        }
+      }
+    }
+    for (const player of state?.players || []) {
+      if (player.dead) continue;
+      const count = (player.upgrades || []).filter(
+        (id) => id === "orbit",
+      ).length;
+      for (let i = 0; i < count; i++) {
+        const angle = (player.orbitPhase || 0) + (i * 6.283) / count;
+        const x = player.x + Math.cos(angle) * 49,
+          y = player.y + Math.sin(angle) * 49;
+        for (let trail = 1; trail <= 3; trail++) {
+          const a = angle - trail * 0.11;
+          pixel(
+            ctx,
+            player.x + Math.cos(a) * 49,
+            player.y + Math.sin(a) * 49,
+            2,
+            2,
+            trail === 1 ? P.teal : P.tealDark,
+          );
+        }
+        line(
+          ctx,
+          x - Math.sin(angle) * 6,
+          y + Math.cos(angle) * 6,
+          x + Math.sin(angle) * 6,
+          y - Math.cos(angle) * 6,
+          P.ink,
+          3,
+        );
+        line(
+          ctx,
+          x - Math.sin(angle) * 5,
+          y + Math.cos(angle) * 5,
+          x + Math.sin(angle) * 5,
+          y - Math.cos(angle) * 5,
+          P.cream,
+          2,
+        );
+        pixel(ctx, x, y, 2, 2, P.gold);
+      }
+    }
+    for (const shot of state?.shots || []) {
+      if (
+        shot.x < ox - 10 ||
+        shot.x > ox + 650 ||
+        shot.y < oy - 10 ||
+        shot.y > oy + 370
+      )
+        continue;
+      const hostile = shot.hostile,
+        angle = Math.atan2(shot.vy, shot.vx),
+        tail = hostile ? 4 : 7;
+      line(
+        ctx,
+        shot.x - Math.cos(angle) * tail,
+        shot.y - Math.sin(angle) * tail,
+        shot.x,
+        shot.y,
+        hostile ? P.redDark : P.tealDark,
+        hostile ? 3 : 2,
+      );
+      if (hostile) {
+        oval(ctx, shot.x, shot.y, shot.r || 3, shot.r || 3, P.red);
+        pixel(ctx, shot.x - 1, shot.y - 1, 2, 2, P.cream);
+      } else {
+        line(
+          ctx,
+          shot.x - 2 * Math.cos(angle),
+          shot.y - 2 * Math.sin(angle),
+          shot.x + 2 * Math.cos(angle),
+          shot.y + 2 * Math.sin(angle),
+          P.white,
+        );
+      }
+    }
+    for (const effect of state?.effects || []) {
+      const progress = 1 - effect.life / (effect.maxLife || 0.4),
+        size =
+          effect.radius ||
+          (effect.type === "death" ? 14 : effect.type === "cast" ? 23 : 10);
+      const color =
+        effect.type === "catch" || effect.type === "bloom"
+          ? P.gold
+          : effect.type === "cast"
+            ? P.tealLight
+            : P.redLight;
+      if (effect.type === "bloom") {
+        const radius = size * Math.min(1, progress * 2.7);
+        const segments = 64;
+        for (let i = 0; i < segments; i++) {
+          const angle = (i * Math.PI * 2) / segments;
+          if (progress > 0.65 && i % 3 === 0) continue;
+          const x = effect.x + Math.cos(angle) * radius,
+            y = effect.y + Math.sin(angle) * radius;
+          pixel(
+            ctx,
+            x,
+            y,
+            progress < 0.4 ? 3 : 2,
+            progress < 0.4 ? 3 : 2,
+            progress < 0.3 ? P.cream : progress < 0.65 ? P.gold : P.redDark,
+          );
+          if (i % 4 === 0) {
+            pixel(ctx, x - 2, y - 2, 2, 2, P.redLight);
+            pixel(ctx, x + 2, y + 2, 2, 2, P.red);
+          }
+        }
+      }
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4 + (effect.id % 5),
+          r = 3 + progress * size;
+        const x = effect.x + Math.cos(a) * r,
+          y =
+            effect.y +
+            Math.sin(a) * r * (effect.type === "bloom" ? 1 : 0.65) -
+            7;
+        if (progress < 0.7 || i % 2 === 0)
+          pixel(
+            ctx,
+            x,
+            y,
+            progress < 0.3 ? 2 : 1,
+            progress < 0.3 ? 2 : 1,
+            progress < 0.2 ? P.white : color,
+          );
+      }
+      if (progress < 0.2) {
+        pixel(ctx, effect.x - 3, effect.y - 8, 7, 1, P.white);
+        pixel(ctx, effect.x, effect.y - 11, 1, 7, P.white);
+      }
+    }
+    // Sparse drifting leaves and fireflies, deterministic and outside the simulation.
+    if (!options.reducedMotion)
+      for (let i = 0; i < 25; i++) {
+        const x = (i * 149 + Math.sin(time * 0.17 + i) * 16 + W) % W,
+          y = (i * 83 - time * ((i % 3) + 1) * 2 + H * 100) % H;
+        if (i % 3 === 0) {
+          pixel(ctx, x, y, 2, 1, P.light);
+          pixel(ctx, x + 1, y + 1, 2, 1, P.leaf);
+        } else if (Math.sin(time * 1.2 + i * 4) > 0.6)
+          pixel(ctx, x, y, 1, 1, P.gold);
+      }
+    ctx.restore();
+  }
+  return { draw, screenToWorld, camera };
+}

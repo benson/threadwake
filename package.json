@@ -1,0 +1,20 @@
+{
+  "name": "threadwake",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4319",
+    "build": "vite build",
+    "test": "node --test tests/*.test.js worker/*.test.js",
+    "preview": "vite preview --host 127.0.0.1 --port 4319",
+    "test:multiplayer": "node worker/smoke.mjs",
+    "worker:dev": "wrangler dev --config worker/wrangler.toml --port 8787",
+    "worker:deploy": "wrangler deploy --config worker/wrangler.toml"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0",
+    "wrangler": "^4.0.0",
+    "ws": "^8.18.0"
+  }
+}

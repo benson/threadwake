@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#172b2a" />
+    <title>Threadwake · Workshop</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/lab.css" />
+  </head>
+  <body class="lab">
+    <header>
+      <a href="/">← Threadwake</a>
+      <h1>Workshop</h1>
+      <nav aria-label="Workshop">
+        <button id="motion-tab" aria-pressed="true">Motion</button
+        ><button id="encounter-tab" aria-pressed="false">Encounter</button>
+      </nav>
+      <div>
+        <button id="export">Export preset</button
+        ><label class="file-button"
+          >Import
+          <input type="file" id="import" accept="application/json" hidden
+        /></label>
+      </div>
+    </header>
+    <main id="motion-panel" class="lab-layout">
+      <aside>
+        <label for="subject">Subject</label
+        ><select id="subject">
+          <option value="player">Stitchkeeper</option>
+          <option value="mite">Briar mite</option>
+          <option value="moth">Lantern moth</option>
+          <option value="thorn">Thorn keeper</option>
+          <option value="warden">The Unraveler</option></select
+        ><label for="pose">Pose</label
+        ><select id="pose">
+          <option value="idle">Idle</option>
+          <option value="run">Run</option>
+          <option value="cast">Unwind</option>
+          <option value="hit">Hit</option>
+          <option value="blink">Blink</option></select
+        ><label for="palette">Cloak</label
+        ><select id="palette">
+          <option value="0">Fern</option>
+          <option value="1">Rose</option>
+          <option value="2">Ochre</option>
+          <option value="3">Iris</option></select
+        ><label for="direction">Direction</label
+        ><select id="direction">
+          <option value="right">Right</option>
+          <option value="left">Left</option>
+          <option value="up">Away</option>
+          <option value="down">Toward</option>
+        </select>
+        <div id="sliders"></div>
+        <button id="reset">Reset motion</button>
+      </aside>
+      <section class="lab-stage">
+        <div class="stage-header">
+          <button id="play">Pause</button><button id="step">Step frame</button
+          ><label for="speed">Speed</label
+          ><select id="speed">
+            <option value=".25">¼×</option>
+            <option value=".5">½×</option>
+            <option value="1" selected>1×</option></select
+          ><label class="check"
+            ><input id="compare" type="checkbox" checked /> Compare
+            defaults</label
+          ><label class="check"
+            ><input id="grid" type="checkbox" checked /> Pixel grid</label
+          >
+        </div>
+        <canvas
+          id="preview"
+          width="640"
+          height="280"
+          aria-label="Animation preview"
+        ></canvas>
+        <div class="timeline-header">
+          <label for="timeline">Timeline</label><output id="time">0.00s</output
+          ><output id="phase-name"></output>
+        </div>
+        <input
+          id="timeline"
+          type="range"
+          min="0"
+          max="6"
+          step="0.0166667"
+          value="0"
+        />
+        <div id="phases" aria-label="Action phases"></div>
+        <canvas
+          id="curves"
+          width="800"
+          height="150"
+          aria-label="Motion curves sampled from the game animation rig"
+        ></canvas>
+        <div class="curve-key">
+          <span>Lift / bob</span><span>Lean / step</span
+          ><span>Stretch / scarf</span>
+        </div>
+        <div class="sheet-header">
+          <h2>Pose sheet</h2>
+          <button id="sheet-export">Save PNG</button>
+        </div>
+        <canvas
+          id="sheet"
+          width="800"
+          height="160"
+          aria-label="Animation contact sheet"
+        ></canvas>
+        <p id="lab-status" role="status"></p>
+      </section>
+    </main>
+    <main id="encounter-panel" class="lab-layout" hidden>
+      <aside>
+        <label for="seed">Seed</label
+        ><input
+          id="seed"
+          type="number"
+          min="0"
+          max="4294967295"
+          value="42"
+        /><label for="wave">Wave</label
+        ><select id="wave">
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+          <option>6</option>
+          <option>7</option>
+          <option>8</option></select
+        ><label for="scenario">Scenario</label
+        ><select id="scenario">
+          <option value="wave">Full wave</option>
+          <option value="melee">Mite circle</option>
+          <option value="barrage">Moth barrage</option>
+          <option value="garden">Thread garden</option></select
+        ><label for="build">Upgrades</label
+        ><select
+          id="build"
+          multiple
+          size="7"
+          aria-describedby="build-hint"
+        ></select
+        ><small id="build-hint">Ctrl / ⌘ to pick several.</small
+        ><label class="check"
+          ><input id="invincible" type="checkbox" /> Invincible</label
+        ><button id="encounter-reset">Start / reset</button>
+      </aside>
+      <section class="lab-stage">
+        <div class="stage-header">
+          <button id="encounter-play">Pause</button
+          ><button id="encounter-step">Step tick</button
+          ><button id="replay">Replay take</button
+          ><button id="replay-export">Export take</button
+          ><label class="file-button"
+            >Load take
+            <input
+              id="replay-import"
+              type="file"
+              accept="application/json"
+              hidden
+          /></label>
+        </div>
+        <canvas
+          id="encounter"
+          width="640"
+          height="360"
+          tabindex="0"
+          aria-label="Encounter preview. WASD to move, space to unwind."
+        ></canvas>
+        <div class="encounter-bar">
+          <output id="encounter-status"></output
+          ><span>WASD · Space to unwind</span>
+        </div>
+        <div id="encounter-choices"></div>
+        <p id="take-status" role="status"></p>
+      </section>
+    </main>
+    <script type="module" src="/src/lab.js"></script>
+  </body>
+</html>
