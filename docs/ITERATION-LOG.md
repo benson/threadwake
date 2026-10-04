@@ -24,11 +24,17 @@ All 62 tests and the build pass, including 13 presentation tests for boundaries,
 
 Integrated browser checks: a real opening completed with 84 HP and correctly displayed `0s` during the draft. Two preview clients connected to the deployed multiplayer service, shared 114 px of movement and a cast, and reconnected without a duplicate player or browser errors.
 
+## 2026-10-04 — attack warnings through scenery
+
+Workshop thorn play showed the default enemies in open ground. A controlled render comparison then placed a thorn windup under the central loom: scenery completely covered the warning before the fix, while the existing red cue remained visible afterward. This is controlled rendering evidence, not a claim that the default encounter produced that exact overlap.
+
+The same attack-warning drawing now runs after scenery, preserving its existing timing, color, geometry and locked direction. The change covers moth, thorn and warden cues and keeps ordinary actor depth ordering. Both comparison frames were visually reviewed; all 62 tests and the build pass.
+
 ## Work to continue
 
 - Integrated trail/anchor motion checks passed; workshop input replay and export/import produce identical final pixels in garden, thorn, and co-op scenarios. Build passes.
 - First field/opening increment shipped as `2bd5cc1`; Actions run `37236556555` passed tests/build, Worker, live multiplayer and Pages. The public browser confirmed the 38-second opening, fixed field and in-run shop.
-- Publish the movement/contrast increment through the same gated pipeline after its integrated browser checks.
+- Movement/contrast shipped as `73c61a4`; Actions run `37237224296` passed on rerun. The first live check saw a connection close before its latency reply, so Pages stayed gated; a fresh identical live check and the rerun passed without changing the gate.
 - Continue focused playtests for combat readability, visual crowding, movement/cast continuity, and frame pacing. Fix demonstrated friction rather than adding unrelated systems or UI.
 - OpenRouter reviews are requested, but the API-key location and spending cap are still pending. No paid call has been made. `scripts/openrouter-review.mjs` requires an explicitly approved ignored budget ledger and environment credential; it retains reservations for unknown costs. Reviews must distinguish screenshot/source evidence from actual play.
 - The thread heartbeat `keep-improving-threadwake` is already active every 30 minutes. Preserve it rather than creating duplicates; notify only meaningful changes or blockers. The owner asked to keep improving until told to stop.

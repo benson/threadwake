@@ -305,6 +305,79 @@ function drawPreviewAnchor(ctx, player) {
     pixel(ctx, x, y - 16, 1, 5, color);
   }
 }
+function drawAttackTelegraph(ctx, enemy, time) {
+  if (
+    enemy.type === "mite" ||
+    !Number.isFinite(enemy.fireIn) ||
+    enemy.fireIn >= 0.9
+  ) return;
+  const charge = Math.max(0, 1 - enemy.fireIn / 0.9),
+    boss = enemy.type === "warden",
+    rad = (boss ? 34 : 16) - charge * 5,
+    centerY = enemy.y - (boss ? 19 : 10),
+    cue = charge > 0.7 ? P.white : P.redLight;
+  for (let i = 0; i < (boss ? 12 : 8); i++) {
+    const angle =
+      (i * Math.PI * 2) / (boss ? 12 : 8) +
+      Math.floor(time * 12) * 0.12;
+    pixel(
+      ctx,
+      enemy.x + Math.cos(angle) * rad,
+      centerY + Math.sin(angle) * rad * 0.75,
+      charge > 0.75 ? 2 : 1,
+      charge > 0.75 ? 2 : 1,
+      cue,
+    );
+  }
+  // Preview the committed volley direction. Boss stages all release a
+  // ring; later stages add an aimed fan or a focused shot.
+  const aim = Math.atan2(
+      Number.isFinite(enemy.aimY) ? enemy.aimY : 0,
+      Number.isFinite(enemy.aimX) ? enemy.aimX : enemy.face || 1,
+    ),
+    attack =
+      enemy.attack ||
+      (boss ? "ring" : enemy.type === "thorn" ? "fan" : "needle"),
+    reach = (boss ? 42 : 34) * (0.55 + charge * 0.45);
+  if (boss) {
+    for (let j = 0; j < (attack === "spiral" ? 12 : 8); j++) {
+      const a =
+        (j * Math.PI * 2) / (attack === "spiral" ? 12 : 8) +
+        (attack === "spiral" ? Math.floor(time * 8) * 0.13 : 0);
+      pixel(
+        ctx,
+        enemy.x + Math.cos(a) * reach,
+        centerY + Math.sin(a) * reach * 0.75,
+        2,
+        2,
+        cue,
+      );
+    }
+  }
+  if (enemy.fireIn <= 0.65) {
+    const rays = attack === "ring" ? 1 : attack === "fan" ? 3 : 1;
+    for (let j = 0; j < rays; j++) {
+      const a = aim + (j - (rays - 1) / 2) * (boss ? 0.2 : 0.22);
+      for (let d = 10; d < reach; d += 7)
+        pixel(
+          ctx,
+          enemy.x + Math.cos(a) * d,
+          centerY + Math.sin(a) * d,
+          charge > 0.75 ? 2 : 1,
+          1,
+          cue,
+        );
+    }
+  }
+  pixel(
+    ctx,
+    enemy.x - 1,
+    centerY - 1,
+    3,
+    3 + charge * 2,
+    charge > 0.75 ? P.white : P.redLight,
+  );
+}
 function bake(seed) {
   const c = surface(W, H),
     ctx = c.getContext("2d"),
@@ -665,79 +738,6 @@ export function createRenderer(canvas) {
             );
           }
         }
-        if (
-          item.type &&
-          item.type !== "mite" &&
-          Number.isFinite(item.fireIn) &&
-          item.fireIn < 0.9
-        ) {
-          const charge = Math.max(0, 1 - item.fireIn / 0.9),
-            boss = item.type === "warden",
-            rad = (boss ? 34 : 16) - charge * 5,
-            centerY = item.y - (boss ? 19 : 10),
-            cue = charge > 0.7 ? P.white : P.redLight;
-          for (let i = 0; i < (boss ? 12 : 8); i++) {
-            const angle =
-              (i * Math.PI * 2) / (boss ? 12 : 8) +
-              Math.floor(time * 12) * 0.12;
-            pixel(
-              ctx,
-              item.x + Math.cos(angle) * rad,
-              centerY + Math.sin(angle) * rad * 0.75,
-              charge > 0.75 ? 2 : 1,
-              charge > 0.75 ? 2 : 1,
-              cue,
-            );
-          }
-          // Preview the committed volley direction. Boss stages all release a
-          // ring; later stages add an aimed fan or a focused shot.
-          const aim = Math.atan2(
-              Number.isFinite(item.aimY) ? item.aimY : 0,
-              Number.isFinite(item.aimX) ? item.aimX : item.face || 1,
-            ),
-            attack =
-              item.attack ||
-              (boss ? "ring" : item.type === "thorn" ? "fan" : "needle"),
-            reach = (boss ? 42 : 34) * (0.55 + charge * 0.45);
-          if (boss) {
-            for (let j = 0; j < (attack === "spiral" ? 12 : 8); j++) {
-              const a =
-                (j * Math.PI * 2) / (attack === "spiral" ? 12 : 8) +
-                (attack === "spiral" ? Math.floor(time * 8) * 0.13 : 0);
-              pixel(
-                ctx,
-                item.x + Math.cos(a) * reach,
-                centerY + Math.sin(a) * reach * 0.75,
-                2,
-                2,
-                cue,
-              );
-            }
-          }
-          if (item.fireIn <= 0.65) {
-            const rays = attack === "ring" ? 1 : attack === "fan" ? 3 : 1;
-            for (let j = 0; j < rays; j++) {
-              const a = aim + (j - (rays - 1) / 2) * (boss ? 0.2 : 0.22);
-              for (let d = 10; d < reach; d += 7)
-                pixel(
-                  ctx,
-                  item.x + Math.cos(a) * d,
-                  centerY + Math.sin(a) * d,
-                  charge > 0.75 ? 2 : 1,
-                  1,
-                  cue,
-                );
-            }
-          }
-          pixel(
-            ctx,
-            item.x - 1,
-            centerY - 1,
-            3,
-            3 + charge * 2,
-            charge > 0.75 ? P.white : P.redLight,
-          );
-        }
         if (item.type === "warden") {
           pixel(ctx, item.x - 23, item.y - 67, 46, 4, P.ink);
           pixel(
@@ -792,6 +792,8 @@ export function createRenderer(canvas) {
         }
       }
     }
+    // A hidden caster still has to show the locked direction of its volley.
+    for (const enemy of state?.enemies || []) drawAttackTelegraph(ctx, enemy, time);
     drawFootsteps(ctx, player, true);
     drawPreviewAnchor(ctx, player);
     // A thin inner strand stays readable through ruins and canopies while the
