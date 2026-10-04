@@ -2,7 +2,7 @@
 
 A pixel woodland survivor for one to four friends. Play at **https://threadwake.bensonperry.com**. No account or install.
 
-Move with WASD or arrows. Needles fire automatically. Space (or click) unwinds your recent footsteps into an echo. The thread between you and your echo cuts creatures and catches hostile shots. Catches charge nearby flowers; sweep the thread across a charged flower to burst it, clearing threats and healing the party. Stay beside a fallen friend to revive them.
+Move with WASD or arrows. Needles fire automatically. Space (or click) unwinds your recent footsteps into an echo; holding casts again when ready. Two echoes can overlap, and a ring around each shows its remaining life. Stretch threads to cut harder and cross a friend's thread to resonate. Catches strengthen your next volley and charge flowers. Holding a thread over a flower also charges it; a full flower bursts, clearing threats and healing the party. Stay beside a fallen friend to revive them.
 
 Eight waves, sixteen stackable upgrades, and the Unraveler at dawn. A run usually takes around ten minutes including upgrade choices. A controller uses the left stick and A. Touch controls are included; real phone hardware has not been verified.
 
@@ -42,12 +42,14 @@ One Cloudflare Durable Object owns each room and runs the simulation at 30 Hz. B
 
 An opaque token stored in session storage resumes a disconnected player. Seats are reserved for 60 seconds. A disconnected player's draft receives an automatic choice after 10 seconds, so the party can continue. Empty rooms stop ticking. Private wave/upgrade checkpoints support short server interruptions; a server restart can roll the run back to the last checkpoint. Ordinary socket reconnects retain the current in-memory run. Active rooms consume server time and do not hibernate while a run is ticking.
 
-Memories and small permanent traits are browser-local, bounded on the server, and designed for casual co-op, not competitive rankings. They are not an account save or cheat-resistant economy. Clearing browser storage removes them.
+Memories bank after each participated wave, plus a win bonus and five one-time play milestones. Small permanent traits are browser-local, bounded on the server, and designed for casual co-op, not competitive rankings. They are not an account save or cheat-resistant economy. Clearing browser storage removes them. Protocol 2 rejects incompatible clients and recovery checkpoints; reload after an update and create a new room if an old room cannot resume.
 
 ## Validation and release
 
 `npm test` covers deterministic replay, casts and catches, flower bursts, every upgrade, late joins, synchronized drafts, disconnects, revives, win/loss, invalid input, recovery checkpoints, and full-run reference players. Automated balance runs are regression evidence, not a substitute for human playtesting.
 
 `npm run test:multiplayer` runs a real WebSocket room exercise against local Wrangler. Pass a deployed WebSocket base to `node worker/smoke.mjs` for the same live check. `scripts/ui-smoke.cjs` is a Playwright CLI real-control smoke test against the production preview on port 4320; it checks movement, cast, pause, and combat progress without modifying game state.
+
+The 50-improvement pass and its playtest evidence are recorded in `docs/ITERATION-50.md`. Additional browser regressions cover held/buffered casts, input resets, separate sound controls, a mocked controller, multiplayer reconnects, and pixel-identical workshop replay including thorn and co-op scenarios. Controller API tests and mobile viewport checks do not replace physical-device testing.
 
 GitHub Actions gates deployment on tests and build, deploys the Worker, runs a live multiplayer smoke, then publishes `dist/` to GitHub Pages. DNS maps `threadwake.bensonperry.com` to that repository's Pages deployment. Cloudflare credentials are repository secrets, never frontend configuration.

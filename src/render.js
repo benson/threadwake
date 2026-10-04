@@ -392,34 +392,33 @@ export function createRenderer(canvas) {
     ctx.save();
     ctx.translate(-ox, -oy);
     ctx.drawImage(art.ground, 0, 0);
-    // Threads are rendered underneath combatants; captured bullets become warm blooms.
+    // The dark body of each thread lives in the world; a sparse bright core is
+    // repeated above scenery below so a useful segment cannot disappear there.
     for (const echo of state?.echoes || []) {
       const owner = state.players.find((p) => p.id === echo.owner);
       if (!owner) continue;
-      const color = PLAYER_COLORS[(owner.color || 0) % 4];
-      line(ctx, echo.x, echo.y - 8, owner.x, owner.y - 8, P.tealDark, 3);
-      line(ctx, echo.x, echo.y - 8, owner.x, owner.y - 8, color);
-      const len = Math.hypot(owner.x - echo.x, owner.y - echo.y),
-        count = Math.min(12, Math.floor(len / 15));
-      for (let i = 1; i < count; i++) {
-        const t = (i + (time % 1)) / count;
-        pixel(
-          ctx,
-          echo.x + (owner.x - echo.x) * t,
-          echo.y - 8 + (owner.y - echo.y) * t,
-          2,
-          2,
-          P.white,
-        );
-      }
-      ctx.globalAlpha = 0.48;
-      drawActor(
+      const color = PLAYER_COLORS[(owner.color || 0) % 4],
+        weave = (owner.upgrades || []).filter((id) => id === "thread").length,
+        outer = Math.min(6, 2 + weave),
+        core = Math.min(3, 1 + Math.ceil(weave / 2));
+      line(
         ctx,
-        { ...owner, x: echo.x, y: echo.y, hit: 0, vx: 0, vy: 0 },
-        time,
-        { state: "idle" },
+        echo.x - Math.floor(outer / 2),
+        echo.y - 8 - Math.floor(outer / 2),
+        owner.x - Math.floor(outer / 2),
+        owner.y - 8 - Math.floor(outer / 2),
+        P.echoDark,
+        outer,
       );
-      ctx.globalAlpha = 1;
+      line(
+        ctx,
+        echo.x - Math.floor(core / 2),
+        echo.y - 8 - Math.floor(core / 2),
+        owner.x - Math.floor(core / 2),
+        owner.y - 8 - Math.floor(core / 2),
+        echo.resonance > 0 ? P.gold : color,
+        core,
+      );
     }
     for (const f of state?.flowers || []) drawFlower(ctx, f, time);
     sorted.length = 0;
@@ -453,45 +452,151 @@ export function createRenderer(canvas) {
         );
         ctx.globalAlpha = 1;
       } else if (item.type === "ruin") {
+        const overlap = (state?.players || []).some(
+          (p) =>
+            Math.abs(p.x - item.x) < 27 && p.y < item.y && p.y > item.y - 69,
+        );
+        ctx.globalAlpha = overlap ? 0.45 : 1;
         ctx.drawImage(
           art.ruin,
           Math.round(item.x - 31),
           Math.round(item.y - 74),
         );
+        ctx.globalAlpha = 1;
       } else if (item.type === "loom") {
+        const overlap = (state?.players || []).some(
+          (p) =>
+            Math.abs(p.x - item.x) < 51 && p.y < item.y && p.y > item.y - 84,
+        );
+        ctx.globalAlpha = overlap ? 0.45 : 1;
         ctx.drawImage(
           art.loom,
           Math.round(item.x - 57),
           Math.round(item.y - 90),
         );
+        ctx.globalAlpha = 1;
       } else {
         drawActor(ctx, item, time, options.animation || {});
+        if (!item.type && !item.dead && item.stitchCharge > 0) {
+          const count = Math.min(3, Math.floor(item.stitchCharge));
+          for (let i = 0; i < count; i++) {
+            const angle =
+              (i * Math.PI * 2) / count + Math.floor(time * 10) * 0.2;
+            pixel(
+              ctx,
+              item.x + Math.cos(angle) * 11,
+              item.y - 18 + Math.sin(angle) * 8,
+              2,
+              2,
+              i === 0 ? P.white : P.gold,
+            );
+          }
+        }
+        if (!item.type && item.hit > 0) {
+          const side = Math.floor(time * 24) % 2 ? -1 : 1;
+          pixel(ctx, item.x + side * 10, item.y - 21, 3, 1, P.white);
+          pixel(ctx, item.x + side * 12, item.y - 24, 1, 6, P.redLight);
+        }
+        if (item.type && item.hit > 0 && item.type !== "warden") {
+          const side = (item.id || 0) % 2 ? -1 : 1;
+          pixel(ctx, item.x + side * 10, item.y - 14, 2, 2, P.white);
+          pixel(ctx, item.x + side * 14, item.y - 11, 2, 1, P.redLight);
+        }
+        if (item.type && item.slow > 0) {
+          for (const dx of [-8, -2, 5]) {
+            pixel(ctx, item.x + dx, item.y - 2, 5, 2, P.blue);
+            pixel(ctx, item.x + dx + 2, item.y - 5, 1, 4, P.white);
+          }
+          if (item.brittle > 0) {
+            pixel(
+              ctx,
+              item.x - 2,
+              item.y - (item.type === "warden" ? 27 : 12),
+              5,
+              1,
+              P.white,
+            );
+            pixel(
+              ctx,
+              item.x,
+              item.y - (item.type === "warden" ? 29 : 14),
+              1,
+              5,
+              P.blue,
+            );
+          }
+        }
         if (
           item.type &&
           item.type !== "mite" &&
           Number.isFinite(item.fireIn) &&
-          item.fireIn < 0.65
+          item.fireIn < 0.9
         ) {
-          const charge = 1 - item.fireIn / 0.65,
-            rad = (item.type === "warden" ? 30 : 13) - charge * 5;
-          for (let i = 0; i < 6; i++) {
-            const angle = (i * Math.PI) / 3 + time * 3;
+          const charge = Math.max(0, 1 - item.fireIn / 0.9),
+            boss = item.type === "warden",
+            rad = (boss ? 34 : 16) - charge * 5,
+            centerY = item.y - (boss ? 19 : 10),
+            cue = charge > 0.7 ? P.white : P.redLight;
+          for (let i = 0; i < (boss ? 12 : 8); i++) {
+            const angle =
+              (i * Math.PI * 2) / (boss ? 12 : 8) +
+              Math.floor(time * 12) * 0.12;
             pixel(
               ctx,
               item.x + Math.cos(angle) * rad,
-              item.y - 10 + Math.sin(angle) * rad,
-              charge > 0.65 ? 2 : 1,
-              charge > 0.65 ? 2 : 1,
-              charge > 0.8 ? P.white : P.redLight,
+              centerY + Math.sin(angle) * rad * 0.75,
+              charge > 0.75 ? 2 : 1,
+              charge > 0.75 ? 2 : 1,
+              cue,
             );
+          }
+          // Preview the committed volley direction. Boss stages all release a
+          // ring; later stages add an aimed fan or a focused shot.
+          const aim = Math.atan2(
+              Number.isFinite(item.aimY) ? item.aimY : 0,
+              Number.isFinite(item.aimX) ? item.aimX : item.face || 1,
+            ),
+            attack =
+              item.attack ||
+              (boss ? "ring" : item.type === "thorn" ? "fan" : "needle"),
+            reach = (boss ? 42 : 34) * (0.55 + charge * 0.45);
+          if (boss) {
+            for (let j = 0; j < (attack === "spiral" ? 12 : 8); j++) {
+              const a =
+                (j * Math.PI * 2) / (attack === "spiral" ? 12 : 8) +
+                (attack === "spiral" ? Math.floor(time * 8) * 0.13 : 0);
+              pixel(
+                ctx,
+                item.x + Math.cos(a) * reach,
+                centerY + Math.sin(a) * reach * 0.75,
+                2,
+                2,
+                cue,
+              );
+            }
+          }
+          if (item.fireIn <= 0.65) {
+            const rays = attack === "ring" ? 1 : attack === "fan" ? 3 : 1;
+            for (let j = 0; j < rays; j++) {
+              const a = aim + (j - (rays - 1) / 2) * (boss ? 0.2 : 0.22);
+              for (let d = 10; d < reach; d += 7)
+                pixel(
+                  ctx,
+                  item.x + Math.cos(a) * d,
+                  centerY + Math.sin(a) * d,
+                  charge > 0.75 ? 2 : 1,
+                  1,
+                  cue,
+                );
+            }
           }
           pixel(
             ctx,
             item.x - 1,
-            item.y - (item.type === "warden" ? 18 : 8),
-            2,
-            2 + charge * 3,
-            P.redLight,
+            centerY - 1,
+            3,
+            3 + charge * 2,
+            charge > 0.75 ? P.white : P.redLight,
           );
         }
         if (item.type === "warden") {
@@ -520,6 +625,20 @@ export function createRenderer(canvas) {
           const t = Math.floor(time * 3) % 2;
           pixel(ctx, item.x - 2, item.y - 25 - t, 5, 2, P.cream);
           pixel(ctx, item.x, item.y - 27 - t, 1, 6, P.cream);
+          for (const [dx, dy] of [
+            [-15, -8],
+            [15, -8],
+            [-10, 1],
+            [10, 1],
+          ])
+            pixel(
+              ctx,
+              item.x + dx,
+              item.y + dy,
+              2,
+              2,
+              PLAYER_COLORS[(item.color || 0) % 4],
+            );
           if (item.revive > 0) {
             pixel(ctx, item.x - 9, item.y - 17, 18, 2, P.shadow);
             pixel(
@@ -532,6 +651,59 @@ export function createRenderer(canvas) {
             );
           }
         }
+      }
+    }
+    // Ghosts and the thread glints stay above foreground props. The clock of
+    // lit notches around each anchor gives its remaining life at a glance.
+    for (const echo of state?.echoes || []) {
+      const owner = state.players.find((p) => p.id === echo.owner);
+      if (!owner) continue;
+      const color = PLAYER_COLORS[(owner.color || 0) % 4],
+        life = Math.max(0, Math.min(1, echo.life / (echo.maxLife || 1))),
+        len = Math.hypot(owner.x - echo.x, owner.y - echo.y),
+        steps = Math.min(80, Math.floor(len / 8));
+      for (let i = 1; i < steps; i++) {
+        if (i % 3 === 0 && (life > 0.2 || i % 2 === 0)) {
+          const travel = options.reducedMotion
+            ? 0
+            : (time * (0.4 + (echo.tension || 0) * 1.2)) % 1;
+          const t = (i + travel) / steps;
+          pixel(
+            ctx,
+            echo.x + (owner.x - echo.x) * t,
+            echo.y - 8 + (owner.y - echo.y) * t,
+            2,
+            1,
+            echo.resonance > 0 ? P.gold : P.white,
+          );
+        }
+      }
+      drawActor(
+        ctx,
+        { ...owner, x: echo.x, y: echo.y, hit: 0, vx: 0, vy: 0 },
+        time + echo.id * 0.13,
+        { state: "idle", ghost: true },
+      );
+      const ticks = Math.ceil(life * 12);
+      for (let i = 0; i < 12; i++) {
+        const a = (i * Math.PI) / 6 - Math.PI / 2,
+          radius = echo.projected ? 17 : 15;
+        pixel(
+          ctx,
+          echo.x + Math.cos(a) * radius,
+          echo.y - 5 + Math.sin(a) * radius * 0.42,
+          2,
+          2,
+          i < ticks ? (echo.projected ? P.gold : color) : P.echoDark,
+        );
+      }
+      if (echo.projected) {
+        pixel(ctx, echo.x - 3, echo.y - 1, 7, 1, P.gold);
+        pixel(ctx, echo.x, echo.y - 4, 1, 7, P.gold);
+      }
+      if (echo.tension > 0.5) {
+        pixel(ctx, echo.x - 1, echo.y - 34, 3, 2, P.white);
+        pixel(ctx, echo.x, echo.y - 36, 1, 6, P.gold);
       }
     }
     for (const player of state?.players || []) {
@@ -615,11 +787,15 @@ export function createRenderer(canvas) {
           effect.radius ||
           (effect.type === "death" ? 14 : effect.type === "cast" ? 23 : 10);
       const color =
-        effect.type === "catch" || effect.type === "bloom"
+        effect.type === "catch" ||
+        effect.type === "bloom" ||
+        effect.type === "resonance"
           ? P.gold
-          : effect.type === "cast"
+          : effect.type === "cast" || effect.type === "heal"
             ? P.tealLight
-            : P.redLight;
+            : effect.type === "shatter"
+              ? P.blue
+              : P.redLight;
       if (effect.type === "bloom") {
         const radius = size * Math.min(1, progress * 2.7);
         const segments = 64;
@@ -640,6 +816,86 @@ export function createRenderer(canvas) {
             pixel(ctx, x - 2, y - 2, 2, 2, P.redLight);
             pixel(ctx, x + 2, y + 2, 2, 2, P.red);
           }
+        }
+        if (progress < 0.45) {
+          const petal = Math.max(7, Math.round(radius * 0.46));
+          for (let i = 0; i < 8; i++) {
+            const a = (i * Math.PI) / 4;
+            const x = effect.x + Math.cos(a) * petal,
+              y = effect.y - 7 + Math.sin(a) * petal;
+            pixel(ctx, x - 2, y - 1, 5, 3, i % 2 ? P.redLight : P.cream);
+            pixel(ctx, x, y - 3, 1, 7, P.gold);
+          }
+          pixel(ctx, effect.x - 3, effect.y - 10, 7, 7, P.white);
+        }
+      }
+      if (effect.type === "catch" && progress < 0.75) {
+        const arm = 4 + Math.round(progress * 7);
+        line(
+          ctx,
+          effect.x - arm,
+          effect.y - 7,
+          effect.x + arm,
+          effect.y - 7,
+          P.gold,
+        );
+        line(
+          ctx,
+          effect.x,
+          effect.y - 7 - arm,
+          effect.x,
+          effect.y - 7 + arm,
+          P.white,
+        );
+      }
+      if (effect.type === "resonance" && progress < 0.8) {
+        const arm = 7 + Math.round(progress * 12);
+        for (let i = 0; i < 8; i++) {
+          const a = (i * Math.PI) / 4;
+          pixel(
+            ctx,
+            effect.x + Math.cos(a) * arm,
+            effect.y - 7 + Math.sin(a) * arm,
+            2,
+            2,
+            i % 2 ? P.white : P.gold,
+          );
+        }
+        pixel(ctx, effect.x - 2, effect.y - 9, 5, 5, P.white);
+      }
+      if (effect.type === "heal" && progress < 0.8) {
+        const rise = Math.round(progress * 12);
+        pixel(ctx, effect.x - 1, effect.y - 16 - rise, 3, 10, P.tealLight);
+        pixel(ctx, effect.x - 5, effect.y - 12 - rise, 11, 3, P.white);
+        pixel(ctx, effect.x - 10, effect.y - 5 - rise, 2, 2, P.teal);
+        pixel(ctx, effect.x + 8, effect.y - 8 - rise, 2, 2, P.teal);
+      }
+      if (effect.type === "shatter" && progress < 0.7) {
+        const reach = 4 + Math.round(progress * 14);
+        for (let i = 0; i < 6; i++) {
+          const a = (i * Math.PI) / 3;
+          line(
+            ctx,
+            effect.x + Math.cos(a) * (reach - 4),
+            effect.y - 7 + Math.sin(a) * (reach - 4),
+            effect.x + Math.cos(a) * reach,
+            effect.y - 7 + Math.sin(a) * reach,
+            i % 2 ? P.white : P.blue,
+          );
+        }
+      }
+      if (effect.type === "hit" && progress < 0.6) {
+        const arm = 6 + Math.round(progress * 11);
+        for (let i = 0; i < 4; i++) {
+          const a = (i * Math.PI) / 2 + Math.PI / 4;
+          pixel(
+            ctx,
+            effect.x + Math.cos(a) * arm,
+            effect.y - 10 + Math.sin(a) * arm,
+            3,
+            2,
+            i % 2 ? P.white : P.redLight,
+          );
         }
       }
       for (let i = 0; i < 8; i++) {
@@ -677,6 +933,32 @@ export function createRenderer(canvas) {
           pixel(ctx, x, y, 1, 1, P.gold);
       }
     ctx.restore();
+    // A local echo can leave the viewport before it expires. Point to its
+    // anchor at the nearest screen edge while keeping the gameplay uncluttered.
+    for (const echo of state?.echoes || []) {
+      if (echo.owner !== localId) continue;
+      const sx = echo.x - ox,
+        sy = echo.y - oy;
+      if (sx >= 15 && sx <= 625 && sy >= 15 && sy <= 345) continue;
+      const px = Math.max(15, Math.min(625, sx)),
+        py = Math.max(15, Math.min(345, sy)),
+        dx = sx - px,
+        dy = sy - py,
+        color = echo.projected
+          ? P.gold
+          : PLAYER_COLORS[(player?.color || 0) % 4];
+      pixel(ctx, px - 6, py - 6, 13, 13, P.ink);
+      if (Math.abs(dx) > Math.abs(dy)) {
+        const side = Math.sign(dx);
+        line(ctx, px + side * 5, py, px - side * 2, py - 4, color, 2);
+        line(ctx, px + side * 5, py, px - side * 2, py + 4, color, 2);
+      } else {
+        const side = Math.sign(dy);
+        line(ctx, px, py + side * 5, px - 4, py - side * 2, color, 2);
+        line(ctx, px, py + side * 5, px + 4, py - side * 2, color, 2);
+      }
+      pixel(ctx, px - 1, py - 1, 3, 3, P.white);
+    }
   }
   return { draw, screenToWorld, camera };
 }

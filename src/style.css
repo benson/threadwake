@@ -385,6 +385,9 @@ dialog::backdrop {
   max-width: 90%;
   text-align: center;
 }
+#game:has(#toast:not([hidden])) #lesson {
+  visibility: hidden;
+}
 #talents {
   display: grid;
   gap: 12px;
@@ -457,10 +460,28 @@ dialog::backdrop {
   }
   #choices {
     gap: 8px;
+    grid-template-columns: 1fr;
+  }
+  #draft {
+    justify-content: flex-start;
+  }
+  .draft-content {
+    margin: auto 0;
   }
   .upgrade {
     padding: 12px 10px;
-    min-height: 190px;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 6px 10px;
+  }
+  .upgrade .glyph {
+    grid-row: 1 / 4;
+    font-size: 30px;
+  }
+  .upgrade small,
+  .upgrade .key {
+    grid-column: 2;
   }
   .upgrade strong {
     font-size: 24px;
@@ -533,4 +554,47 @@ dialog::backdrop {
   *::after {
     scroll-behavior: auto !important;
   }
+}
+.volume-controls {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.volume-controls label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.volume-controls input {
+  width: 160px;
+  accent-color: #bfd799;
+}
+#loadout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+  max-width: 420px;
+}
+#loadout span {
+  padding: 5px 8px;
+  background: #273f3b;
+  border-radius: 5px;
+  font-size: 17px;
+}
+#milestones {
+  margin: 16px 0;
+  font-size: 17px;
+}
+#milestones p {
+  margin: 6px 0;
+}
+#boss-health {
+  color: #edaa99;
+  font-size: 16px;
+}
+dialog {
+  max-height: 90dvh;
+  overflow-y: auto;
 }

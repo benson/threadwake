@@ -41,6 +41,17 @@ async page => {
   const imported=await page.locator('#encounter').evaluate(c=>c.toDataURL());
   if(imported!==pixelsBefore)throw new Error('Exported/imported take diverged');
   await page.screenshot({path:'output/playwright/lab-encounter.png',fullPage:true});
+  for(const scenario of ['thorns','resonance']) {
+    await page.getByRole('combobox',{name:'Scenario',exact:true}).selectOption(scenario);
+    await page.getByRole('button',{name:'Start / reset',exact:true}).click();
+    await page.keyboard.down('a'); await page.keyboard.press('Space');
+    await page.waitForTimeout(1200); await page.keyboard.up('a');
+    await page.getByRole('button',{name:'Pause',exact:true}).click();
+    const pixels=await page.locator('#encounter').evaluate(c=>c.toDataURL());
+    await page.getByRole('button',{name:'Replay take',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('#take-status').textContent.startsWith('Replay complete'));
+    if(pixels!==await page.locator('#encounter').evaluate(c=>c.toDataURL()))throw Error(scenario+' replay diverged');
+  }
   await page.setViewportSize({width:390,height:844});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
   if(overflow)throw new Error('Mobile workshop overflows horizontally');

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Room } from "./index.js";
+import worker, { Room } from "./index.js";
 import { addPlayer, startGame, step } from "../src/sim.js";
 function context(store = new Map()) {
   const ctx = {
@@ -36,6 +36,8 @@ test("private checkpoint restores simulation internals and reconnect identity", 
   });
   first.checkpoint();
   await Promise.all(firstContext.pending);
+  assert.equal(store.get("checkpoint").protocol, 2);
+  assert.equal(store.get("checkpoint").game.version, 2);
   const nextContext = context(store);
   const next = new Room(nextContext);
   await nextContext.ready;
@@ -50,6 +52,52 @@ test("private checkpoint restores simulation internals and reconnect identity", 
     first.game,
     "recovered simulation evolves identically",
   );
+});
+
+test("recovery fails closed for incompatible checkpoint protocol or simulation", async () => {
+  for (const mismatch of [
+    { protocol: 1, version: 2 },
+    { protocol: 2, version: 1 },
+  ]) {
+    const saved = {
+      protocol: mismatch.protocol,
+      savedAt: Date.now(),
+      game: { version: mismatch.version, players: [] },
+      peers: [],
+    };
+    const store = new Map([["checkpoint", saved]]),
+      ctx = context(store),
+      room = new Room(ctx);
+    await ctx.ready;
+    assert.match(room.recoveryError, /older game/);
+    assert.equal(room.sessions.size, 0);
+    assert.equal(
+      store.get("checkpoint"),
+      saved,
+      "incompatible recovery is preserved, not overwritten",
+    );
+  }
+});
+
+test("worker advertises protocol 2 and echoes only bounded ping IDs", async () => {
+  const response = await worker.fetch(
+    new Request("https://example.test/health"),
+    {},
+  );
+  assert.equal((await response.json()).protocol, 2);
+  const ctx = context(),
+    room = new Room(ctx);
+  await ctx.ready;
+  const sent = [],
+    socket = { send: (value) => sent.push(JSON.parse(value)), close() {} };
+  const peer = { socket, count: 0, countAt: Date.now() };
+  room.message(peer, socket, {
+    data: JSON.stringify({ type: "ping", id: 42 }),
+  });
+  room.message(peer, socket, {
+    data: JSON.stringify({ type: "ping", id: "unbounded" }),
+  });
+  assert.deepEqual(sent, [{ type: "pong", id: 42 }]);
 });
 test("rename is scoped to the sender and disconnected host hands control to a connected peer", async () => {
   const ctx = context();

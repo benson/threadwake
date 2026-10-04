@@ -99,7 +99,10 @@ export function pose(actor, time, settings = {}) {
         ? Math.abs(Math.sin(phase)) * s.bob
         : Math.sin(q * 2.4) * 0.55 * s.idle,
     ),
-    scarf: s.scarf,
+    // The cloth catches up one pose behind the hand when the thread releases.
+    scarf:
+      s.scarf *
+      (actionPhase === "impact" ? 1.35 : actionPhase === "follow" ? 1.2 : 1),
     cast,
     phase: actionPhase,
     actionPhase,

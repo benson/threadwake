@@ -1,6 +1,7 @@
 // Run against `wrangler dev`, or pass wss://threadwake-server.bensonperry.workers.dev.
 import assert from "node:assert/strict";
 import WebSocket from "ws";
+import { PROTOCOL_VERSION, SIMULATION_VERSION } from "./protocol.js";
 const base = process.argv[2] || "ws://127.0.0.1:8787";
 const origin = base.includes("127.0.0.1")
   ? "http://localhost:4319"
@@ -15,15 +16,26 @@ async function until(fn, label) {
     await sleep(25);
   }
   const error = new Error(`Timeout: ${label}`);
-  console.error('Peer diagnostics:', peers.map(p => ({ connected: p.socket.readyState, identified: !!p.identity, error: p.error,
-    tick: p.state?.tick, phase: p.state?.phase, players: p.state?.players.length,
-    position: p.state?.players.find(player => player.id === p.identity?.id)?.x })));
-  error.transientStartup = ['join', 'two player snapshot'].includes(label);
+  console.error(
+    "Peer diagnostics:",
+    peers.map((p) => ({
+      connected: p.socket.readyState,
+      identified: !!p.identity,
+      error: p.error,
+      tick: p.state?.tick,
+      phase: p.state?.phase,
+      players: p.state?.players.length,
+      position: p.state?.players.find((player) => player.id === p.identity?.id)
+        ?.x,
+    })),
+  );
+  error.transientStartup = ["join", "two player snapshot"].includes(label);
   throw error;
 }
 async function join(token) {
   const url = new URL(`/room/${room}`, base);
   url.searchParams.set("name", `Player ${peers.length + 1}`);
+  url.searchParams.set("protocol", String(PROTOCOL_VERSION));
   if (token) url.searchParams.set("token", token);
   const peer = {
     socket: new WebSocket(url, { origin }),
@@ -31,6 +43,7 @@ async function join(token) {
     identity: null,
     error: null,
     input: { x: 0, y: 0, cast: false },
+    pong: null,
   };
   peers.push(peer);
   peer.socket.on("message", (data) => {
@@ -38,23 +51,53 @@ async function join(token) {
     if (msg.type === "state") peer.state = msg.state;
     if (msg.type === "identity") peer.identity = msg;
     if (msg.type === "error") peer.error = msg;
+    if (msg.type === "pong") peer.pong = msg;
   });
   peer.socket.on("error", (error) => {
     peer.error = { message: error.message };
   });
   await until(() => peer.identity || peer.error, "join");
-  if (peer.error && peer.error.code !== "full") throw new Error(`Room connection failed: ${peer.error.message}`);
+  if (peer.error && peer.error.code !== "full")
+    throw new Error(`Room connection failed: ${peer.error.message}`);
   return peer;
 }
 const heartbeat = setInterval(() => {
-  for (const peer of peers) if (peer.socket.readyState === WebSocket.OPEN && peer.identity) {
-    peer.socket.send(JSON.stringify({ type: 'input', input: peer.input }));
-  }
+  for (const peer of peers)
+    if (peer.socket.readyState === WebSocket.OPEN && peer.identity) {
+      peer.socket.send(JSON.stringify({ type: "input", input: peer.input }));
+    }
 }, 100);
 try {
+  const incompatible = new WebSocket(
+    new URL(`/room/${room}?protocol=1`, base),
+    { origin },
+  );
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      incompatible.terminate();
+      reject(new Error("Timeout: incompatible protocol rejection"));
+    }, 6000);
+    incompatible.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    incompatible.on("close", (code) => {
+      clearTimeout(timeout);
+      try {
+        assert.equal(code, 4006);
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
   const host = await join();
+  assert.equal(host.identity.protocol, PROTOCOL_VERSION);
+  host.socket.send(JSON.stringify({ type: "ping", id: 123 }));
+  await until(() => host.pong?.id === 123, "latency ping echo");
   const guest = await join();
   await until(() => host.state?.players.length === 2, "two player snapshot");
+  assert.equal(host.state.version, SIMULATION_VERSION);
   assert.equal(host.state.hostId, host.identity.id);
   guest.socket.send(JSON.stringify({ type: "rename", name: "Juniper" }));
   await until(
@@ -100,7 +143,7 @@ try {
   assert.equal(overflow.error?.code, "full");
   assert.equal(reconnected.state.players.length <= 4, true);
   console.log(
-    "PASS: authoritative start, movement, echo, four seats, room-full rejection, and token reconnect.",
+    "PASS: protocol rejection, latency ping, authoritative start, movement, echo, four seats, room-full rejection, and token reconnect.",
   );
 } catch (error) {
   console.error(error);

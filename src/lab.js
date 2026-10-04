@@ -384,7 +384,12 @@ function initialize(c) {
     s._spawn = 1e9;
     s._flower = 1e9;
     const n = c.scenario === "melee" ? 14 : c.scenario === "barrage" ? 8 : 4;
-    const type = c.scenario === "melee" ? "mite" : "moth";
+    const type =
+      c.scenario === "melee"
+        ? "mite"
+        : c.scenario === "thorns"
+          ? "thorn"
+          : "moth";
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2,
         r = c.scenario === "garden" ? 255 : 230;
@@ -405,17 +410,23 @@ function initialize(c) {
         slow: 0,
       });
     }
-    if (c.scenario === "garden")
+    if (["garden", "resonance"].includes(c.scenario))
       s.flowers = Array.from({ length: 8 }, (_, i) => {
         const a = (i / 8) * Math.PI * 2;
         return {
           id: ++s._id,
           x: 600 + Math.cos(a) * 110,
           y: 400 + Math.sin(a) * 110,
-          charge: 0.65,
+          charge: i / 8,
           life: 600,
         };
       });
+    if (c.scenario === "resonance") {
+      const ally = addPlayer(s, "partner", "Partner");
+      ally.x = 600;
+      ally.y = 300;
+      ally.invulnerable = 1000;
+    }
   }
   return s;
 }
@@ -483,7 +494,15 @@ function encounterTick() {
     encounter.waveTime = 0;
     for (const f of encounter.flowers) f.life = Math.max(f.life, 10);
   }
-  step(encounter, { lab: input });
+  const partner =
+    config.scenario === "resonance"
+      ? {
+          x: 0,
+          y: Math.sin(encounter.time * 0.6),
+          cast: encounter.tick % 180 === 0,
+        }
+      : null;
+  step(encounter, { lab: input, ...(partner ? { partner } : {}) });
   if (
     config.scenario !== "wave" &&
     !encounter.enemies.length &&
@@ -498,7 +517,7 @@ function drawEncounter() {
   });
   const p = encounter.players[0];
   $("encounter-status").value =
-    `${replaying ? "Replay" : "Live"} · ${encounter.time.toFixed(1)}s · HP ${Math.ceil(p.hp)}/${p.maxHp} · ${encounter.caught} catches · ${encounter.phase}`;
+    `${replaying ? "Replay" : "Live"} · ${encounter.time.toFixed(1)}s · HP ${Math.ceil(p.hp)}/${p.maxHp} · ${encounter.caught} catches · ${p.stats?.blooms || 0} blooms · ${p.stats?.resonances || 0} resonances · ${encounter.phase}`;
   if (
     encounter.phase === "draft" &&
     !$("encounter-choices").children.length &&
@@ -551,6 +570,7 @@ $("replay-export").onclick = () => {
       [
         JSON.stringify({
           schema: "threadwake.take.v1",
+          simulationVersion: 2,
           config,
           animation: settings,
           frames: take,
@@ -569,6 +589,7 @@ $("replay-import").onchange = async (event) => {
       c = data.config;
     if (
       data.schema !== "threadwake.take.v1" ||
+      data.simulationVersion !== 2 ||
       !c ||
       !Number.isInteger(c.seed) ||
       c.seed < 0 ||
@@ -576,7 +597,9 @@ $("replay-import").onchange = async (event) => {
       !Number.isInteger(c.wave) ||
       c.wave < 1 ||
       c.wave > (c.scenario === "wave" ? 8 : 7) ||
-      !["wave", "melee", "barrage", "garden"].includes(c.scenario) ||
+      !["wave", "melee", "barrage", "garden", "thorns", "resonance"].includes(
+        c.scenario,
+      ) ||
       typeof c.invincible !== "boolean" ||
       !Array.isArray(c.upgrades) ||
       c.upgrades.length > 16 ||

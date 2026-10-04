@@ -29,6 +29,9 @@ export const PALETTE = Object.freeze({
   purple: "#645078",
   blue: "#78b8d0",
   coral: "#ef8c87",
+  echoDark: "#376c70",
+  echoMid: "#65a5a3",
+  echoLight: "#b4d2bd",
 });
 export const PLAYER_COLORS = ["#7ec7bb", "#efbb76", "#b4a0d4", "#d88fa5"];
 const TEALS = [
@@ -216,21 +219,29 @@ export function shadow(ctx, x, y, r = 10) {
 }
 export function drawActor(ctx, actor, time, settings = {}) {
   const p = pose(actor, time, settings),
-    x = Math.round(actor.x || 0),
+    x =
+      Math.round(actor.x || 0) +
+      (p.hit ? (Math.floor(time * 24) % 2 ? -1 : 1) : 0),
     y = Math.round(actor.y || 0);
   if (actor.type && actor.type !== "player") {
     drawEnemy(ctx, actor, time, settings);
     return;
   }
-  const color = TEALS[(actor.color || 0) % 4],
-    ink = p.hit ? PALETTE.white : PALETTE.ink;
+  const ghost = settings.ghost === true,
+    color = ghost
+      ? [PALETTE.echoDark, PALETTE.echoMid, PALETTE.echoLight]
+      : TEALS[(actor.color || 0) % 4],
+    ink = p.hit ? PALETTE.white : ghost ? PALETTE.echoLight : PALETTE.ink,
+    scarfDark = ghost ? PALETTE.echoDark : PALETTE.redDark,
+    scarfMid = ghost ? PALETTE.echoMid : PALETTE.red,
+    scarfLight = ghost ? PALETTE.echoLight : PALETTE.redLight;
   const colors = {
     o: ink,
-    d: PALETTE.creamDark,
-    c: PALETTE.creamShade,
-    w: PALETTE.cream,
-    i: "#303538",
-    s: PALETTE.skin,
+    d: ghost ? PALETTE.echoDark : PALETTE.creamDark,
+    c: ghost ? PALETTE.echoMid : PALETTE.creamShade,
+    w: ghost ? PALETTE.echoLight : PALETTE.cream,
+    i: ghost ? PALETTE.echoDark : "#303538",
+    s: ghost ? PALETTE.echoLight : PALETTE.skin,
   };
   if (actor.dead) {
     shadow(ctx, x, y, 10);
@@ -250,9 +261,9 @@ export function drawActor(ctx, actor, time, settings = {}) {
       14 +
       Math.round(Math.sin(p.q * 7 - i * 0.25) * p.scarf * 2) +
       Math.floor(i / 9);
-    pixel(ctx, x + side * i, sy, 2, 4, PALETTE.redDark);
-    pixel(ctx, x + side * i, sy, 2, 2, PALETTE.red);
-    if (i % 5 === 0) pixel(ctx, x + side * i, sy, 1, 1, PALETTE.redLight);
+    pixel(ctx, x + side * i, sy, 2, 4, scarfDark);
+    pixel(ctx, x + side * i, sy, 2, 2, scarfMid);
+    if (i % 5 === 0) pixel(ctx, x + side * i, sy, 1, 1, scarfLight);
   }
   // Feet move independently of the torso; body settles on planted foot.
   pixel(ctx, x - 5, y - 4 + p.step, 4, 4, ink);
@@ -263,13 +274,17 @@ export function drawActor(ctx, actor, time, settings = {}) {
     ctx,
     COAT,
     x - 7 + lean,
-    top + 14,
+    top + 14 + Math.round(p.stretch),
     { o: ink, d: color[0], t: color[1], l: color[2] },
     p.face < 0,
   );
   // Bone needle, leather grip, and the hand over it.
   const handX = x + p.face * 10 + lean,
-    handY = top + 20 - Math.round(p.lift * 1.5);
+    handY =
+      top +
+      20 -
+      Math.round(p.lift * 1.5) -
+      (p.actionPhase === "impact" ? 2 : 0);
   line(ctx, handX, handY + 5, handX + p.face * 3, handY - 10, ink, 2);
   line(
     ctx,
@@ -279,7 +294,7 @@ export function drawActor(ctx, actor, time, settings = {}) {
     handY - 9,
     PALETTE.creamShade,
   );
-  pixel(ctx, handX, handY, 3, 3, PALETTE.skin);
+  pixel(ctx, handX, handY, 3, 3, ghost ? PALETTE.echoLight : PALETTE.skin);
   pixel(ctx, handX + p.face * 3, handY - 10, 1, 3, PALETTE.white);
   stamp(
     ctx,
@@ -297,7 +312,7 @@ export function drawActor(ctx, actor, time, settings = {}) {
       top + 10,
       1,
       2,
-      p.blink ? PALETTE.skin : PALETTE.ink,
+      p.blink ? colors.s : ghost ? PALETTE.echoLight : PALETTE.ink,
     );
     pixel(
       ctx,
@@ -305,25 +320,46 @@ export function drawActor(ctx, actor, time, settings = {}) {
       top + 10,
       1,
       2,
-      p.blink ? PALETTE.skin : PALETTE.ink,
+      p.blink ? colors.s : ghost ? PALETTE.echoLight : PALETTE.ink,
     );
     if (!p.blink) {
       pixel(ctx, x - 3 + faceOffset, top + 10, 1, 1, PALETTE.white);
       pixel(ctx, x + 2 + faceOffset, top + 10, 1, 1, PALETTE.white);
     }
   }
-  pixel(ctx, x - 5 + lean, top + 13, 11, 2, PALETTE.red);
-  pixel(ctx, x - 5 + lean, top + 13, 5, 1, PALETTE.redLight);
+  pixel(ctx, x - 5 + lean, top + 13, 11, 2, scarfMid);
+  pixel(ctx, x - 5 + lean, top + 13, 5, 1, scarfLight);
+  // The two bright stitches identify each keeper in a crowded party.
+  if (!ghost) {
+    pixel(
+      ctx,
+      x - 5 + lean,
+      top + 18,
+      2,
+      2,
+      PLAYER_COLORS[(actor.color || 0) % 4],
+    );
+    pixel(
+      ctx,
+      x + 4 + lean,
+      top + 18,
+      2,
+      2,
+      PLAYER_COLORS[(actor.color || 0) % 4],
+    );
+  }
 }
 export function drawEnemy(ctx, e, time, settings = {}) {
-  const x = Math.round(e.x),
+  const x = Math.round(e.x) + (e.hit > 0 ? ((e.id || 0) % 2 ? -1 : 1) : 0),
     y = Math.round(e.y),
     q = Math.floor(time * 12) / 12,
     hit = e.hit > 0 || settings.state === "hit";
   const ink = hit ? PALETTE.white : PALETTE.ink;
   shadow(ctx, x, y, e.type === "warden" ? 27 : 9);
   if (e.type === "moth") {
-    const flap = Math.round(Math.sin(q * 12) * 2);
+    const flap = Math.round(
+      Math.sin(q * (e.fireIn < 0.65 ? 20 : 12)) * (e.fireIn < 0.65 ? 3 : 2),
+    );
     stamp(ctx, MOTH, x - 11, y - 16 + flap, {
       o: ink,
       v: PALETTE.purple,
@@ -332,15 +368,29 @@ export function drawEnemy(ctx, e, time, settings = {}) {
       r: PALETTE.creamShade,
       R: PALETTE.cream,
     });
-    pixel(ctx, x - 1, y - 11 + flap, 1, 1, PALETTE.redLight);
-    pixel(ctx, x + 2, y - 11 + flap, 1, 1, PALETTE.redLight);
+    pixel(
+      ctx,
+      x - 1,
+      y - 11 + flap,
+      1,
+      1,
+      e.fireIn < 0.65 ? PALETTE.white : PALETTE.redLight,
+    );
+    pixel(
+      ctx,
+      x + 2,
+      y - 11 + flap,
+      1,
+      1,
+      e.fireIn < 0.65 ? PALETTE.white : PALETTE.redLight,
+    );
   } else if (e.type === "thorn") {
     stamp(ctx, THORN, x - 8, y - 18, {
       o: ink,
       l: PALETTE.leaf,
       r: "#806976",
       R: "#b58898",
-      w: PALETTE.gold,
+      w: e.fireIn < 0.65 ? PALETTE.white : PALETTE.gold,
       d: PALETTE.wood,
     });
   } else if (e.type === "warden") {
@@ -396,8 +446,22 @@ export function drawEnemy(ctx, e, time, settings = {}) {
       pixel(ctx, x + side * 19 - 2, y - 11, 5, 9, PALETTE.wood);
     }
     oval(ctx, x, y - 21 + bob, 17, 23, ink);
-    oval(ctx, x - 1, y - 23 + bob, 14, 21, PALETTE.bark);
-    oval(ctx, x - 2, y - 29 + bob, 12, 14, PALETTE.wood);
+    oval(
+      ctx,
+      x - 1,
+      y - 23 + bob,
+      14,
+      21,
+      e.ward ? PALETTE.tealDark : PALETTE.bark,
+    );
+    oval(
+      ctx,
+      x - 2,
+      y - 29 + bob,
+      12,
+      14,
+      e.ward ? PALETTE.stone : PALETTE.wood,
+    );
     oval(ctx, x - 4, y - 32 + bob, 10, 10, PALETTE.stoneLight);
     pixel(ctx, x - 10, y - 34 + bob, 8, 4, ink);
     pixel(ctx, x + 3, y - 34 + bob, 7, 4, ink);
@@ -407,8 +471,47 @@ export function drawEnemy(ctx, e, time, settings = {}) {
     pixel(ctx, x - 5, y - 25 + bob, 2, 8, PALETTE.creamDark);
     for (let i = 0; i < 5; i++)
       line(ctx, x - 10 + i * 5, y - 12, x - 13 + i * 6, y, PALETTE.wood, 3);
-    oval(ctx, x, y - 16, 4, 5, PALETTE.redDark);
-    pixel(ctx, x - 1, y - 20, 2, 6, PALETTE.redLight);
+    oval(
+      ctx,
+      x,
+      y - 16,
+      4,
+      5,
+      e.ward
+        ? PALETTE.echoDark
+        : e.exposed > 0
+          ? PALETTE.gold
+          : e.stage >= 3
+            ? PALETTE.red
+            : PALETTE.redDark,
+    );
+    pixel(
+      ctx,
+      x - 1,
+      y - 20,
+      2,
+      6,
+      e.exposed > 0 || e.fireIn < 0.65
+        ? PALETTE.white
+        : e.ward
+          ? PALETTE.echoLight
+          : PALETTE.redLight,
+    );
+    if (e.ward) {
+      for (const [dx, dy] of [
+        [-15, -20],
+        [14, -20],
+        [-12, -31],
+        [11, -31],
+        [-8, -42],
+        [7, -42],
+      ])
+        pixel(ctx, x + dx, y + dy + bob, 2, 3, PALETTE.echoMid);
+    }
+    if (e.stage >= 2) {
+      pixel(ctx, x - 11, y - 19, 2, 7, PALETTE.redDark);
+      pixel(ctx, x + 9, y - 24, 2, 8, PALETTE.redLight);
+    }
   } else {
     const hop = Math.round(Math.abs(Math.sin(q * 9 + (e.id || 0))) * 2);
     stamp(ctx, MITE, x - 8, y - 14 - hop, {
@@ -425,25 +528,35 @@ export function drawEnemy(ctx, e, time, settings = {}) {
 export function drawFlower(ctx, f, time) {
   const x = Math.round(f.x),
     y = Math.round(f.y),
-    open = (f.charge || 0) > 0;
+    charge = Math.max(0, Math.min(1, f.charge || 0)),
+    waking = charge >= 0.45,
+    ready = charge >= 0.85;
   shadow(ctx, x, y, 5);
   stamp(ctx, FLOWER, x - 5, y - 10, {
-    w: open ? PALETTE.white : PALETTE.creamShade,
-    g: open ? PALETTE.redLight : PALETTE.red,
-    y: PALETTE.gold,
+    w: ready ? PALETTE.white : waking ? PALETTE.cream : PALETTE.creamShade,
+    g: ready ? PALETTE.gold : waking ? PALETTE.redLight : PALETTE.red,
+    y: ready ? PALETTE.white : PALETTE.gold,
     d: PALETTE.grass,
     l: PALETTE.leaf,
   });
-  if (open) {
-    const q = Math.floor(time * 5);
-    pixel(
-      ctx,
-      x + Math.round(Math.sin(q + f.id) * 8),
-      y - 13,
-      1,
-      2,
-      PALETTE.gold,
-    );
+  if (waking) {
+    const q = Math.floor(time * 8),
+      orbit = ready ? 9 : 7;
+    for (let i = 0; i < (ready ? 4 : 2); i++) {
+      const angle = ((q + i * 8 + (f.id || 0)) * Math.PI) / 16;
+      pixel(
+        ctx,
+        x + Math.round(Math.cos(angle) * orbit),
+        y - 5 + Math.round(Math.sin(angle) * orbit * 0.6),
+        1,
+        1,
+        ready ? PALETTE.white : PALETTE.gold,
+      );
+    }
+    if (ready) {
+      pixel(ctx, x - 1, y - 13 - (q % 2), 3, 1, PALETTE.white);
+      pixel(ctx, x, y - 15 - (q % 2), 1, 4, PALETTE.gold);
+    }
   }
 }
 export function drawFern(ctx, x, y, variant = 0) {

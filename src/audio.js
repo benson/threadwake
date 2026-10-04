@@ -6,12 +6,18 @@ export class AudioGarden {
     this.lastBeat = -1;
     this.lastEffect = 0;
     this.seen = new Set();
+    this.musicVolume = 0.65;
+    this.effectsVolume = 0.8;
   }
   reset() {
     this.lastBeat = -1;
     this.lastEffect = 0;
     this.lastTime = 0;
     this.seen.clear();
+    this.lastHp = null;
+    this.lastCooldown = 0;
+    this.lastWave = 0;
+    this.bossSeen = false;
   }
   unlock() {
     if (!this.enabled) return;
@@ -20,8 +26,17 @@ export class AudioGarden {
       this.ctx.resume();
     } catch {}
   }
-  tone(freq, duration = 0.15, type = "sine", volume = 0.05, slide = 1) {
+  tone(
+    freq,
+    duration = 0.15,
+    type = "sine",
+    volume = 0.05,
+    slide = 1,
+    bus = "effects",
+  ) {
     if (!this.enabled || !this.ctx) return;
+    volume *= bus === "music" ? this.musicVolume : this.effectsVolume;
+    if (volume <= 0) return;
     const c = this.ctx,
       o = c.createOscillator(),
       g = c.createGain();
@@ -43,21 +58,39 @@ export class AudioGarden {
     this.unlock();
     this.tone(660, 0.09, "triangle", 0.035, 1.25);
   }
-  update(state) {
+  update(state, id) {
     if (state.time < (this.lastTime || 0)) this.reset();
     this.lastTime = state.time;
     if (!this.enabled || !this.ctx || state.phase !== "playing") return;
+    const p = state.players.find((p) => p.id === id);
+    if (p) {
+      if (this.lastHp != null && p.hp < this.lastHp)
+        this.tone(105, 0.16, "triangle", 0.055, 0.5);
+      if (this.lastCooldown > 0 && p.castCooldown === 0)
+        this.tone(740, 0.22, "sine", 0.025, 1.25);
+      this.lastHp = p.hp;
+      this.lastCooldown = p.castCooldown;
+    }
+    if (state.wave !== this.lastWave) {
+      this.tone(330, 0.55, "triangle", 0.045, 1.5);
+      this.lastWave = state.wave;
+    }
+    const boss = state.enemies.some((e) => e.type === "warden");
+    if (boss && !this.bossSeen) this.tone(82, 0.9, "triangle", 0.065, 0.65);
+    this.bossSeen = boss;
     const beat = Math.floor(state.time * 2);
     if (beat !== this.lastBeat) {
       this.lastBeat = beat;
       const notes = [220, 329.63, 440, 493.88, 392, 329.63, 293.66, 246.94];
-      this.tone(notes[beat % 8], 0.7, "sine", 0.027);
+      this.tone(notes[beat % 8], 0.7, "sine", 0.027, 1, "music");
       if (beat % 4 === 0)
         this.tone(
           notes[(Math.floor(beat / 8) * 2) % 8] / 2,
           1.8,
           "triangle",
           0.018,
+          1,
+          "music",
         );
     }
     for (const e of state.effects || []) {

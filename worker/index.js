@@ -14,12 +14,30 @@ import {
   cleanName,
   cleanTraits,
 } from "./validation.js";
+import {
+  PROTOCOL_VERSION,
+  SIMULATION_VERSION,
+  UPDATE_REQUIRED,
+} from "./protocol.js";
+
+function rejectConnection(message = UPDATE_REQUIRED) {
+  const [client, server] = Object.values(new WebSocketPair());
+  server.accept();
+  server.addEventListener("error", () => {});
+  server.send(JSON.stringify({ type: "error", code: "version", message }));
+  server.close(4006, message);
+  return new Response(null, { status: 101, webSocket: client });
+}
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/health")
-      return Response.json({ game: "threadwake", protocol: 1, ok: true });
+      return Response.json({
+        game: "threadwake",
+        protocol: PROTOCOL_VERSION,
+        ok: true,
+      });
     const match = /^\/room\/([^/]+)$/.exec(url.pathname);
     if (!match || !ROOM_PATTERN.test(match[1]))
       return new Response("Invalid room", { status: 400 });
@@ -27,6 +45,8 @@ export default {
       return new Response("Origin denied", { status: 403 });
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
       return new Response("WebSocket required", { status: 426 });
+    if (url.searchParams.get("protocol") !== String(PROTOCOL_VERSION))
+      return rejectConnection();
     return env.ROOMS.get(env.ROOMS.idFromName(match[1])).fetch(request);
   },
 };
@@ -39,12 +59,26 @@ export class Room {
     this.timer = null;
     this.frame = 0;
     this.hostId = null;
+    this.recoveryError = null;
     ctx.blockConcurrencyWhile(async () => {
       const saved = await ctx.storage.get("checkpoint");
       if (
-        saved?.protocol === 1 &&
-        Date.now() - saved.savedAt < 15 * 60 * 1000
+        saved &&
+        (!Number.isFinite(saved.savedAt) ||
+          Date.now() - saved.savedAt < 15 * 60 * 1000)
       ) {
+        if (
+          saved.protocol !== PROTOCOL_VERSION ||
+          saved.game?.version !== SIMULATION_VERSION ||
+          !Number.isFinite(saved.savedAt) ||
+          saved.savedAt > Date.now() + 60000 ||
+          !Array.isArray(saved.peers) ||
+          !Array.isArray(saved.game?.players)
+        ) {
+          this.recoveryError =
+            "This room uses an older game. Create a new room.";
+          return;
+        }
         this.game = Object.assign(createGame(saved.game.seed), saved.game);
         this.hostId = saved.hostId;
         for (const peer of saved.peers)
@@ -64,6 +98,9 @@ export class Room {
   }
   fetch(request) {
     const url = new URL(request.url);
+    if (url.searchParams.get("protocol") !== String(PROTOCOL_VERSION))
+      return rejectConnection();
+    if (this.recoveryError) return rejectConnection(this.recoveryError);
     this.expire();
     const token = url.searchParams.get("token");
     let peer = token
@@ -72,6 +109,7 @@ export class Room {
     if (!peer && this.sessions.size >= 4) {
       const [client, server] = Object.values(new WebSocketPair());
       server.accept();
+      server.addEventListener("error", () => {});
       server.send(
         JSON.stringify({ type: "error", code: "full", message: "Room full" }),
       );
@@ -122,7 +160,7 @@ export class Room {
       type: "identity",
       id: peer.id,
       token: peer.token,
-      protocol: 1,
+      protocol: PROTOCOL_VERSION,
     });
     this.broadcast();
     this.checkpoint();
@@ -193,7 +231,12 @@ export class Room {
         this.broadcast();
         this.checkpoint();
       }
-    } else if (msg.type === "ping") this.send(peer, { type: "pong" });
+    } else if (
+      msg.type === "ping" &&
+      Number.isSafeInteger(msg.id) &&
+      msg.id >= 0
+    )
+      this.send(peer, { type: "pong", id: msg.id });
   }
   tick() {
     this.expire();
@@ -263,7 +306,7 @@ export class Room {
     // Public snapshots omit simulation internals; private recovery retains them.
     const saved = JSON.parse(
       JSON.stringify({
-        protocol: 1,
+        protocol: PROTOCOL_VERSION,
         savedAt: Date.now(),
         game: this.game,
         hostId: this.hostId,
