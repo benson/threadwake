@@ -171,24 +171,38 @@ function mushroom(ctx, x, y, r) {
 function drawFootsteps(ctx, player, foreground = false) {
   const samples = player?.footsteps,
     preview = player?.echoPreview;
-  if (player?.dead || !Array.isArray(samples) || !samples.length || !preview) return;
+  if (player?.dead || !Array.isArray(samples) || !samples.length || !preview)
+    return;
   let previous = null;
   for (let i = 0; i < samples.length; i++) {
     const step = samples[i];
     if (!Number.isFinite(step.x) || !Number.isFinite(step.y)) continue;
-    if (previous && Math.hypot(step.x - previous.x, step.y - previous.y) < 9) continue;
+    if (previous && Math.hypot(step.x - previous.x, step.y - previous.y) < 9)
+      continue;
     const next = samples[Math.min(samples.length - 1, i + 1)],
-      heading = next && next !== step ? Math.atan2(next.y - step.y, next.x - step.x) : 0,
+      heading =
+        next && next !== step
+          ? Math.atan2(next.y - step.y, next.x - step.x)
+          : 0,
       side = i % 2 ? 1 : -1,
       x = Math.round(step.x - Math.sin(heading) * side * 3),
       y = Math.round(step.y + Math.cos(heading) * side * 2),
       age = Math.max(0, Math.min(3, step.age || 0)),
       sole = preview.ready
-        ? age > 2 ? P.echoDark : age > 1 ? P.echoMid : P.echoLight
-        : age > 2 ? P.moss : P.echoDark;
+        ? age > 2
+          ? P.echoDark
+          : age > 1
+            ? P.echoMid
+            : P.echoLight
+        : age > 2
+          ? P.moss
+          : P.echoDark;
     if (foreground) {
       // The recent steps remain legible when canopy and grass cross the route.
-      if (age > 1.5) { previous = step; continue; }
+      if (age > 1.5) {
+        previous = step;
+        continue;
+      }
       pixel(ctx, x - 2, y - 3, 5, 4, P.ink);
       pixel(ctx, x - 1, y - 2, 3, 2, preview.ready ? P.echoLight : P.echoMid);
       if (preview.ready && age < 0.55) pixel(ctx, x, y - 2, 1, 1, P.white);
@@ -196,7 +210,14 @@ function drawFootsteps(ctx, player, foreground = false) {
       continue;
     }
     pixel(ctx, x - 1, y - 2, 3, 2, sole);
-    pixel(ctx, x + Math.round(Math.cos(heading) * 2), y - 1 + Math.round(Math.sin(heading) * 2), 1, 1, preview.ready && age < 1 ? P.white : sole);
+    pixel(
+      ctx,
+      x + Math.round(Math.cos(heading) * 2),
+      y - 1 + Math.round(Math.sin(heading) * 2),
+      1,
+      1,
+      preview.ready && age < 1 ? P.white : sole,
+    );
     previous = step;
   }
 }
@@ -208,11 +229,21 @@ const HUD_ZONES = [
   { left: 253, right: 386, top: 301, bottom: 360 },
 ];
 function inHudZone(x, y) {
-  return HUD_ZONES.some((zone) => x >= zone.left && x <= zone.right && y >= zone.top && y <= zone.bottom);
+  return HUD_ZONES.some(
+    (zone) =>
+      x >= zone.left && x <= zone.right && y >= zone.top && y <= zone.bottom,
+  );
 }
 function safeMarkerPosition(sx, sy) {
   const { left, right, top, bottom } = MARKER_BOUNDS;
-  if (sx >= left && sx <= right && sy >= top && sy <= bottom && !inHudZone(sx, sy)) return null;
+  if (
+    sx >= left &&
+    sx <= right &&
+    sy >= top &&
+    sy <= bottom &&
+    !inHudZone(sx, sy)
+  )
+    return null;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const candidates = [
     { x: left, y: clamp(sy, 84, 294) },
@@ -223,24 +254,42 @@ function safeMarkerPosition(sx, sy) {
     { x: clamp(sx, 394, right), y: bottom },
   ];
   return candidates.reduce((best, candidate) =>
-    Math.hypot(sx - candidate.x, sy - candidate.y) < Math.hypot(sx - best.x, sy - best.y)
-      ? candidate : best);
+    Math.hypot(sx - candidate.x, sy - candidate.y) <
+    Math.hypot(sx - best.x, sy - best.y)
+      ? candidate
+      : best,
+  );
 }
 function drawPreviewAnchor(ctx, player) {
   const preview = player?.echoPreview;
-  if (player?.dead || !preview || !Number.isFinite(preview.x) || !Number.isFinite(preview.y)) return;
+  if (
+    player?.dead ||
+    !preview ||
+    !Number.isFinite(preview.x) ||
+    !Number.isFinite(preview.y)
+  )
+    return;
   const x = Math.round(preview.x),
     y = Math.round(preview.y),
     radius = preview.projected ? 12 : 10,
     color = preview.ready
-      ? preview.projected ? P.gold : PLAYER_COLORS[(player.color || 0) % 4]
+      ? preview.projected
+        ? P.gold
+        : PLAYER_COLORS[(player.color || 0) % 4]
       : P.echoDark;
   if (preview.projected && preview.ready) {
     const distance = Math.hypot(player.x - x, player.y - y),
       marks = Math.min(9, Math.floor(distance / 13));
     for (let i = 1; i < marks; i++) {
       const t = i / marks;
-      pixel(ctx, player.x + (x - player.x) * t, player.y - 4 + (y - player.y) * t, 1, 1, i % 2 ? P.echoDark : P.gold);
+      pixel(
+        ctx,
+        player.x + (x - player.x) * t,
+        player.y - 4 + (y - player.y) * t,
+        1,
+        1,
+        i % 2 ? P.echoDark : P.gold,
+      );
     }
   }
   // A hollow landing mark cannot be mistaken for an existing solid echo.
@@ -745,8 +794,9 @@ export function createRenderer(canvas) {
     }
     drawFootsteps(ctx, player, true);
     drawPreviewAnchor(ctx, player);
-    // Ghosts and the thread glints stay above foreground props. The clock of
-    // lit notches around each anchor gives its remaining life at a glance.
+    // A thin inner strand stays readable through ruins and canopies while the
+    // wider thread body still sits behind them. The clock of lit notches around
+    // each anchor gives its remaining life at a glance.
     for (const echo of state?.echoes || []) {
       const owner = state.players.find((p) => p.id === echo.owner);
       if (!owner) continue;
@@ -754,6 +804,19 @@ export function createRenderer(canvas) {
         life = Math.max(0, Math.min(1, echo.life / (echo.maxLife || 1))),
         len = Math.hypot(owner.x - echo.x, owner.y - echo.y),
         steps = Math.min(80, Math.floor(len / 8));
+      if (len > 20) {
+        const inset = 10 / len;
+        ctx.globalAlpha = 0.68;
+        line(
+          ctx,
+          echo.x + (owner.x - echo.x) * inset,
+          echo.y - 8 + (owner.y - echo.y) * inset,
+          owner.x - (owner.x - echo.x) * inset,
+          owner.y - 8 - (owner.y - echo.y) * inset,
+          echo.resonance > 0 ? P.gold : P.echoMid,
+        );
+        ctx.globalAlpha = 1;
+      }
       for (let i = 1; i < steps; i++) {
         if (i % 3 === 0 && (life > 0.2 || i % 2 === 0)) {
           const travel = options.reducedMotion
@@ -1053,17 +1116,27 @@ export function createRenderer(canvas) {
       pixel(ctx, px - 1, py - 1, 3, 3, P.white);
     }
     const preview = player?.echoPreview;
-    if (preview?.ready && Number.isFinite(preview.x) && Number.isFinite(preview.y)) {
+    if (
+      preview?.ready &&
+      Number.isFinite(preview.x) &&
+      Number.isFinite(preview.y)
+    ) {
       const sx = preview.x - ox,
         sy = preview.y - oy,
-        covered = (state?.echoes || []).some((e) => e.owner === player.id && Math.hypot(e.x - preview.x, e.y - preview.y) < 16);
+        covered = (state?.echoes || []).some(
+          (e) =>
+            e.owner === player.id &&
+            Math.hypot(e.x - preview.x, e.y - preview.y) < 16,
+        );
       const marker = !covered && safeMarkerPosition(sx, sy);
       if (marker) {
         const px = marker.x,
           py = marker.y,
           dx = sx - px,
           dy = sy - py,
-          color = preview.projected ? P.gold : PLAYER_COLORS[(player.color || 0) % 4];
+          color = preview.projected
+            ? P.gold
+            : PLAYER_COLORS[(player.color || 0) % 4];
         pixel(ctx, px - 6, py - 6, 13, 13, P.ink);
         if (Math.abs(dx) > Math.abs(dy)) {
           const side = Math.sign(dx);

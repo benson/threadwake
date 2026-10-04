@@ -12,7 +12,8 @@ import { connectRoom } from "./net.js";
 import { AudioGarden } from "./audio.js";
 import { setAnimationSettings } from "./animation.js";
 import { MILESTONES, normalizeMemory, bankProgress } from "./progression.js";
-import { WAVE_DURATION, WORLD } from "./config.js";
+import { WAVE_DURATION } from "./config.js";
+import { capturePresentation, presentState } from "./presentation.js";
 import { installViewport } from "./viewport.js";
 installViewport();
 const $ = (id) => document.getElementById(id),
@@ -159,6 +160,7 @@ function startSolo() {
   phase = "";
   paused = false;
   accumulator = 0;
+  previousState = null;
   show("play");
   audio.unlock();
   history.replaceState({}, "", location.pathname);
@@ -175,6 +177,7 @@ async function join(room) {
   id = "";
   status = "connecting";
   state = createGame(1);
+  previousState = null;
   phase = "";
   lessonProgress.moved = false;
   lessonProgress.cast = false;
@@ -232,7 +235,7 @@ async function join(room) {
       },
       onState(next) {
         if (generation !== roomGeneration) return;
-        previousState = state;
+        previousState = capturePresentation(state);
         state = next;
         receivedAt = performance.now();
         updatePhase();
@@ -383,6 +386,8 @@ function backHome() {
   $("options").close();
   $("memories").close();
   state = createGame(77);
+  previousState = null;
+  accumulator = 0;
   id = "solo";
   addPlayer(state, id, safeName());
   phase = "lobby";
@@ -759,43 +764,18 @@ function updateHud() {
           : "";
 }
 function interpolated(now) {
-  if (!online || !previousState || state.phase !== "playing") return state;
-  const a = Math.min(1, (now - receivedAt) / 67);
-  const interpolate = (list, old) =>
-    list.map((p) => {
-      const q = old?.find((q) => q.id === p.id);
-      return q
-        ? { ...p, x: q.x + (p.x - q.x) * a, y: q.y + (p.y - q.y) * a }
-        : p;
-    });
-  return {
-    ...state,
-    players: interpolate(state.players, previousState.players).map((p) => {
-      if (p.id !== id || p.dead || $("options").open) return p;
-      const actual = state.players.find((q) => q.id === id),
-        dt = Math.min(0.067, Math.max(0, (now - receivedAt) / 1000));
-      return {
-        ...p,
-        x: Math.max(
-          16,
-          Math.min(
-            WORLD.width - 16,
-            actual.x + latestInput.x * actual.speed * dt,
-          ),
-        ),
-        y: Math.max(
-          16,
-          Math.min(
-            WORLD.height - 16,
-            actual.y + latestInput.y * actual.speed * dt,
-          ),
-        ),
-      };
-    }),
-    enemies: interpolate(state.enemies, previousState.enemies),
-    echoes: interpolate(state.echoes, previousState.echoes),
-    shots: interpolate(state.shots, previousState.shots),
-  };
+  const interval = online ? 0.067 : 1 / 30;
+  const lead = online ? Math.max(0, (now - receivedAt) / 1000) : accumulator;
+  return presentState(previousState, state, {
+    alpha: Math.min(1, lead / interval),
+    leadSeconds: lead,
+    maxLeadSeconds: interval,
+    // Solo uses confirmed positions so releasing a key cannot snap back from a
+    // speculative step. Online keeps its bounded local latency compensation.
+    localId: online ? id : null,
+    input: latestInput,
+    paused: !online && (paused || screen !== "play"),
+  });
 }
 function frame(now) {
   const dt = Math.min(0.1, (now - (last || now)) / 1000);
@@ -805,6 +785,7 @@ function frame(now) {
     accumulator += dt;
     let i = accumulator >= 1 / 30 ? input() : null;
     while (accumulator >= 1 / 30) {
+      previousState = capturePresentation(state);
       step(state, { [id]: i }, 1 / 30);
       i = { ...i, cast: false };
       accumulator -= 1 / 30;
@@ -819,12 +800,12 @@ function frame(now) {
   renderer.draw(
     renderState,
     id,
-    screen === "menu" || screen === "lobby" ? now / 1000 : state.time,
+    screen === "menu" || screen === "lobby" ? now / 1000 : renderState.time,
     { reducedMotion: settings.motion, shake: !settings.motion },
   );
   if (now - uiAt > 100) {
     uiAt = now;
-    if (screen === "play") updateHud();
+    if (screen === "play" || screen === "draft") updateHud();
     audio.update(state, id);
   }
   requestAnimationFrame(frame);
@@ -832,6 +813,9 @@ function frame(now) {
 window.__threadwake = {
   get state() {
     return state;
+  },
+  get presentation() {
+    return renderState;
   },
   get identity() {
     return id;
