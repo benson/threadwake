@@ -902,3 +902,29 @@ body:has(#memories[open]) #hud-memories {
   vertical-align: middle;
   margin-right: 6px;
 }
+
+/* Pointer interaction must not inherit browser focus rings or text selection. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+select:focus-visible,
+canvas[tabindex]:focus-visible {
+  outline: 3px solid #fae2a7;
+  outline-offset: 5px;
+}
+.upgrade-stat,
+.upgrade-note {
+  display: block;
+}
+.upgrade-note {
+  margin-top: 6px;
+}

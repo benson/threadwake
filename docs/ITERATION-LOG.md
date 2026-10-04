@@ -74,3 +74,9 @@ The boundary and core frames were visually reviewed: the near-edge pop is gone a
 - Continue focused playtests for combat readability, visual crowding, movement/cast continuity, and frame pacing. Fix demonstrated friction rather than adding unrelated systems or UI.
 - OpenRouter reviews are active under the cumulative $5 approval. `scripts/openrouter-review.mjs` requires the existing ignored budget ledger and environment credential; it retains reservations for unknown costs. Reviews must distinguish screenshot/source evidence from actual play. See the current museum review above; never reset the ledger.
 - The thread heartbeat `keep-improving-threadwake` is paused at Benson's request. An active goal drives continuous work without scheduled gaps. Do not reactivate a timer or mark the goal complete merely because a batch ships.
+
+### 2026-10-04 · Clear upgrade comparisons and browser states
+- User-requested stat labels now appear once per row, with only values changing; frost correctly describes bonus damage and slow duration, not probability. First-aid synergy explicitly says each sweep heals.
+- Suppressed pointer-only default focus outlines and game text selection while retaining keyboard focus and editable input selection. Fixed workshop select background shorthand resetting the pixel chevron's no-repeat sizing.
+- Hostile projectiles render above friendly effects. Controlled overlap regression improved visible danger pixels from 29/0 to 29/29.
+- Validation: 76 tests passed; production build passed. Browser draft fixture inspected at game scale, pointer outline absent, keyboard focus checked, dropdown styling verified. Late-wave controlled keyboard run used normal health and ended in defeat; no claim of full-run human balance.

@@ -154,50 +154,103 @@ function statsFor(p) {
     (1 - PERMANENT.cooldownPerRank * p.traits.echo);
 }
 export function upgradePreview(p, id) {
-  const value = (n) => {
+  const values = (n) => {
     switch (id) {
       case "fork":
-        return `${1 + n} marbles`;
+        return [["Marbles", 1 + n]];
       case "pierce":
-        return `${1 + 2 * n} exhibits per marble`;
+        return [["Exhibits per marble", 1 + 2 * n]];
       case "quick":
-        return `${(B.fireInterval * Math.pow(0.8, n)).toFixed(2)}s between volleys`;
+        return [
+          [
+            "Volley interval",
+            `${(B.fireInterval * Math.pow(0.8, n)).toFixed(2)}s`,
+          ],
+        ];
       case "heavy":
-        return `${Math.round(B.shotDamage * (1 + 0.35 * n))} marble damage`;
+        return [["Marble damage", Math.round(B.shotDamage * (1 + 0.35 * n))]];
       case "orbit":
-        return `${n} orbiting planets`;
+        return [["Orbiting planets", n]];
       case "echo":
-        return `${B.sweepDamage + 18 * n} sweep damage · ${Math.round(((B.sweepKnockback + 20 * n) / B.sweepKnockback) * 100)}% push`;
+        return [
+          ["Sweep damage", B.sweepDamage + 18 * n],
+          [
+            "Push",
+            `${Math.round(((B.sweepKnockback + 20 * n) / B.sweepKnockback) * 100)}%`,
+          ],
+        ];
       case "recall":
-        return `${(B.castCooldown * Math.pow(0.8, n) * (1 - PERMANENT.cooldownPerRank * (p.traits?.echo || 0))).toFixed(1)}s broom cooldown`;
+        return [
+          [
+            "Sweep cooldown",
+            `${(B.castCooldown * Math.pow(0.8, n) * (1 - PERMANENT.cooldownPerRank * (p.traits?.echo || 0))).toFixed(1)}s`,
+          ],
+        ];
       case "thread":
-        return `${Math.round(((B.sweepRadius + 18 * n) / B.sweepRadius) * 100)}% sweep reach`;
+        return [
+          [
+            "Sweep reach",
+            `${Math.round(((B.sweepRadius + 18 * n) / B.sweepRadius) * 100)}%`,
+          ],
+        ];
       case "bloom":
-        return `${100 + 25 * n}% supply reach · +${25 * n}% strength`;
+        return [
+          ["Supply reach", `${100 + 25 * n}%`],
+          ["Supply strength", `${100 + 25 * n}%`],
+        ];
       case "heal":
-        return `${4 * n} sweep healing · ${12 + 6 * n} base supply healing`;
+        return [
+          ["Sweep healing", 4 * n],
+          ["Base supply healing", 12 + 6 * n],
+        ];
       case "speed":
-        return `${Math.round((1 + 0.15 * n + PERMANENT.speedPerRank * (p.traits?.haste || 0)) * 100)}% movement speed`;
+        return [
+          [
+            "Movement speed",
+            `${Math.round((1 + 0.15 * n + PERMANENT.speedPerRank * (p.traits?.haste || 0)) * 100)}%`,
+          ],
+        ];
       case "vitality": {
         const added = n - count(p, id),
           maxHp = p.maxHp + 30 * added,
           hp = Math.min(maxHp, p.hp + 40 * added);
-        return `${maxHp} maximum health · ${Math.round(Math.min(maxHp, Math.max(hp + maxHp * 0.32, maxHp * 0.55)))} after this break`;
+        return [
+          ["Maximum health", maxHp],
+          [
+            "Health after break",
+            Math.round(
+              Math.min(maxHp, Math.max(hp + maxHp * 0.32, maxHp * 0.55)),
+            ),
+          ],
+        ];
       }
       case "frost":
-        return n
-          ? `${35 + 10 * n}% shatter bonus · ${(1.1 + 0.3 * n).toFixed(1)}s slow`
-          : "No slow or shatter";
+        return [
+          ["Shatter bonus", `${n ? 35 + 10 * n : 0}%`],
+          ["Slow duration", `${n ? (1.1 + 0.3 * n).toFixed(1) : 0}s`],
+        ];
       case "mirror":
-        return n
-          ? `Companion fires beside you at ${Math.round((0.6 + 0.2 * (n - 1)) * 100)}% of your marble damage`
-          : "No toy companion";
+        return [
+          [
+            "Companion damage",
+            `${n ? Math.round((0.6 + 0.2 * (n - 1)) * 100) : 0}%`,
+          ],
+        ];
       case "thorns":
-        return n ? `${24 * n} damage · 12 marbles on hit` : "No retaliation";
+        return [
+          ["Retaliation damage", 24 * n],
+          ["Marbles on hit", n ? 12 : 0],
+        ];
       case "magnet":
-        return `${Math.round((0.45 + 0.07 * n) * 100)}% supply charge per cleared shot · ${Math.round(((220 + 40 * n) / 220) * 100)}% range`;
+        return [
+          [
+            "Supply charge per cleared shot",
+            `${Math.round((0.45 + 0.07 * n) * 100)}%`,
+          ],
+          ["Supply range", `${Math.round(((220 + 40 * n) / 220) * 100)}%`],
+        ];
       default:
-        return "";
+        return [];
     }
   };
   const synergy = {
@@ -207,20 +260,26 @@ export function upgradePreview(p, id) {
     heavy: "The tin soldier borrows your weight.",
     orbit: "Planet clears also charge supplies.",
     echo: "More force makes room for your marbles.",
-    recall: "More sweeps make first-aid kits more useful.",
+    recall: "With a first-aid kit, every sweep also heals you.",
     thread: "Reach more exhibits, shots and supply carts.",
     bloom: "First-aid kits also strengthen the supply pulse.",
     heal: "Nearby colleagues share the healing.",
     speed: "Skate out after a sweep clears your path.",
     vitality: "Heal 40 now, then recover more between shifts.",
     frost: "Any staff member's next marble can shatter the slowed exhibit.",
-    mirror: "Inherits prism, fossil, metronome and paperweight.",
+    mirror:
+      "Fires beside you using your marble damage, prism, fossil and tempo.",
     thorns: "Retaliation marbles can shatter slowed exhibits.",
     magnet: "Each stack draws carts from farther away.",
   };
+  const before = values(count(p, id)),
+    after = values(count(p, id) + 1);
   return {
-    before: value(count(p, id)),
-    after: value(count(p, id) + 1),
+    stats: before.map(([label, value], i) => ({
+      label,
+      before: String(value),
+      after: String(after[i][1]),
+    })),
     synergy: synergy[id] || "",
   };
 }

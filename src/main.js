@@ -333,11 +333,17 @@ function updateDraft() {
     title.textContent = `${u.name} · ${rank + 1}`;
     const desc = document.createElement("small");
     const preview = upgradePreview(player, u.id);
-    pixelTransition(
-      desc,
-      preview.before,
-      `${preview.after}. ${preview.synergy}`,
-    );
+    for (const stat of preview.stats) {
+      const row = document.createElement("span");
+      row.className = "upgrade-stat";
+      row.append(document.createTextNode(`${stat.label}: `));
+      pixelTransition(row, stat.before, stat.after);
+      desc.append(row);
+    }
+    const note = document.createElement("span");
+    note.className = "upgrade-note";
+    note.textContent = preview.synergy;
+    desc.append(note);
     const key = document.createElement("span");
     key.className = "key";
     key.textContent = `${i + 1} · choose`;

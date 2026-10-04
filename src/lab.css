@@ -66,7 +66,7 @@ body.lab {
 .lab select,
 .lab input[type="number"] {
   width: 100%;
-  background: #243f37;
+  background-color: #243f37;
   color: #e7d7b2;
   border: 1px solid #687b64;
   padding: 7px;

@@ -286,19 +286,31 @@ test("curio previews explain different next stacks without developer distance un
   const { p } = quiet();
   for (const u of UPGRADES) {
     const a = upgradePreview(p, u.id);
-    assert.notEqual(a.before, a.after, u.id);
+    assert.ok(
+      a.stats.some((s) => s.before !== s.after),
+      u.id,
+    );
     assert.ok(a.synergy);
     assert.ok(!/px|echo|thread|flower|needle/i.test(u.description), u.id);
-    assert.ok(!/px/.test(a.after), u.id);
+    assert.ok(
+      a.stats.every((s) => s.label && !/px/.test(s.after)),
+      u.id,
+    );
     p.upgrades = [u.id];
     const b = upgradePreview(p, u.id);
-    assert.notEqual(b.before, b.after, u.id);
+    assert.ok(
+      b.stats.some((s) => s.before !== s.after),
+      u.id,
+    );
     p.upgrades = [];
   }
-  assert.match(
-    upgradePreview(p, "mirror").after,
-    /beside you at 60% of your marble damage/,
-  );
+  assert.deepEqual(upgradePreview(p, "frost").stats, [
+    { label: "Shatter bonus", before: "0%", after: "45%" },
+    { label: "Slow duration", before: "0s", after: "1.4s" },
+  ]);
+  assert.deepEqual(upgradePreview(p, "mirror").stats, [
+    { label: "Companion damage", before: "0%", after: "60%" },
+  ]);
 });
 test("JSON recovery retains live companions and projectile ownership for exact continuation", () => {
   const { s, p } = quiet(["mirror"]);

@@ -782,6 +782,7 @@ export function createRenderer(canvas) {
     for (const p of state?.players || []) drawOrrery(ctx, p);
     for (const shot of state?.shots || [])
       if (
+        !shot.hostile &&
         shot.x > ox - 12 &&
         shot.x < ox + 652 &&
         shot.y > oy - 12 &&
@@ -790,6 +791,10 @@ export function createRenderer(canvas) {
         drawShot(ctx, shot);
     for (const effect of state?.effects || [])
       drawEffect(ctx, effect, mapById(gallery));
+    // Friendly feedback must never conceal a projectile that can still hurt staff.
+    for (const shot of state?.shots || [])
+      if (shot.hostile && shot.x > ox - 12 && shot.x < ox + 652 && shot.y > oy - 12 && shot.y < oy + 372)
+        drawShot(ctx, shot);
     if (options.hitboxes)
       for (const actor of [
         ...(state?.players || []),
