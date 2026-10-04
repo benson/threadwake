@@ -80,3 +80,7 @@ The boundary and core frames were visually reviewed: the near-edge pop is gone a
 - Suppressed pointer-only default focus outlines and game text selection while retaining keyboard focus and editable input selection. Fixed workshop select background shorthand resetting the pixel chevron's no-repeat sizing.
 - Hostile projectiles render above friendly effects. Controlled overlap regression improved visible danger pixels from 29/0 to 29/29.
 - Validation: 76 tests passed; production build passed. Browser draft fixture inspected at game scale, pointer outline absent, keyboard focus checked, dropdown styling verified. Late-wave controlled keyboard run used normal health and ended in defeat; no claim of full-run human balance.
+
+### 2026-10-04 · Explain the sweep attack
+- Benson read sweeping as defensive. Existing title controls and pause instructions now call it a sweep attack and explicitly list damage, pushback and projectile clearing. The first-sweep lesson leads with damage.
+- Browser checked the actual movement-triggered lesson and visually reviewed the whole title and gameplay surfaces; build passed. No mechanics changed.

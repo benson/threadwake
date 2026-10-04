@@ -872,7 +872,7 @@ function updateHud() {
   $("lesson").textContent = !lessonProgress.moved
     ? "Keep moving. Your slingshot fires automatically."
     : !lessonProgress.cast
-      ? `${castKey} sweeps nearby exhibits away. Hold to sweep when ready.`
+      ? `${castKey}: Sweep damages and pushes back nearby enemies. Hold to repeat.`
       : !(p.stats?.catches > 0)
         ? "Your broom also clears red shots."
         : !(p.stats?.blooms > 0)
