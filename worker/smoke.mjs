@@ -14,7 +14,9 @@ async function until(fn, label) {
     if (fn()) return;
     await sleep(25);
   }
-  throw new Error(`Timeout: ${label}`);
+  const error = new Error(`Timeout: ${label}`);
+  error.transientStartup = ['join', 'two player snapshot'].includes(label);
+  throw error;
 }
 async function join(token) {
   const url = new URL(`/room/${room}`, base);
@@ -90,6 +92,9 @@ try {
   console.log(
     "PASS: authoritative start, movement, echo, four seats, room-full rejection, and token reconnect.",
   );
+} catch (error) {
+  console.error(error);
+  process.exitCode = error.transientStartup ? 2 : 1;
 } finally {
   for (const peer of peers) peer.socket.close();
 }

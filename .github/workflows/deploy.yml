@@ -50,6 +50,11 @@ jobs:
           for attempt in 1 2 3; do
             if npm run test:multiplayer -- wss://threadwake-server.bensonperry.workers.dev; then
               exit 0
+            else
+              result=$?
+              if [ "$result" -ne 2 ]; then
+                exit "$result"
+              fi
             fi
             if [ "$attempt" -lt 3 ]; then
               sleep 5
