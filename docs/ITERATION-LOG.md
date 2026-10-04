@@ -24,6 +24,10 @@ Ordered temporal contact sheets exposed stationary feet on the tin soldier and a
 
 The shared motion sheet generator samples eight times per sequence, separately covering walking, sweep, firing, toy soldier, armor and moth. A Sonnet review supplied hypotheses rather than playback claims; an early sheet clipped long broom extremes, so the fixture was widened before final inspection. All 76 tests pass, including actual movement velocity and stagger regression; production build passes. Continuing priority: stronger foot contact/passing silhouettes and a real crowded late-wave playthrough. OpenRouter cumulative cost is now $0.133432 across eight requests, still under the existing $5 cap.
 
+Shipped as `a58af00` through Actions `37244248260`. The initial live multiplayer check lost both sockets during lobby rename; a fresh unchanged live smoke passed, and the unchanged failed-job rerun passed Worker/live multiplayer/Pages. No gate was relaxed. Workshop replay/export/import remained pixel identical. A real repeating keyboard route (no health/state mutation) reached wave one draft with 95 HP/35 kills, wave two draft with 12 HP/84 kills, then Natural History at 84.5 HP after the upgrade. This is a bounded input-route check, not a human difficulty verdict.
+
+A follow-up actor review found the custodian's coat obscured the moving boots. The hem is three pixels shorter and the toe caps remain visible through contact/passing poses; feet anchors, hitbox and movement are unchanged. The complete temporal sheet was inspected again at native and enlarged sizes and the build passes. `scripts/gallery-play-smoke.cjs` preserves the real-input gallery-transition check.
+
 ## 2026-10-04 — field, opening, and footsteps
 
 The owner requested ongoing refinement after the original 50-change pass: UI contained inside the game field, a faster opening, discoverable permanent progression, richer motion and art, and genuine footsteps that preview an echo.

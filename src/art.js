@@ -266,11 +266,11 @@ function drawCustodian(ctx, actor, time, settings) {
   pixel(ctx, x - 10 + lean, top + 15, 20, 15, ink);
   pixel(ctx, x - 9 + lean, top + 16, 18, 13, uniform[0]);
   pixel(ctx, x - 8 + lean, top + 17, 16, 5, uniform[1]);
-  pixel(ctx, x - 7 + lean + p.coatSwing, top + 27, 14, 6, ink);
-  pixel(ctx, x - 6 + lean + p.coatSwing, top + 27, 12, 5, uniform[0]);
-  pixel(ctx, x - 5 + lean, top + 19, 10, 13, PALETTE.creamDark);
-  pixel(ctx, x - 4 + lean, top + 20, 8, 10, PALETTE.creamShade);
-  pixel(ctx, x - 4 + lean, top + 20, 2, 8, PALETTE.cream);
+  pixel(ctx, x - 7 + lean + p.coatSwing, top + 25, 14, 5, ink);
+  pixel(ctx, x - 6 + lean + p.coatSwing, top + 25, 12, 4, uniform[0]);
+  pixel(ctx, x - 5 + lean, top + 19, 10, 10, PALETTE.creamDark);
+  pixel(ctx, x - 4 + lean, top + 20, 8, 7, PALETTE.creamShade);
+  pixel(ctx, x - 4 + lean, top + 20, 2, 6, PALETTE.cream);
   pixel(
     ctx,
     x + 1 + lean,
@@ -282,12 +282,15 @@ function drawCustodian(ctx, actor, time, settings) {
   pixel(
     ctx,
     x - 4 + lean + p.coatSwing,
-    top + 29 + Math.round(p.stretch),
+    top + 26 + Math.round(p.stretch),
     8,
     2,
     PALETTE.creamDark,
   );
   pixel(ctx, x - 2 + lean, top + 25, 4, 1, PALETTE.wood);
+  // Toe caps stay visible below the shortened hem in contact and passing poses.
+  pixel(ctx, leftX, y - 2 - p.leftLift, 5, 2, PALETTE.stoneLight);
+  pixel(ctx, rightX, y - 2 - p.rightLift, 5, 2, PALETTE.stoneLight);
   // The broom is carried in the other hand and strikes on the first frame.
   const handX = x - face * 10 + lean,
     handY = top + 21 + (p.moving ? p.leftLift : 0),
