@@ -670,7 +670,7 @@ function fire(s, p, origin = p, scale = 1) {
 function damageEnemy(s, e, amount, p, source = "marble") {
   if (e.hp <= 0) return;
   e.hp -= amount;
-  e.hit = 0.09;
+  e.hit = source === "sweep" ? 0.16 : 0.09;
   if (e.hp <= 0) {
     s.kills++;
     if (p) p.kills++;

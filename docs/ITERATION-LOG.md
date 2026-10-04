@@ -84,3 +84,8 @@ The boundary and core frames were visually reviewed: the near-edge pop is gone a
 ### 2026-10-04 · Explain the sweep attack
 - Benson read sweeping as defensive. Existing title controls and pause instructions now call it a sweep attack and explicitly list damage, pushback and projectile clearing. The first-sweep lesson leads with damage.
 - Browser checked the actual movement-triggered lesson and visually reviewed the whole title and gameplay surfaces; build passed. No mechanics changed.
+
+### 2026-10-04 · Make broom damage register visually
+- Controlled real-simulation samples showed sweep damage's 90ms flash already reduced to57ms at the first step, absent at100ms, while the range ring persisted. Extended sweep hit presentation to160ms and added a compact white/gold body impact cluster to enemy hits.
+- Regression verifies visible impact after100ms, expiration by200ms and exactly one damage application. 77 tests and production build pass. Reviewed renderer samples at0/33/100/167ms; armor160->108HP, unchanged90px pushback.
+- Independent Gemini image review recognized the attached spark as distinct from ring/projectiles. Its claimed camera seam was the contact-sheet divider, and static samples cannot establish playback smoothness. Longer outline temporarily reduces internal sprite detail, consistent with a brief damage flash. Review cost0.003411 USD; cumulative0.136843 of5USD.

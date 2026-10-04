@@ -82,6 +82,18 @@ test("sweep uses visible body bounds immediately and its fading effect cannot da
   assert.equal("echoPreview" in p, false);
   assert.equal("_history" in p, false);
 });
+test("sweep impact remains visible across a multiplayer snapshot interval without dealing extra damage", () => {
+  const { s, p } = quiet();
+  const target = enemy(800, p.x + 40, p.y);
+  s.enemies = [target];
+  step(s, { a: { cast: true } });
+  step(s, {});
+  step(s, {});
+  assert.ok(target.hit > 0, "impact still visible after 100ms");
+  assert.equal(target.hp, 500 - B.sweepDamage);
+  for (let i = 0; i < 3; i++) step(s, {});
+  assert.equal(target.hit, 0, "impact fades after 200ms");
+});
 test("radial sweep clears hostile shots behind the custodian but preserves outside and friendly marbles", () => {
   const { s, p } = quiet();
   s.shots = [

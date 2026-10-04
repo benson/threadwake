@@ -596,6 +596,18 @@ export function drawEnemy(ctx, e, time, settings = {}) {
   } else if (e.type === "thorn") armor(ctx, e, time, ink);
   else if (e.type === "warden") curator(ctx, e, time, ink);
   else beetle(ctx, e, time, ink);
+  if (hit) {
+    // A compact impact cluster reads as damage even after sweep knockback.
+    const center = bodyCircle(e),
+      x = Math.round(center.x - (e.face || 1) * 4),
+      y = Math.round(center.y),
+      reach = e.hit > 0.08 ? 7 : 5;
+    line(ctx, x - reach, y, x + reach, y, PALETTE.gold, 1);
+    line(ctx, x, y - reach, x, y + reach, PALETTE.gold, 1);
+    pixel(ctx, x - 2, y - 2, 5, 5, PALETTE.creamShade);
+    pixel(ctx, x - 1, y - 3, 3, 7, PALETTE.white);
+    pixel(ctx, x - 3, y - 1, 7, 3, PALETTE.white);
+  }
 }
 // The simulation still names supply stations `flowers` for save/replay stability.
 export function drawFlower(ctx, f, time) {
