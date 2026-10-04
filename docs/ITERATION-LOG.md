@@ -30,6 +30,14 @@ Workshop thorn play showed the default enemies in open ground. A controlled rend
 
 The same attack-warning drawing now runs after scenery, preserving its existing timing, color, geometry and locked direction. The change covers moth, thorn and warden cues and keeps ordinary actor depth ordering. Both comparison frames were visually reviewed; all 62 tests and the build pass.
 
+## 2026-10-04 — scenery fade continuity
+
+A controlled seed-42 motion comparison found an abrupt loom fade when the player moved from x554 to x556 at y290: opacity jumped from solid to 45% across the overlap boundary. The same binary switch affected trees and pillars.
+
+Scenery now fades progressively as the player enters those existing overlap regions. The transition follows position through an 18-pixel horizontal and 16-pixel vertical feather, with the existing core opacity preserved. The strongest overlapping player controls the fade in co-op. It needs no additional animation state, so reversing direction responds immediately and the renderer remains deterministic.
+
+The boundary and core frames were visually reviewed: the near-edge pop is gone and the player remains visible behind the loom. All 62 tests and the build pass. The existing workshop browser smoke also passed, including pixel-identical replay/export/import, thorn and co-op replay scenarios, and no page errors.
+
 ## Work to continue
 
 - Integrated trail/anchor motion checks passed; workshop input replay and export/import produce identical final pixels in garden, thorn, and co-op scenarios. Build passes.

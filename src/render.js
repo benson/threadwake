@@ -378,6 +378,19 @@ function drawAttackTelegraph(ctx, enemy, time) {
     charge > 0.75 ? P.white : P.redLight,
   );
 }
+function sceneryAlpha(players, prop, halfWidth, top, bottom, coreAlpha) {
+  let fade = 0;
+  for (const player of players || []) {
+    const edge = Math.min(
+      (halfWidth - Math.abs(player.x - prop.x)) / 18,
+      (player.y - (prop.y - top)) / 16,
+      ((prop.y - bottom) - player.y) / 16,
+      1,
+    );
+    if (edge > 0) fade = Math.max(fade, edge * edge * (3 - 2 * edge));
+  }
+  return 1 - (1 - coreAlpha) * fade;
+}
 function bake(seed) {
   const c = surface(W, H),
     ctx = c.getContext("2d"),
@@ -649,14 +662,8 @@ export function createRenderer(canvas) {
     sorted.sort((a, b) => a.y - b.y);
     for (const item of sorted) {
       if (item.type === "tree") {
-        // Fade overlapping canopies only while a player is actually beneath them.
-        const overlaps = (state?.players || []).some(
-          (p) =>
-            Math.abs(p.x - item.x) < 43 &&
-            p.y < item.y - 25 &&
-            p.y > item.y - 125,
-        );
-        ctx.globalAlpha = overlaps ? 0.4 : 1;
+        // Feather inside the same overlap bounds, with full visibility at core.
+        ctx.globalAlpha = sceneryAlpha(state?.players, item, 43, 125, 25, 0.4);
         ctx.drawImage(
           art.trees[item.variant],
           Math.round(item.x - 58),
@@ -664,11 +671,7 @@ export function createRenderer(canvas) {
         );
         ctx.globalAlpha = 1;
       } else if (item.type === "ruin") {
-        const overlap = (state?.players || []).some(
-          (p) =>
-            Math.abs(p.x - item.x) < 27 && p.y < item.y && p.y > item.y - 69,
-        );
-        ctx.globalAlpha = overlap ? 0.45 : 1;
+        ctx.globalAlpha = sceneryAlpha(state?.players, item, 27, 69, 0, 0.45);
         ctx.drawImage(
           art.ruin,
           Math.round(item.x - 31),
@@ -676,11 +679,7 @@ export function createRenderer(canvas) {
         );
         ctx.globalAlpha = 1;
       } else if (item.type === "loom") {
-        const overlap = (state?.players || []).some(
-          (p) =>
-            Math.abs(p.x - item.x) < 51 && p.y < item.y && p.y > item.y - 84,
-        );
-        ctx.globalAlpha = overlap ? 0.45 : 1;
+        ctx.globalAlpha = sceneryAlpha(state?.players, item, 51, 84, 0, 0.45);
         ctx.drawImage(
           art.loom,
           Math.round(item.x - 57),
