@@ -53,4 +53,4 @@ async (page) => {
     throw new Error("Combat did not progress: " + JSON.stringify(combat));
   if (errors.length) throw new Error(errors.join("\n"));
   return { moved, combat, errors };
-};
+}

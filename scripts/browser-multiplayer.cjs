@@ -70,4 +70,4 @@ async (page) => {
     await guest.close();
     await page.goto("http://127.0.0.1:4320/");
   }
-};
+}

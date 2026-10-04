@@ -1,0 +1,2 @@
+# Playwright CLI expects a bare function expression, without a trailing semicolon.
+scripts/*.cjs

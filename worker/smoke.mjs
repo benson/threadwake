@@ -37,6 +37,7 @@ async function join(token) {
     peer.error = { message: error.message };
   });
   await until(() => peer.identity || peer.error, "join");
+  if (peer.error && peer.error.code !== "full") throw new Error(`Room connection failed: ${peer.error.message}`);
   return peer;
 }
 try {
