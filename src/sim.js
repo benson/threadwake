@@ -799,10 +799,14 @@ function updateCompanions(s, dt) {
     }
     const follow = 1 - Math.exp(-dt * 9),
       goal = safePosition(map, { x: p.x - p.face * 25, y: p.y + 10 }, 6);
+    const previousX = c.x,
+      previousY = c.y;
     Object.assign(
       c,
       moveInMap(map, c, (goal.x - c.x) * follow, (goal.y - c.y) * follow, 6),
     );
+    c.vx = (c.x - previousX) / dt;
+    c.vy = (c.y - previousY) / dt;
     c._fire -= dt;
     c.shotAge = Math.min(999, (c.shotAge ?? 999) + dt);
     if (c._fire <= 0) {
@@ -983,6 +987,8 @@ export function step(s, inputs = {}, dt = 1 / 30) {
     const strafe =
         e.type === "moth" && d < 260 ? Math.sin(e.phase * 0.8) * 0.8 : 0,
       stride = e.type === "warden" ? 1 + 0.2 * (e.stage - 1) : 1;
+    const previousX = e.x,
+      previousY = e.y;
     Object.assign(
       e,
       moveInMap(
@@ -993,6 +999,8 @@ export function step(s, inputs = {}, dt = 1 / 30) {
         e.r,
       ),
     );
+    e.vx = (e.x - previousX) / dt;
+    e.vy = (e.y - previousY) / dt;
     for (const q of ps)
       if (
         dist2(bodyCircle(e), bodyCircle(q)) <

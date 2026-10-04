@@ -104,9 +104,9 @@ function broom(ctx, handX, handY, tipX, tipY, face, striking) {
   line(ctx, handX + 1, handY, tipX + 1, tipY, PALETTE.wood, 1);
   const baseX = tipX + face * (striking ? 2 : 0),
     baseY = tipY + (striking ? 0 : 1);
-  pixel(ctx, baseX - 3, baseY - 1, 7, 3, PALETTE.ink);
-  pixel(ctx, baseX - 4, baseY, 9, 3, PALETTE.creamShade);
-  pixel(ctx, baseX - 5, baseY + 2, 11, 2, PALETTE.gold);
+  pixel(ctx, baseX - 5, baseY - 2, 11, 5, PALETTE.ink);
+  pixel(ctx, baseX - 4, baseY - 1, 9, 4, PALETTE.creamShade);
+  pixel(ctx, baseX - 5, baseY + 2, 11, 3, PALETTE.gold);
   for (let i = -4; i <= 4; i += 2)
     pixel(ctx, baseX + i, baseY + 4, 1, 2 + (i % 3), PALETTE.creamDark);
   pixel(ctx, baseX - 2, baseY, 5, 1, PALETTE.white);
@@ -129,7 +129,7 @@ function slingshot(ctx, actor, p, shoulderX, shoulderY) {
   line(ctx, gripX, gripY, forkX - nx * 4, forkY - ny * 4, PALETTE.ink, 3);
   line(ctx, gripX, gripY, forkX + nx * 4, forkY + ny * 4, PALETTE.gold);
   line(ctx, gripX, gripY, forkX - nx * 4, forkY - ny * 4, PALETTE.wood);
-  const pull = p.firing ? 0 : 3;
+  const pull = p.firing ? 0 : 3 + (p.recoil > 0 ? (p.recoil % 2 ? 1 : -1) : 0);
   line(
     ctx,
     forkX + nx * 4,
@@ -244,7 +244,7 @@ function drawCustodian(ctx, actor, time, settings) {
       (p.hit ? (Math.floor(time * 24) % 2 ? -1 : 1) : 0),
     y = Math.round(actor.y || 0),
     top = y - 34 - p.bob - Math.round(p.lift),
-    lean = Math.round(p.lean) * face,
+    lean = Math.round(p.lean) * face - Math.round(p.aimX * p.recoil * 0.5),
     uniform = UNIFORMS[(actor.color || 0) % UNIFORMS.length],
     ink = p.hit ? PALETTE.white : PALETTE.ink;
   shadow(ctx, x, y, 11);
@@ -291,23 +291,32 @@ function drawCustodian(ctx, actor, time, settings) {
   // The broom is carried in the other hand and strikes on the first frame.
   const handX = x - face * 10 + lean,
     handY = top + 21 + (p.moving ? p.leftLift : 0),
-    sweep = p.actionPhase === "impact" || p.actionPhase === "follow",
+    sweep = p.cast,
     sweepAngle =
       Math.atan2(p.aimY, p.aimX) +
       (p.actionPhase === "follow"
         ? p.actionProgress * 1.8
         : -0.5 + p.actionProgress * 0.5);
+  const carryAngle = Math.atan2(13, -face * 20);
+  let broomAngle = p.cast ? sweepAngle : carryAngle;
+  if (p.cast && p.actionPhase !== "impact" && p.actionPhase !== "follow") {
+    const recovery =
+      p.actionPhase === "settle"
+        ? p.actionProgress * 0.55
+        : 0.55 + p.actionProgress * 0.45;
+    const blend = recovery * recovery * (3 - 2 * recovery);
+    const endAngle = Math.atan2(p.aimY, p.aimX) + 1.8;
+    const turn = Math.atan2(
+      Math.sin(carryAngle - endAngle),
+      Math.cos(carryAngle - endAngle),
+    );
+    broomAngle = endAngle + turn * blend;
+  }
+  const tipX = handX + Math.cos(broomAngle) * 24,
+    tipY = handY + Math.sin(broomAngle) * 24;
   line(ctx, x - face * 6 + lean, top + 19, handX, handY, ink, 3);
   pixel(ctx, handX - 1, handY - 1, 3, 3, PALETTE.skin);
-  broom(
-    ctx,
-    handX,
-    handY,
-    sweep ? x + Math.cos(sweepAngle) * (28 + p.broomReach) : x - face * 16,
-    sweep ? y - 18 + Math.sin(sweepAngle) * 22 : y - 5 - p.leftLift,
-    face,
-    sweep,
-  );
+  broom(ctx, handX, handY, tipX, tipY, face, sweep);
   // Fingers wrap over the shaft so a sweeping broom stays visibly held.
   pixel(ctx, handX - 1, handY - 1, 4, 3, PALETTE.skin);
   pixel(ctx, handX, handY + 1, 2, 1, PALETTE.creamShade);
@@ -335,12 +344,21 @@ function drawCustodian(ctx, actor, time, settings) {
   slingshot(ctx, actor, p, x + face * 6 + lean - p.aimX * p.recoil, top + 19);
 }
 function drawSoldier(ctx, actor, time) {
+  const gait = pose(actor, time),
+    speed = Math.min(1, Math.hypot(actor.vx || 0, actor.vy || 0) / 65);
   const x = Math.round(actor.x),
     y = Math.round(actor.y),
-    bob = Math.floor(time * 8 + (actor.id || 0)) % 2;
+    bob = gait.moving ? gait.bob : 0;
   shadow(ctx, x, y, 7);
-  pixel(ctx, x - 5, y - 5, 4, 4, PALETTE.ink);
-  pixel(ctx, x + 1, y - 5, 4, 4, PALETTE.ink);
+  for (const [offset, stride, lift] of [
+    [-5, gait.leftStride, gait.leftLift],
+    [1, gait.rightStride, gait.rightLift],
+  ]) {
+    const footX = x + offset + Math.round(stride * speed),
+      footY = y - 5 - Math.round(lift * speed);
+    pixel(ctx, footX, footY, 4, 5, PALETTE.ink);
+    pixel(ctx, footX, footY + 2, 4, 1, PALETTE.stoneLight);
+  }
   pixel(ctx, x - 6, y - 17 - bob, 13, 13, PALETTE.ink);
   pixel(ctx, x - 5, y - 16 - bob, 11, 11, PALETTE.redDark);
   pixel(ctx, x - 3, y - 15 - bob, 7, 10, PALETTE.red);
@@ -457,13 +475,20 @@ function moth(ctx, e, time, ink) {
   );
 }
 function armor(ctx, e, time, ink) {
+  const gait = pose(e, time, { stride: 5 });
   const x = Math.round(e.x),
     y = Math.round(e.y),
     sway = Math.floor(time * 6 + (e.id || 0)) % 2;
   shadow(ctx, x, y, 12);
   for (const side of [-1, 1]) {
-    pixel(ctx, x + side * 5 - 2, y - 7, 5, 7, ink);
-    pixel(ctx, x + side * 5 - 1, y - 8, 3, 5, PALETTE.stoneLight);
+    const stride = side < 0 ? gait.leftStride : gait.rightStride,
+      lift = side < 0 ? gait.leftLift : gait.rightLift;
+    const footX = x + side * 5 - 2 + stride,
+      footY = y - 7 - lift;
+    line(ctx, x + side * 4, y - 11, footX + 2, footY + 2, ink, 5);
+    pixel(ctx, footX, footY, 6, 7, ink);
+    pixel(ctx, footX + 1, footY, 4, 4, PALETTE.stoneLight);
+    pixel(ctx, footX, footY + 5, 6, 1, PALETTE.stoneTop);
     oval(ctx, x + side * 9, y - 20 + sway, 5, 5, ink);
     oval(ctx, x + side * 9, y - 21 + sway, 4, 3, PALETTE.stoneTop);
     line(ctx, x + side * 11, y - 18, x + side * 13, y - 8, PALETTE.stone, 3);

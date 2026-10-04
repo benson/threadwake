@@ -21,6 +21,21 @@ const run = () => {
   s.players[0].invulnerable = 0;
   return s;
 };
+
+test("enemy locomotion reports actual displacement and freezes its gait when staggered", () => {
+  const s = run();
+  const e = enemy("thorn", 600, 700, { stagger: 0 });
+  s.enemies = [e];
+  const before = { x: e.x, y: e.y };
+  step(s, {}, 1 / 30);
+  assert.ok(Math.hypot(e.vx, e.vy) > 0);
+  close(e.vx, (e.x - before.x) * 30);
+  close(e.vy, (e.y - before.y) * 30);
+  e.stagger = 1;
+  step(s, {}, 1 / 30);
+  assert.equal(e.vx, 0);
+  assert.equal(e.vy, 0);
+});
 const enemy = (type, x, y, extra = {}) => ({
   id: 800,
   type,

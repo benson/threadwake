@@ -8,6 +8,8 @@ The integrated redesign replaces the old mechanic, art, sound and upgrade meanin
 
 ## 2026-10-04 — museum release and blind art review
 
+Museum release `2270f46` passed Actions `37243641980` (tests/build, Worker, live multiplayer, Pages); public HTTP confirmed the exact new bundle. Benson subsequently requested continuous goal execution instead of timer gaps. The heartbeat is paused and the active chat goal now drives ongoing work.
+
 Start screen now shows permanent equipment, saved credits, best wave and the four-gallery route. Sixteen curios have original pixel illustrations. All game/UI ornament is raster pixel work, including the favicon, controls and workshop guides. The custodian has a planted stride, aimed slingshot/recoil and a gripped immediate broom action. A bottom-edge playtest exposed HUD occlusion; the existing sweep meter now feathers when the player's body passes underneath. Drafts hide the underlying HUD to prevent overlapping text.
 
 Independent OpenRouter image reviews covered 76 numbered assets/poses/effects/maps plus actual start, combat and draft screenshots. Findings and limits are in `ART-REVIEW.md`. Two revision passes corrected the arrowhead, metronome, paperweight, jack-in-the-box, beetle legs, cart charge states and exhibit silhouettes. Projectiles and impact/protection effects now separate from quieter floor ornament. Seven review requests cost $0.117284 total against the authorized cumulative $5 cap; preserve `.local/openrouter/budget.json` and do not reset it.
@@ -15,6 +17,12 @@ Independent OpenRouter image reviews covered 76 numbered assets/poses/effects/ma
 Validation: all 75 tests passed, including geometry, map collision, legacy progression, recovery and real-health complete runs. Focused presentation/budget tests passed after the final presentation change. Build passed. Browser checks covered five field sizes, purchases applying next shift, held/buffered sweep, mocked controller input, smooth movement/pause, two-client local multiplayer and reconnect, and pixel-identical workshop replay/export/import. Actual keyboard play reached the first draft at 38 seconds with 31 kills and 110 HP, picked a curio and resumed. A focused bottom-edge check verified the meter at 12% opacity over the visible torso. Physical phone/controller hardware remains unverified. Bot wins and still-image reviews are not claims of AAA quality or human enjoyment.
 
 Next: temporal stride/attack contact sheets (the initial actor sheet is a pose sampler, not a frame sequence), crowded late-wave human play, remaining supply-state readability at 1×, and a clearer permanent-equipment entry label if approved. Ship through existing tests → Worker → live multiplayer → Pages gates.
+
+## 2026-10-04 — temporal animation pass
+
+Ordered temporal contact sheets exposed stationary feet on the tin soldier and armor, plus a telescoping broom and abrupt recovery. These actors now receive actual displacement velocities from the simulation; their steps stop when stationary or staggered. The broom rotates at a fixed 24px shaft length and returns continuously to its carrying angle. The head is more legible, and slingshot firing adds a shoulder kick/band settle while its authoritative muzzle stays fixed.
+
+The shared motion sheet generator samples eight times per sequence, separately covering walking, sweep, firing, toy soldier, armor and moth. A Sonnet review supplied hypotheses rather than playback claims; an early sheet clipped long broom extremes, so the fixture was widened before final inspection. All 76 tests pass, including actual movement velocity and stagger regression; production build passes. Continuing priority: stronger foot contact/passing silhouettes and a real crowded late-wave playthrough. OpenRouter cumulative cost is now $0.133432 across eight requests, still under the existing $5 cap.
 
 ## 2026-10-04 — field, opening, and footsteps
 
@@ -61,4 +69,4 @@ The boundary and core frames were visually reviewed: the near-edge pop is gone a
 - Movement/contrast shipped as `73c61a4`; Actions run `37237224296` passed on rerun. The first live check saw a connection close before its latency reply, so Pages stayed gated; a fresh identical live check and the rerun passed without changing the gate.
 - Continue focused playtests for combat readability, visual crowding, movement/cast continuity, and frame pacing. Fix demonstrated friction rather than adding unrelated systems or UI.
 - OpenRouter reviews are active under the cumulative $5 approval. `scripts/openrouter-review.mjs` requires the existing ignored budget ledger and environment credential; it retains reservations for unknown costs. Reviews must distinguish screenshot/source evidence from actual play. See the current museum review above; never reset the ledger.
-- The thread heartbeat `keep-improving-threadwake` is already active every 30 minutes. Preserve it rather than creating duplicates; notify only meaningful changes or blockers. The owner asked to keep improving until told to stop.
+- The thread heartbeat `keep-improving-threadwake` is paused at Benson's request. An active goal drives continuous work without scheduled gaps. Do not reactivate a timer or mark the goal complete merely because a batch ships.
