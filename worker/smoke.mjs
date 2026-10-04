@@ -15,6 +15,9 @@ async function until(fn, label) {
     await sleep(25);
   }
   const error = new Error(`Timeout: ${label}`);
+  console.error('Peer diagnostics:', peers.map(p => ({ connected: p.socket.readyState, identified: !!p.identity, error: p.error,
+    tick: p.state?.tick, phase: p.state?.phase, players: p.state?.players.length,
+    position: p.state?.players.find(player => player.id === p.identity?.id)?.x })));
   error.transientStartup = ['join', 'two player snapshot'].includes(label);
   throw error;
 }
@@ -27,6 +30,7 @@ async function join(token) {
     state: null,
     identity: null,
     error: null,
+    input: { x: 0, y: 0, cast: false },
   };
   peers.push(peer);
   peer.socket.on("message", (data) => {
@@ -42,6 +46,11 @@ async function join(token) {
   if (peer.error && peer.error.code !== "full") throw new Error(`Room connection failed: ${peer.error.message}`);
   return peer;
 }
+const heartbeat = setInterval(() => {
+  for (const peer of peers) if (peer.socket.readyState === WebSocket.OPEN && peer.identity) {
+    peer.socket.send(JSON.stringify({ type: 'input', input: peer.input }));
+  }
+}, 100);
 try {
   const host = await join();
   const guest = await join();
@@ -63,6 +72,7 @@ try {
     "host starts both clients",
   );
   const before = guest.state.players.find((p) => p.id === guest.identity.id).x;
+  guest.input = { x: 1, y: 0, cast: true };
   guest.socket.send(
     JSON.stringify({ type: "input", input: { x: 1, y: 0, cast: true } }),
   );
@@ -96,5 +106,6 @@ try {
   console.error(error);
   process.exitCode = error.transientStartup ? 2 : 1;
 } finally {
+  clearInterval(heartbeat);
   for (const peer of peers) peer.socket.close();
 }
