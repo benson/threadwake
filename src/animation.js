@@ -40,7 +40,9 @@ export function pose(actor, time, settings = {}) {
   const q = Math.floor(time * Math.max(1, s.fps)) / Math.max(1, s.fps);
   const moving =
     Math.hypot(actor.vx || 0, actor.vy || 0) > 4 || settings.state === "run";
-  const phase = q * s.stride;
+  const phase = q * s.stride,
+    gait = Math.sin(phase),
+    pass = Math.cos(phase);
   const total = ACTION_PHASES.reduce((n, key) => n + Math.max(0.02, s[key]), 0);
   const age = Number.isFinite(settings.actionTime)
     ? settings.actionTime
@@ -53,6 +55,7 @@ export function pose(actor, time, settings = {}) {
     lift = 0,
     lean = 0,
     stretch = 0;
+  let needleReach = 0;
   if (cast) {
     let start = 0;
     for (const name of ACTION_PHASES) {
@@ -69,21 +72,25 @@ export function pose(actor, time, settings = {}) {
       lift = -a;
       lean = -2 * a;
       stretch = -a;
+      needleReach = -2 - a;
     }
     if (actionPhase === "rise") {
       lift = 4 * a;
       lean = -2 + 3 * a;
       stretch = 2 * a;
+      needleReach = -3 + 7 * a;
     }
     if (actionPhase === "impact") {
       lift = 4;
       lean = 3;
       stretch = 2;
+      needleReach = 5;
     }
     if (actionPhase === "follow") {
       lift = 4 * (1 - a);
       lean = 3 * (1 - a);
       stretch = 2 * (1 - a);
+      needleReach = 5 * (1 - a);
     }
     if (actionPhase === "settle") {
       lift = -Math.sin(a * Math.PI);
@@ -93,7 +100,13 @@ export function pose(actor, time, settings = {}) {
   return {
     q,
     moving,
-    step: moving ? Math.round(Math.sin(phase) * 2) : 0,
+    step: moving ? Math.round(gait * 2) : 0,
+    // Each boot is planted at the actor's ground line for half a stride.
+    leftLift: moving ? Math.max(0, Math.round(gait * 2)) : 0,
+    rightLift: moving ? Math.max(0, Math.round(-gait * 2)) : 0,
+    leftStride: moving ? Math.round(pass) : 0,
+    rightStride: moving ? -Math.round(pass) : 0,
+    coatSwing: moving ? Math.round(gait) : 0,
     bob: Math.round(
       moving
         ? Math.abs(Math.sin(phase)) * s.bob
@@ -110,6 +123,7 @@ export function pose(actor, time, settings = {}) {
     lift,
     lean,
     stretch,
+    needleReach,
     totalDuration: total,
     blink: settings.state === "blink" || q % 4.7 > 4.5,
     hit: (actor.hit > 0 || settings.state === "hit") && s.hitFlash > 0,

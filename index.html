@@ -44,6 +44,10 @@
           ><span id="network-status" role="status" hidden></span>
         </div>
         <button id="pause-button" aria-label="Pause or open menu">Ⅱ</button>
+        <button id="hud-memories" aria-label="Open memories">
+          ◆ <span id="hud-memory-count">0</span>
+          <span class="memory-label">Memories</span>
+        </button>
         <div id="ability">
           <span id="ability-label">SPACE · UNWIND</span
           ><span id="ability-meter"></span>
@@ -137,14 +141,23 @@
         <button id="run-invite" hidden>Copy invite</button>
         <div class="actions">
           <button id="resume" class="primary">Continue</button
+          ><button id="pause-memories">Memories</button
           ><button id="quit" hidden>Leave run</button>
         </div>
       </dialog>
       <dialog id="memories">
-        <h2>What the grove remembers</h2>
+        <span class="eyebrow">The roots you keep</span>
+        <h2>Memories</h2>
         <p id="memory-balance"></p>
+        <p id="memory-explainer">
+          Earn memories from waves and milestones. Planted traits take effect
+          next run.
+        </p>
         <div id="talents"></div>
-        <div id="milestones"></div>
+        <details id="milestone-details">
+          <summary>Milestones <span id="milestone-count"></span></summary>
+          <div id="milestones"></div>
+        </details>
         <button id="close-memories">Back</button>
       </dialog>
       <div id="toast" role="status" hidden></div>

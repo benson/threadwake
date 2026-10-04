@@ -265,21 +265,40 @@ export function drawActor(ctx, actor, time, settings = {}) {
     pixel(ctx, x + side * i, sy, 2, 2, scarfMid);
     if (i % 5 === 0) pixel(ctx, x + side * i, sy, 1, 1, scarfLight);
   }
-  // Feet move independently of the torso; body settles on planted foot.
-  pixel(ctx, x - 5, y - 4 + p.step, 4, 4, ink);
-  pixel(ctx, x + 2, y - 4 - p.step, 4, 4, ink);
-  pixel(ctx, x - 5, y - 4 + p.step, 3, 1, PALETTE.creamDark);
-  pixel(ctx, x + 2, y - 4 - p.step, 3, 1, PALETTE.creamDark);
+  // The swinging boot rises; the planted one never dips below the ground line.
+  const leftBootX = x - 5 + p.leftStride * p.face,
+    rightBootX = x + 2 + p.rightStride * p.face,
+    leftBootY = y - 4 - p.leftLift,
+    rightBootY = y - 4 - p.rightLift;
+  pixel(ctx, leftBootX, leftBootY, 4, 4, ink);
+  pixel(ctx, rightBootX, rightBootY, 4, 4, ink);
+  pixel(ctx, leftBootX, leftBootY, 3, 1, PALETTE.creamDark);
+  pixel(ctx, rightBootX, rightBootY, 3, 1, PALETTE.creamDark);
+  pixel(ctx, leftBootX + (p.face > 0 ? 2 : 0), leftBootY + 2, 2, 1, color[0]);
+  pixel(ctx, rightBootX + (p.face > 0 ? 2 : 0), rightBootY + 2, 2, 1, color[0]);
   stamp(
     ctx,
     COAT,
-    x - 7 + lean,
+    x - 7 + lean + p.coatSwing,
     top + 14 + Math.round(p.stretch),
     { o: ink, d: color[0], t: color[1], l: color[2] },
     p.face < 0,
   );
+  if (!ghost) {
+    // A tiny woven clasp and hem motif stay legible at the 640×360 game scale.
+    pixel(ctx, x - 1 + lean, top + 17, 3, 2, PALETTE.creamDark);
+    pixel(ctx, x + lean, top + 17, 1, 2, PALETTE.gold);
+    pixel(ctx, x - 4 + lean + p.coatSwing, top + 23 + Math.round(p.stretch), 2, 1, color[2]);
+    pixel(ctx, x + 3 + lean + p.coatSwing, top + 23 + Math.round(p.stretch), 2, 1, color[2]);
+  }
+  // The free sleeve counter-swings while running and tucks in for the unwind.
+  const freeX = x - p.face * (9 - p.coatSwing) + lean,
+    freeY = top + 21 + (p.moving ? p.rightLift - p.leftLift : 0) - Math.max(0, Math.round(p.needleReach * 0.35));
+  line(ctx, x - p.face * 5 + lean, top + 18, freeX, freeY, ink, 2);
+  pixel(ctx, freeX - 1, freeY - 1, 3, 3, color[0]);
+  pixel(ctx, freeX, freeY + 1, 2, 2, ghost ? PALETTE.echoLight : PALETTE.skin);
   // Bone needle, leather grip, and the hand over it.
-  const handX = x + p.face * 10 + lean,
+  const handX = x + p.face * (10 + Math.round(p.needleReach)) + lean,
     handY =
       top +
       20 -
@@ -296,6 +315,12 @@ export function drawActor(ctx, actor, time, settings = {}) {
   );
   pixel(ctx, handX, handY, 3, 3, ghost ? PALETTE.echoLight : PALETTE.skin);
   pixel(ctx, handX + p.face * 3, handY - 10, 1, 3, PALETTE.white);
+  if (p.actionPhase === "impact" && !ghost) {
+    const tipX = handX + p.face * 3,
+      tipY = handY - 11;
+    pixel(ctx, tipX - 2, tipY, 5, 1, PALETTE.white);
+    pixel(ctx, tipX, tipY - 2, 1, 5, PALETTE.gold);
+  }
   stamp(
     ctx,
     p.back ? BACK : HOOD,
@@ -384,6 +409,9 @@ export function drawEnemy(ctx, e, time, settings = {}) {
       1,
       e.fireIn < 0.65 ? PALETTE.white : PALETTE.redLight,
     );
+    // Paired wing veins keep the broad lilac silhouette from reading flat.
+    line(ctx, x - 10, y - 11 + flap, x - 6, y - 9 + flap, PALETTE.creamDark);
+    line(ctx, x + 10, y - 11 + flap, x + 6, y - 9 + flap, PALETTE.creamDark);
   } else if (e.type === "thorn") {
     stamp(ctx, THORN, x - 8, y - 18, {
       o: ink,
@@ -393,6 +421,8 @@ export function drawEnemy(ctx, e, time, settings = {}) {
       w: e.fireIn < 0.65 ? PALETTE.white : PALETTE.gold,
       d: PALETTE.wood,
     });
+    pixel(ctx, x - 10, y - 13, 3, 1, PALETTE.leaf);
+    pixel(ctx, x + 8, y - 16, 3, 1, PALETTE.light);
   } else if (e.type === "warden") {
     const bob = Math.round(Math.sin(q * 3));
     // Ancient hollow-tree guardian; branch antlers and a mask formed from bark.

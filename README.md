@@ -44,6 +44,8 @@ An opaque token stored in session storage resumes a disconnected player. Seats a
 
 Memories bank after each participated wave, plus a win bonus and five one-time play milestones. Small permanent traits are browser-local, bounded on the server, and designed for casual co-op, not competitive rankings. They are not an account save or cheat-resistant economy. Clearing browser storage removes them. Protocol 2 rejects incompatible clients and recovery checkpoints; reload after an update and create a new room if an old room cannot resume.
 
+Open Memories from the in-run balance, Pause, or the title screen. Purchases apply to the next run, including online restarts. The first wave now lasts 38 seconds. Visible footsteps and a hollow prospective anchor show where an echo will form; all game controls share the arena's fixed frame.
+
 ## Validation and release
 
 `npm test` covers deterministic replay, casts and catches, flower bursts, every upgrade, late joins, synchronized drafts, disconnects, revives, win/loss, invalid input, recovery checkpoints, and full-run reference players. Automated balance runs are regression evidence, not a substitute for human playtesting.
@@ -51,5 +53,7 @@ Memories bank after each participated wave, plus a win bonus and five one-time p
 `npm run test:multiplayer` runs a real WebSocket room exercise against local Wrangler. Pass a deployed WebSocket base to `node worker/smoke.mjs` for the same live check. `scripts/ui-smoke.cjs` is a Playwright CLI real-control smoke test against the production preview on port 4320; it checks movement, cast, pause, and combat progress without modifying game state.
 
 The 50-improvement pass and its playtest evidence are recorded in `docs/ITERATION-50.md`. Additional browser regressions cover held/buffered casts, input resets, separate sound controls, a mocked controller, multiplayer reconnects, and pixel-identical workshop replay including thorn and co-op scenarios. Controller API tests and mobile viewport checks do not replace physical-device testing.
+
+Continuing craft work and pending review priorities are recorded in `docs/ITERATION-LOG.md`.
 
 GitHub Actions gates deployment on tests and build, deploys the Worker, runs a live multiplayer smoke, then publishes `dist/` to GitHub Pages. DNS maps `threadwake.bensonperry.com` to that repository's Pages deployment. Cloudflare credentials are repository secrets, never frontend configuration.

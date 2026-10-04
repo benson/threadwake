@@ -168,6 +168,94 @@ function mushroom(ctx, x, y, r) {
   pixel(ctx, x - 3, y - 9, 2, 1, P.creamShade);
   pixel(ctx, x + 2, y - 8, 1, 1, P.creamShade);
 }
+function drawFootsteps(ctx, player, foreground = false) {
+  const samples = player?.footsteps,
+    preview = player?.echoPreview;
+  if (player?.dead || !Array.isArray(samples) || !samples.length || !preview) return;
+  let previous = null;
+  for (let i = 0; i < samples.length; i++) {
+    const step = samples[i];
+    if (!Number.isFinite(step.x) || !Number.isFinite(step.y)) continue;
+    if (previous && Math.hypot(step.x - previous.x, step.y - previous.y) < 9) continue;
+    const next = samples[Math.min(samples.length - 1, i + 1)],
+      heading = next && next !== step ? Math.atan2(next.y - step.y, next.x - step.x) : 0,
+      side = i % 2 ? 1 : -1,
+      x = Math.round(step.x - Math.sin(heading) * side * 3),
+      y = Math.round(step.y + Math.cos(heading) * side * 2),
+      age = Math.max(0, Math.min(3, step.age || 0)),
+      sole = preview.ready
+        ? age > 2 ? P.echoDark : age > 1 ? P.echoMid : P.echoLight
+        : age > 2 ? P.moss : P.echoDark;
+    if (foreground) {
+      // The recent steps remain legible when canopy and grass cross the route.
+      if (age > 1.5) { previous = step; continue; }
+      pixel(ctx, x - 2, y - 3, 5, 4, P.ink);
+      pixel(ctx, x - 1, y - 2, 3, 2, preview.ready ? P.echoLight : P.echoMid);
+      if (preview.ready && age < 0.55) pixel(ctx, x, y - 2, 1, 1, P.white);
+      previous = step;
+      continue;
+    }
+    pixel(ctx, x - 1, y - 2, 3, 2, sole);
+    pixel(ctx, x + Math.round(Math.cos(heading) * 2), y - 1 + Math.round(Math.sin(heading) * 2), 1, 1, preview.ready && age < 1 ? P.white : sole);
+    previous = step;
+  }
+}
+const MARKER_BOUNDS = { left: 16, right: 624, top: 16, bottom: 344 };
+const HUD_ZONES = [
+  { left: 0, right: 104, top: 0, bottom: 76 },
+  { left: 255, right: 385, top: 0, bottom: 68 },
+  { left: 520, right: 640, top: 0, bottom: 80 },
+  { left: 253, right: 386, top: 301, bottom: 360 },
+];
+function inHudZone(x, y) {
+  return HUD_ZONES.some((zone) => x >= zone.left && x <= zone.right && y >= zone.top && y <= zone.bottom);
+}
+function safeMarkerPosition(sx, sy) {
+  const { left, right, top, bottom } = MARKER_BOUNDS;
+  if (sx >= left && sx <= right && sy >= top && sy <= bottom && !inHudZone(sx, sy)) return null;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const candidates = [
+    { x: left, y: clamp(sy, 84, 294) },
+    { x: right, y: clamp(sy, 88, 294) },
+    { x: clamp(sx, 113, 246), y: top },
+    { x: clamp(sx, 394, 511), y: top },
+    { x: clamp(sx, left, 245), y: bottom },
+    { x: clamp(sx, 394, right), y: bottom },
+  ];
+  return candidates.reduce((best, candidate) =>
+    Math.hypot(sx - candidate.x, sy - candidate.y) < Math.hypot(sx - best.x, sy - best.y)
+      ? candidate : best);
+}
+function drawPreviewAnchor(ctx, player) {
+  const preview = player?.echoPreview;
+  if (player?.dead || !preview || !Number.isFinite(preview.x) || !Number.isFinite(preview.y)) return;
+  const x = Math.round(preview.x),
+    y = Math.round(preview.y),
+    radius = preview.projected ? 12 : 10,
+    color = preview.ready
+      ? preview.projected ? P.gold : PLAYER_COLORS[(player.color || 0) % 4]
+      : P.echoDark;
+  if (preview.projected && preview.ready) {
+    const distance = Math.hypot(player.x - x, player.y - y),
+      marks = Math.min(9, Math.floor(distance / 13));
+    for (let i = 1; i < marks; i++) {
+      const t = i / marks;
+      pixel(ctx, player.x + (x - player.x) * t, player.y - 4 + (y - player.y) * t, 1, 1, i % 2 ? P.echoDark : P.gold);
+    }
+  }
+  // A hollow landing mark cannot be mistaken for an existing solid echo.
+  for (let i = 0; i < 8; i++) {
+    const angle = (i * Math.PI) / 4,
+      px = x + Math.cos(angle) * radius,
+      py = y - 4 + Math.sin(angle) * radius * 0.45;
+    pixel(ctx, px, py, i % 2 ? 1 : 2, 1, color);
+  }
+  pixel(ctx, x - 1, y - 5, 3, 3, preview.ready ? P.white : P.echoMid);
+  if (preview.projected) {
+    pixel(ctx, x - 2, y - 14, 5, 1, color);
+    pixel(ctx, x, y - 16, 1, 5, color);
+  }
+}
 function bake(seed) {
   const c = surface(W, H),
     ctx = c.getContext("2d"),
@@ -392,6 +480,8 @@ export function createRenderer(canvas) {
     ctx.save();
     ctx.translate(-ox, -oy);
     ctx.drawImage(art.ground, 0, 0);
+    // Only the local keeper's real last-three-second footsteps are shown.
+    drawFootsteps(ctx, player);
     // The dark body of each thread lives in the world; a sparse bright core is
     // repeated above scenery below so a useful segment cannot disappear there.
     for (const echo of state?.echoes || []) {
@@ -653,6 +743,8 @@ export function createRenderer(canvas) {
         }
       }
     }
+    drawFootsteps(ctx, player, true);
+    drawPreviewAnchor(ctx, player);
     // Ghosts and the thread glints stay above foreground props. The clock of
     // lit notches around each anchor gives its remaining life at a glance.
     for (const echo of state?.echoes || []) {
@@ -938,10 +1030,11 @@ export function createRenderer(canvas) {
     for (const echo of state?.echoes || []) {
       if (echo.owner !== localId) continue;
       const sx = echo.x - ox,
-        sy = echo.y - oy;
-      if (sx >= 15 && sx <= 625 && sy >= 15 && sy <= 345) continue;
-      const px = Math.max(15, Math.min(625, sx)),
-        py = Math.max(15, Math.min(345, sy)),
+        sy = echo.y - oy,
+        marker = safeMarkerPosition(sx, sy);
+      if (!marker) continue;
+      const px = marker.x,
+        py = marker.y,
         dx = sx - px,
         dy = sy - py,
         color = echo.projected
@@ -958,6 +1051,31 @@ export function createRenderer(canvas) {
         line(ctx, px, py + side * 5, px + 4, py - side * 2, color, 2);
       }
       pixel(ctx, px - 1, py - 1, 3, 3, P.white);
+    }
+    const preview = player?.echoPreview;
+    if (preview?.ready && Number.isFinite(preview.x) && Number.isFinite(preview.y)) {
+      const sx = preview.x - ox,
+        sy = preview.y - oy,
+        covered = (state?.echoes || []).some((e) => e.owner === player.id && Math.hypot(e.x - preview.x, e.y - preview.y) < 16);
+      const marker = !covered && safeMarkerPosition(sx, sy);
+      if (marker) {
+        const px = marker.x,
+          py = marker.y,
+          dx = sx - px,
+          dy = sy - py,
+          color = preview.projected ? P.gold : PLAYER_COLORS[(player.color || 0) % 4];
+        pixel(ctx, px - 6, py - 6, 13, 13, P.ink);
+        if (Math.abs(dx) > Math.abs(dy)) {
+          const side = Math.sign(dx);
+          line(ctx, px + side * 5, py, px - side * 2, py - 4, color, 2);
+          line(ctx, px + side * 5, py, px - side * 2, py + 4, color, 2);
+        } else {
+          const side = Math.sign(dy);
+          line(ctx, px, py + side * 5, px - 4, py - side * 2, color, 2);
+          line(ctx, px, py + side * 5, px + 4, py - side * 2, color, 2);
+        }
+        pixel(ctx, px, py, 1, 1, P.white);
+      }
     }
   }
   return { draw, screenToWorld, camera };

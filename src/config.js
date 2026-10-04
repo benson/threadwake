@@ -2,6 +2,7 @@ export const WORLD = { width: 1200, height: 800 };
 export const TICK_RATE = 30;
 export const WAVE_COUNT = 8;
 export const WAVE_DURATION = 65;
+export const waveDuration = (wave) => (wave === 1 ? 38 : WAVE_DURATION);
 export const BALANCE = Object.freeze({
   speed: 155,
   playerHp: 110,
@@ -24,7 +25,7 @@ export const BALANCE = Object.freeze({
 // Each wave has a different pressure pattern, rather than the same lottery
 // with inflated health. Rates are per spawn; packs remain bounded by maxEnemies.
 export const WAVES = Object.freeze([
-  { moth: 0.12, thorn: 0, interval: 1.12, pack: 1 },
+  { moth: 0.24, thorn: 0, interval: 1.0, pack: 1 },
   { moth: 0.48, thorn: 0, interval: 1.04, pack: 1 },
   { moth: 0.24, thorn: 0.3, interval: 1.0, pack: 1 },
   { moth: 0.18, thorn: 0.12, interval: 1.22, pack: 2 },

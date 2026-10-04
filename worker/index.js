@@ -84,6 +84,10 @@ export class Room {
         for (const peer of saved.peers)
           this.sessions.set(peer.id, {
             ...peer,
+            pendingTraits: cleanTraits(
+              peer.pendingTraits ??
+                this.game.players.find((p) => p.id === peer.id)?.traits,
+            ),
             socket: null,
             input: { x: 0, y: 0, cast: false },
             lastInput: 0,
@@ -132,11 +136,12 @@ export class Room {
       try {
         traits = JSON.parse(url.searchParams.get("traits") || "{}");
       } catch {}
+      peer.pendingTraits = cleanTraits(traits);
       addPlayer(
         this.game,
         peer.id,
         cleanName(url.searchParams.get("name")),
-        cleanTraits(traits),
+        peer.pendingTraits,
       );
       if (!this.hostId) this.hostId = peer.id;
     }
@@ -202,9 +207,24 @@ export class Room {
       peer.id === this.hostId &&
       ["lobby", "won", "lost"].includes(this.game.phase)
     ) {
+      // Purchases are staged per seat; only an authorized new run consumes them.
+      for (const player of this.game.players)
+        player.traits = cleanTraits(
+          this.sessions.get(player.id)?.pendingTraits ?? player.traits,
+        );
       startGame(this.game);
       this.broadcast();
       this.checkpoint();
+    } else if (msg.type === "traits") {
+      const traits = cleanTraits(msg.traits);
+      if (
+        ["vitality", "haste", "echo"].some(
+          (key) => traits[key] !== peer.pendingTraits?.[key],
+        )
+      ) {
+        peer.pendingTraits = traits;
+        this.checkpoint();
+      }
     } else if (
       msg.type === "choose" &&
       typeof msg.id === "string" &&
@@ -313,6 +333,10 @@ export class Room {
         peers: [...this.sessions.values()].map((p) => ({
           id: p.id,
           token: p.token,
+          pendingTraits: cleanTraits(
+            p.pendingTraits ??
+              this.game.players.find((player) => player.id === p.id)?.traits,
+          ),
         })),
       }),
     );

@@ -67,6 +67,27 @@ const identity = {
 };
 const state = { type: "state", state: { version: 2, phase: "lobby" } };
 
+test("trait purchases are bounded and retained across reconnect and handshake", async t => {
+  const sockets = browser(t);
+  const connection = await connectRoom({ room: "test-room", traits: { vitality: 1 } });
+  t.after(() => connection.close());
+  assert.deepEqual(JSON.parse(sockets[0].url.searchParams.get("traits")), { vitality: 1, haste: 0, echo: 0 });
+  connection.setTraits({ vitality: 99, haste: -4, echo: 2.9, foreign: 100 });
+  assert.equal(sockets[0].sent.length, 0, "pre-handshake purchases wait for identity");
+  sockets[0].receive(identity);
+  assert.deepEqual(sockets[0].sent.find(x => x.type === "traits"), {
+    type: "traits", traits: { vitality: 3, haste: 0, echo: 2 },
+  });
+  connection.setTraits({ vitality: 2, haste: 1, echo: 3 });
+  assert.deepEqual(sockets[0].sent.at(-1), { type: "traits", traits: { vitality: 2, haste: 1, echo: 3 } });
+  sockets[0].listeners.close({ code: 1006 });
+  connection.setTraits({ vitality: 3, haste: 2, echo: 3 });
+  t.mock.timers.tick(500);
+  assert.deepEqual(JSON.parse(sockets[1].url.searchParams.get("traits")), { vitality: 3, haste: 2, echo: 3 });
+  sockets[1].receive(identity);
+  assert.deepEqual(sockets[1].sent.find(x => x.type === "traits").traits, { vitality: 3, haste: 2, echo: 3 });
+});
+
 test("client requires matching identity and simulation before accepting state", async (t) => {
   const sockets = browser(t),
     statuses = [],

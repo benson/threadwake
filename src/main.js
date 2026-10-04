@@ -13,6 +13,8 @@ import { AudioGarden } from "./audio.js";
 import { setAnimationSettings } from "./animation.js";
 import { MILESTONES, normalizeMemory, bankProgress } from "./progression.js";
 import { WAVE_DURATION, WORLD } from "./config.js";
+import { installViewport } from "./viewport.js";
+installViewport();
 const $ = (id) => document.getElementById(id),
   canvas = $("world"),
   renderer = createRenderer(canvas),
@@ -80,6 +82,7 @@ let castUntil = 0,
   lastCastSent = 0,
   latestInput = { x: 0, y: 0 },
   latency = null;
+let memoryReturnTo = "play";
 const lessonProgress = { moved: false, cast: false };
 const glyphs = {
   fork: "⋔",
@@ -344,6 +347,7 @@ function bank() {
   );
   if (result.changed) {
     store.set("threadwake.memories", memory);
+    updateMemoryCount();
     if (result.newMilestones.length)
       toast(
         `${result.newMilestones.join(" · ")} · +${result.newMilestones.length} memory`,
@@ -377,6 +381,7 @@ function backHome() {
   paused = false;
   resetInputs();
   $("options").close();
+  $("memories").close();
   state = createGame(77);
   id = "solo";
   addPlayer(state, id, safeName());
@@ -386,7 +391,7 @@ function backHome() {
   updateMemoryCount();
 }
 function options() {
-  if ($("options").open) return;
+  if ($("options").open || $("memories").open) return;
   paused = !online;
   resetInputs();
   $("options-title").textContent =
@@ -415,11 +420,22 @@ function closeOptions() {
   $("options").close();
 }
 function updateMemoryCount() {
-  $("memory-count").textContent = memory.balance ? `· ${memory.balance}` : "";
+  $("memory-count").textContent = `· ${memory.balance}`;
+  $("hud-memory-count").textContent = memory.balance;
+  $("pause-memories").textContent = `Memories · ${memory.balance}`;
 }
 function memories() {
+  if (!$("memories").open) {
+    memoryReturnTo = $("options").open ? "options" : screen;
+    $("options").close();
+    paused = !online && screen !== "menu";
+    resetInputs();
+  }
   updateMemoryCount();
-  $("memory-balance").textContent = `${memory.balance} memories to plant`;
+  $("memory-balance").textContent =
+    `◆ ${memory.balance} ${memory.balance === 1 ? "memory" : "memories"} to plant`;
+  $("milestone-count").textContent =
+    `${memory.milestones.length} / ${MILESTONES.length}`;
   $("talents").replaceChildren();
   $("milestones").replaceChildren(
     ...MILESTONES.map((m) => {
@@ -437,15 +453,28 @@ function memories() {
     const rank = memory.traits[key],
       cost = rank + 1,
       b = document.createElement("button");
-    b.textContent = `${title}  ${"◆".repeat(rank)}${"◇".repeat(3 - rank)}${rank < 3 ? ` · ${cost} memories` : ""}`;
+    b.className = "talent";
+    b.dataset.trait = key;
+    const titleEl = document.createElement("strong");
+    titleEl.textContent = title;
+    const ranks = document.createElement("span");
+    ranks.className = "talent-ranks";
+    ranks.textContent = `${"◆".repeat(rank)}${"◇".repeat(3 - rank)}`;
+    const price = document.createElement("span");
+    price.className = "talent-price";
+    price.textContent =
+      rank < 3
+        ? `Plant · ${cost} ${cost === 1 ? "memory" : "memories"}`
+        : "Fully grown";
     const s = document.createElement("small");
     s.textContent = desc;
-    b.append(s);
+    b.append(titleEl, ranks, s, price);
     b.disabled = rank >= 3 || memory.balance < cost;
     b.onclick = () => {
       memory.balance -= cost;
       memory.traits[key]++;
       store.set("threadwake.memories", memory);
+      net?.setTraits?.(memory.traits);
       audio.click();
       memories();
     };
@@ -484,7 +513,19 @@ $("options").addEventListener("cancel", () => {
 });
 $("quit").onclick = backHome;
 $("memories-button").onclick = memories;
-$("close-memories").onclick = () => $("memories").close();
+$("hud-memories").onclick = memories;
+$("pause-memories").onclick = memories;
+function closeMemories() {
+  $("memories").close();
+  paused = false;
+  last = performance.now();
+  if (memoryReturnTo === "options") options();
+}
+$("close-memories").onclick = closeMemories;
+$("memories").addEventListener("cancel", (e) => {
+  e.preventDefault();
+  closeMemories();
+});
 $("sound").onchange = () => {
   settings.sound = $("sound").checked;
   audio.enabled = settings.sound;
@@ -570,8 +611,9 @@ let stickId = null;
 function stickMove(e) {
   if (e.pointerId !== stickId) return;
   const r = stick.getBoundingClientRect(),
-    dx = (e.clientX - r.left - r.width / 2) / 40,
-    dy = (e.clientY - r.top - r.height / 2) / 40,
+    scale = r.width / 100,
+    dx = (e.clientX - r.left - r.width / 2) / (40 * scale),
+    dy = (e.clientY - r.top - r.height / 2) / (40 * scale),
     d = Math.max(1, Math.hypot(dx, dy));
   touch = { x: dx / d, y: dy / d };
   stick.firstElementChild.style.transform = `translate(${touch.x * 32}px,${touch.y * 32}px)`;
@@ -634,7 +676,8 @@ function input() {
     padCast = pressed;
     const menu = !!pad.buttons[9]?.pressed;
     if (menu && !padPause) {
-      if ($("options").open) closeOptions();
+      if ($("memories").open) closeMemories();
+      else if ($("options").open) closeOptions();
       else options();
     }
     padPause = menu;
@@ -642,7 +685,7 @@ function input() {
     padCast = false;
     padPause = false;
   }
-  if ($("options").open || screen !== "play")
+  if ($("options").open || $("memories").open || screen !== "play")
     return { x: 0, y: 0, cast: false };
   const now = performance.now();
   if (castPending) castUntil = now + 250;
@@ -677,7 +720,7 @@ function updateHud() {
     .join("  ");
   $("wave").textContent = `WAVE ${state.wave} / 8`;
   $("clock").textContent =
-    `${Math.max(0, Math.ceil(WAVE_DURATION - state.waveTime))}s`;
+    `${Math.max(0, Math.ceil((state.waveDuration || WAVE_DURATION) - state.waveTime))}s`;
   const boss = state.enemies.find((e) => e.type === "warden");
   $("boss-health").hidden = !boss;
   if (boss) $("boss-health").textContent = `UNRAVELER · ${Math.ceil(boss.hp)}♥`;

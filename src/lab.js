@@ -1,6 +1,7 @@
 import { drawActor } from "./art.js";
 import { ANIMATION_DEFAULTS, setAnimationSettings, pose } from "./animation.js";
 import { createRenderer } from "./render.js";
+const REPLAY_VERSION = 3;
 import {
   createGame,
   addPlayer,
@@ -570,7 +571,7 @@ $("replay-export").onclick = () => {
       [
         JSON.stringify({
           schema: "threadwake.take.v1",
-          simulationVersion: 2,
+          simulationVersion: REPLAY_VERSION,
           config,
           animation: settings,
           frames: take,
@@ -589,7 +590,7 @@ $("replay-import").onchange = async (event) => {
       c = data.config;
     if (
       data.schema !== "threadwake.take.v1" ||
-      data.simulationVersion !== 2 ||
+      data.simulationVersion !== REPLAY_VERSION ||
       !c ||
       !Number.isInteger(c.seed) ||
       c.seed < 0 ||

@@ -35,7 +35,7 @@ button {
   border: 2px solid #647464;
   padding: 9px 24px;
   cursor: pointer;
-  box-shadow: 0 3px 0 #0d1e22;
+  box-shadow: none;
   user-select: none;
   min-height: 44px;
 }
@@ -75,17 +75,23 @@ input:focus-visible {
   display: none !important;
 }
 #game {
-  position: relative;
-  width: 100%;
-  height: 100dvh;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 960px;
+  height: 540px;
+  transform: translate(-50%, -50%) scale(var(--game-scale, 1));
+  transform-origin: center;
+  overflow: hidden;
   isolation: isolate;
   display: grid;
   place-items: center;
 }
 #world {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
   image-rendering: pixelated;
   display: block;
   touch-action: none;
@@ -102,7 +108,7 @@ input:focus-visible {
 }
 .title-screen {
   justify-content: space-between;
-  padding: clamp(24px, 7vh, 90px) 24px 28px;
+  padding: 34px 24px 20px;
   background: linear-gradient(#0c222640, transparent 45%, #102222c9);
 }
 .title-lockup {
@@ -115,7 +121,7 @@ input:focus-visible {
   color: #c7c8a1;
 }
 h1 {
-  font-size: clamp(60px, 10vw, 140px);
+  font-size: 100px;
   font-weight: 400;
   line-height: 0.9;
   letter-spacing: 5px;
@@ -142,7 +148,7 @@ p {
 .menu-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 260px;
   margin-top: auto;
 }
@@ -278,12 +284,28 @@ input[type="checkbox"] {
 }
 dialog {
   position: fixed;
-  margin: auto;
+  left: 50%;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  margin: 0;
+  transform: translate(-50%, -50%) scale(var(--game-scale, 1));
+  transform-origin: center;
+  max-width: none;
+  max-height: 500px;
+  width: 600px;
+  padding: 24px;
   z-index: 10;
   font-size: 24px;
 }
 dialog::backdrop {
   background: #081821cc;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: var(--field-screen-width, 960px);
+  height: var(--field-screen-height, 540px);
+  transform: translate(-50%, -50%);
 }
 #hud {
   position: absolute;
@@ -298,16 +320,16 @@ dialog::backdrop {
 }
 .hud-left {
   position: absolute;
-  left: 24px;
-  top: 20px;
+  left: 16px;
+  top: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 #health {
-  font-size: 24px;
+  font-size: 21px;
   color: #f0c994;
-  letter-spacing: 3px;
+  letter-spacing: 1px;
 }
 #squad {
   font-size: 18px;
@@ -326,8 +348,8 @@ dialog::backdrop {
 }
 #pause-button {
   position: absolute;
-  right: 22px;
-  top: 20px;
+  right: 16px;
+  top: 16px;
   background: #193731bb;
   padding: 0 12px;
   min-height: 36px;
@@ -335,7 +357,7 @@ dialog::backdrop {
 }
 #ability {
   position: absolute;
-  bottom: 25px;
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -353,7 +375,7 @@ dialog::backdrop {
 }
 #lesson {
   position: absolute;
-  bottom: 100px;
+  bottom: 88px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -376,7 +398,7 @@ dialog::backdrop {
 #toast {
   position: absolute;
   left: 50%;
-  bottom: 80px;
+  bottom: 88px;
   transform: translateX(-50%);
   padding: 10px 20px;
   background: #e5d1a5;
@@ -439,115 +461,6 @@ dialog::backdrop {
   border: 2px solid #b6c8a1;
   padding: 16px;
 }
-@media (max-width: 650px) {
-  h1 {
-    letter-spacing: 1px;
-  }
-  .eyebrow {
-    font-size: 16px;
-    letter-spacing: 1px;
-  }
-  .title-screen {
-    padding-top: 7vh;
-  }
-  .workshop-link {
-    right: 10px;
-    bottom: 8px;
-    font-size: 16px;
-  }
-  .controls {
-    font-size: 17px;
-  }
-  #choices {
-    gap: 8px;
-    grid-template-columns: 1fr;
-  }
-  #draft {
-    justify-content: flex-start;
-  }
-  .draft-content {
-    margin: auto 0;
-  }
-  .upgrade {
-    padding: 12px 10px;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: 32px 1fr;
-    gap: 6px 10px;
-  }
-  .upgrade .glyph {
-    grid-row: 1 / 4;
-    font-size: 30px;
-  }
-  .upgrade small,
-  .upgrade .key {
-    grid-column: 2;
-  }
-  .upgrade strong {
-    font-size: 24px;
-  }
-  .upgrade small {
-    font-size: 17px;
-  }
-  .panel,
-  dialog {
-    padding: 20px;
-  }
-  h2 {
-    font-size: 35px;
-  }
-  #health {
-    font-size: 18px;
-  }
-  #squad {
-    font-size: 16px;
-  }
-  .hud-center {
-    font-size: 18px;
-  }
-  #ability {
-    bottom: 15px;
-    font-size: 17px;
-  }
-  #lesson {
-    bottom: 90px;
-    font-size: 18px;
-  }
-}
-@media (max-height: 500px) {
-  .title-screen {
-    padding: 16px;
-  }
-  .title-lockup .eyebrow,
-  .title-ornament {
-    display: none;
-  }
-  h1 {
-    font-size: 65px;
-    margin: 0;
-  }
-  .menu-actions {
-    gap: 6px;
-    margin-top: 10px;
-  }
-  .menu-actions button {
-    padding: 4px 18px;
-    min-height: 34px;
-  }
-  .controls {
-    margin: 10px;
-  }
-  .panel {
-    padding: 18px;
-  }
-  h2 {
-    margin: 0 0 12px;
-  }
-  #choices .upgrade {
-    min-height: 160px;
-    padding: 10px;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -595,6 +508,115 @@ dialog::backdrop {
   font-size: 16px;
 }
 dialog {
-  max-height: 90dvh;
+  max-height: 500px;
   overflow-y: auto;
+}
+#hud-memories {
+  position: absolute;
+  right: 16px;
+  top: 62px;
+  background: #19322dde;
+  padding: 7px 10px;
+  font-size: 19px;
+  min-height: 36px;
+  color: #e7cea0;
+}
+#hud-memories .memory-label {
+  color: #bdc9ac;
+  margin-left: 5px;
+}
+#memories {
+  width: 740px;
+}
+#memories h2 {
+  margin: 5px 0 8px;
+}
+#memory-balance {
+  font-size: 30px;
+  color: #e7cea0;
+  margin: 8px 0;
+}
+#memory-explainer {
+  font-size: 19px;
+  color: #bcc6a9;
+  margin: 10px 0;
+}
+#talents {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+#talents .talent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 9px;
+  padding: 18px 12px;
+  min-height: 158px;
+}
+.talent strong {
+  font-size: 30px;
+  font-weight: 400;
+}
+.talent-ranks {
+  color: #dcbe83;
+  letter-spacing: 8px;
+  margin-left: 8px;
+  font-size: 21px;
+}
+.talent-price {
+  font-size: 18px;
+  margin-top: auto;
+  color: #eddbb5;
+}
+#talents .talent:disabled {
+  opacity: 1;
+  background: #1c3330;
+  border-color: #455c50;
+}
+#talents .talent:disabled .talent-price {
+  color: #899c88;
+}
+#milestone-details {
+  font-size: 19px;
+  margin: 12px 0 18px;
+  text-align: left;
+}
+#milestone-details summary {
+  cursor: pointer;
+  color: #becbae;
+}
+#milestone-count {
+  float: right;
+  color: #e7cea0;
+}
+#options h2 {
+  font-size: 36px;
+  margin: 0 0 18px;
+}
+#options .controls {
+  font-size: 17px;
+  line-height: 1.2;
+  margin: 12px 0;
+}
+#options .check {
+  display: inline-flex;
+  margin: 6px 12px;
+  font-size: 20px;
+}
+#options .volume-controls {
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+#options .volume-controls label {
+  flex-direction: column;
+  gap: 4px;
+  font-size: 20px;
+}
+#options .actions {
+  margin-top: 16px;
+}
+body:has(#memories[open]) #hud-memories {
+  background: #435742;
 }

@@ -86,7 +86,8 @@ export function playRun({
               Math.hypot(a.x - p.x, a.y - p.y) -
               Math.hypot(b.x - p.x, b.y - p.y),
           )[0];
-      if (f && !down && Math.hypot(f.x - p.x, f.y - p.y) < 230) {
+      if (f && !down && Math.hypot(f.x - p.x, f.y - p.y) < 230 &&
+        !s.enemies.some((e) => Math.hypot(e.x - f.x, e.y - f.y) < 120 || Math.hypot(e.x - p.x, e.y - p.y) < 85)) {
         x = f.x + Math.cos(angle) * 70;
         y = f.y + Math.sin(angle) * 70;
       }

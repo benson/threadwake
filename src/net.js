@@ -3,6 +3,7 @@ import {
   SIMULATION_VERSION,
   UPDATE_REQUIRED,
 } from "../worker/protocol.js";
+import { cleanTraits } from "../worker/validation.js";
 
 const SERVER =
   import.meta.env?.VITE_ROOM_SERVER ||
@@ -18,6 +19,7 @@ export async function connectRoom({
   onHealth = () => {},
 }) {
   if (!/^[a-zA-Z0-9_-]{8,64}$/.test(room)) throw new Error("Invalid room code");
+  traits = cleanTraits(traits);
   const storageKey = `threadwake:room:${room}`;
   let token = "";
   try {
@@ -107,6 +109,7 @@ export async function connectRoom({
         } catch {}
         onIdentity({ id: msg.id, room });
         send({ type: "rename", name: String(name || "Weaver").slice(0, 18) });
+        send({ type: "traits", traits });
       } else if (msg.type === "state") {
         if (!identified || msg.state?.version !== SIMULATION_VERSION)
           return incompatible();
@@ -193,6 +196,10 @@ export async function connectRoom({
     rename(value) {
       name = String(value || "Weaver").slice(0, 18);
       send({ type: "rename", name });
+    },
+    setTraits(value) {
+      traits = cleanTraits(value);
+      send({ type: "traits", traits });
     },
     choose(id) {
       send({ type: "choose", id });

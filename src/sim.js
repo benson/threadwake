@@ -1,7 +1,7 @@
 import {
   WORLD,
   WAVE_COUNT,
-  WAVE_DURATION,
+  waveDuration,
   WAVES,
   BALANCE as B,
 } from "./config.js";
@@ -114,15 +114,15 @@ export function upgradePreview(p, id) {
   const value = (n) => {
     switch (id) {
       case "fork":
-        return `${1 + n} needles`;
+        return `${1 + n} ${n === 0 ? "needle" : "needles"}`;
       case "pierce":
-        return `${1 + 2 * n} targets per needle`;
+        return `${1 + 2 * n} ${n === 0 ? "target" : "targets"} per needle`;
       case "quick":
         return `${(B.fireInterval * Math.pow(0.8, n)).toFixed(2)}s between volleys`;
       case "heavy":
         return `${Math.round(B.shotDamage * (1 + 0.35 * n))} needle damage`;
       case "orbit":
-        return `${n} circling blades`;
+        return `${n} circling ${n === 1 ? "blade" : "blades"}`;
       case "echo":
         return `${(B.echoLife + 1.5 * n).toFixed(1)}s echo duration`;
       case "recall":
@@ -298,6 +298,7 @@ export function createGame(seed = 1) {
     phase: "lobby",
     wave: 0,
     waveTime: 0,
+    waveDuration: waveDuration(0),
     players: [],
     enemies: [],
     shots: [],
@@ -313,6 +314,7 @@ export function createGame(seed = 1) {
     _spawn: 0,
     _flower: 0,
     _resonance: {},
+    _opening: 0,
   };
 }
 export function addPlayer(s, id, name = "Weaver", traits = {}) {
@@ -346,6 +348,8 @@ export function addPlayer(s, id, name = "Weaver", traits = {}) {
     runTicks: 0,
     joinedWave: s.wave,
     stitchCharge: 0,
+    footsteps: [],
+    echoPreview: null,
     revive: 0,
     invulnerable: 2,
     aimX: 1,
@@ -366,6 +370,7 @@ export function addPlayer(s, id, name = "Weaver", traits = {}) {
     );
   s.players.push(p);
   statsFor(p);
+  showMemory(s, p);
   if (s.phase === "draft") s.choices[id] = rollChoices(s, p);
   return p;
 }
@@ -440,7 +445,9 @@ function nextWave(s) {
   s.wave++;
   s.phase = "playing";
   s.waveTime = 0;
-  s._spawn = 1.5;
+  s.waveDuration = waveDuration(s.wave);
+  s._spawn = s.wave === 1 ? 0.7 : 1.5;
+  s._opening = 0;
   s.shots = [];
   s.enemies = [];
   s.echoes = [];
@@ -461,6 +468,7 @@ function nextWave(s) {
     p._castBuffer = 0;
     p.stitchCharge = 0;
     statsFor(p);
+    showMemory(s, p);
   }
   for (let i = 0; i < 7; i++) spawnFlower(s);
   if (s.wave === WAVE_COUNT) spawnEnemy(s, "warden");
@@ -478,13 +486,14 @@ function spawnFlower(s) {
     life: 42,
   });
 }
-function spawnEnemy(s, type) {
+function spawnEnemy(s, type, formation = null) {
   const ps = alive(s);
   if (!ps.length || s.enemies.length >= B.maxEnemies) return;
-  const p = ps[Math.floor(random(s) * ps.length)],
+  const p = formation?.player || ps[Math.floor(random(s) * ps.length)],
     a = random(s) * Math.PI * 2;
-  let x = clamp(p.x + Math.cos(a) * 430, 25, WORLD.width - 25),
-    y = clamp(p.y + Math.sin(a) * 320, 25, WORLD.height - 25);
+  const reachX = s.wave === 1 ? 270 : 430, reachY = s.wave === 1 ? 210 : 320;
+  let x = clamp(formation?.x ?? p.x + Math.cos(a) * reachX, 25, WORLD.width - 25),
+    y = clamp(formation?.y ?? p.y + Math.sin(a) * reachY, 25, WORLD.height - 25);
   if (Math.hypot(x - p.x, y - p.y) < 150) {
     x = p.x < 600 ? 1150 : 50;
     y = 50 + random(s) * 700;
@@ -519,6 +528,19 @@ function spawnEnemy(s, type) {
     exposed: 0,
   });
 }
+function openingPair(s) {
+  const ps = alive(s);
+  if (!ps.length) return;
+  const p = ps[Math.floor(random(s) * ps.length)];
+  const angle = (Math.hypot(p.vx, p.vy) > 1 ? Math.atan2(p.vy, p.vx) : Math.atan2(p.aimY, p.aimX)) + Math.PI;
+  for (const side of [-1, 1]) {
+    const before = s.enemies.length;
+    spawnEnemy(s, "moth", { player: p,
+      x: p.x + Math.cos(angle) * 260 - Math.sin(angle) * 70 * side,
+      y: p.y + Math.sin(angle) * 260 + Math.cos(angle) * 70 * side });
+    if (s.enemies.length > before) s.enemies.at(-1)._fire = side === -1 ? 0.8 : 1;
+  }
+}
 function target(s, p) {
   let best = null,
     d = Infinity;
@@ -546,7 +568,7 @@ function shot(
   s.shots.push({
     id: uid(s),
     owner: p?.id,
-    source: hostile ? p?.id : undefined,
+    source: hostile ? (p?.id ?? null) : null,
     x,
     y,
     vx: Math.cos(angle) * speed,
@@ -617,12 +639,8 @@ function hurt(s, p, damage) {
     s.echoes = s.echoes.filter((e) => e.owner !== p.id);
   }
 }
-function cast(s, p) {
-  p.castAge = 0;
-  statsFor(p);
-  p.castCooldown = p.cooldownDuration;
-  const path = p._history.map((q) => ({ ...q }));
-  if (!path.length) path.push({ x: p.x, y: p.y, t: s.time });
+function memoryPlan(s, p, path = p._history) {
+  if (!path.length) path = [{ x: p.x, y: p.y, t: s.time }];
   // A tight loop may finish where it started: choose its furthest genuine
   // footstep. A motionless cast gets a projected anchor, not invented history.
   let at = 0;
@@ -656,6 +674,33 @@ function cast(s, p) {
       y: p.y + Math.sin(inward) * B.echoProjection,
     };
   }
+  return { path, at, projected, anchor: projected ? anchor : { x: path[at].x, y: path[at].y } };
+}
+function showMemory(s, p) {
+  const history = p._history.filter((q) => finite(q.t, s.time) >= s.time - B.historySeconds - 1e-6);
+  const plan = memoryPlan(s, p, history);
+  // Public trails are real history samples, never the projected anchor. Keep
+  // the chosen real anchor in the decimation so the preview explains the cast.
+  const points = [];
+  for (const [i, q] of history.entries()) {
+    if (!points.length || dist2(points.at(-1).q, q) >= 8 ** 2 || i === plan.at) points.push({ i, q });
+  }
+  if (history.length && dist2(points.at(-1).q, history.at(-1)) > 0.01)
+    points.push({ i: history.length - 1, q: history.at(-1) });
+  const indices = new Set([0, points.length - 1]);
+  const anchorIndex = points.findIndex(({ i }) => i === plan.at);
+  if (anchorIndex >= 0) indices.add(anchorIndex);
+  for (let i = 0; i < 15; i++) indices.add(Math.round(i * (points.length - 1) / 14));
+  p.footsteps = [...indices].filter((i) => i >= 0 && i < points.length).sort((a, b) => a - b)
+    .map((i) => ({ x: points[i].q.x, y: points[i].q.y, age: clamp(s.time - finite(points[i].q.t, s.time), 0, B.historySeconds) }));
+  p.echoPreview = { ...plan.anchor, projected: plan.projected, ready: !p.dead && p.castCooldown <= 0,
+    length: Math.hypot(plan.anchor.x - p.x, plan.anchor.y - p.y) };
+}
+function cast(s, p) {
+  p.castAge = 0;
+  statsFor(p);
+  p.castCooldown = p.cooldownDuration;
+  const { path, at, projected, anchor } = memoryPlan(s, p, p._history.map((q) => ({ ...q })));
   const life = p.echoMaxLife;
   const owned = s.echoes.filter((e) => e.owner === p.id);
   if (owned.length >= B.maxEchoesPerPlayer)
@@ -663,8 +708,8 @@ function cast(s, p) {
   s.echoes.push({
     id: uid(s),
     owner: p.id,
-    x: projected ? anchor.x : path[at].x,
-    y: projected ? anchor.y : path[at].y,
+    x: anchor.x,
+    y: anchor.y,
     life,
     maxLife: life,
     projected,
@@ -795,6 +840,7 @@ function bloom(s, f, p) {
 }
 export function step(s, inputs = {}, dt = 1 / 30) {
   if (s.phase !== "playing" || !s.players.length) return;
+  s.waveDuration = waveDuration(s.wave);
   s.tick++;
   dt = clamp(finite(dt, 1 / 30), 0.001, 0.1);
   s.time += dt;
@@ -901,6 +947,10 @@ export function step(s, inputs = {}, dt = 1 / 30) {
     return;
   }
   s._spawn -= dt;
+  if (s.wave === 1 && s._opening < 2 && s.waveTime >= [4, 13][s._opening]) {
+    openingPair(s);
+    s._opening++;
+  }
   if (s._spawn <= 0) {
     const wave = WAVES[Math.min(WAVES.length - 1, s.wave - 1)];
     // Small packs alternate with breathing room. Dawn's adds remain bounded
@@ -1159,6 +1209,7 @@ export function step(s, inputs = {}, dt = 1 / 30) {
   s.flowers = s.flowers.filter((f) => f.life > 0);
   for (const e of s.effects) e.life -= dt;
   s.effects = s.effects.filter((e) => e.life > 0).slice(-B.maxEffects);
+  for (const p of s.players) showMemory(s, p);
   if (!alive(s).length) {
     s.phase = "lost";
     return;
@@ -1171,7 +1222,7 @@ export function step(s, inputs = {}, dt = 1 / 30) {
       s.shots = [];
       s.enemies = [];
     }
-  } else if (s.waveTime >= WAVE_DURATION) {
+  } else if (s.waveTime >= waveDuration(s.wave)) {
     for (const p of s.players) if (p._waveTime + 1e-6 >= 10) p.wavesSurvived++;
     s.phase = "draft";
     s.shots = [];
