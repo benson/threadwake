@@ -1,5 +1,17 @@
 # Continuing craft work
 
+## 2026-10-05 — Grand Clock foot animation
+
+The temporal inventory now includes the Grand Clock and porcelain beetle. It exposed fixed wooden feet under the translating clock. The clock now uses a slow alternating stride/lift while moving, with subtle body weight shift and a visible toe cap. Its feet stay fixed when stationary; the shared combat body and weapon rim remain unchanged.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Grand Clock translated with identical foot poses. | Alternating foot contact and lift, gated by real movement. | Makes the walking body read as walking rather than sliding. |
+
+Scoped animation review verdict: **Approve** for this physicality correction. This is gameplay sprite animation; interface-only rules about CSS transitions and keyboard UI are inapplicable. The review does not approve all motion in the game.
+
+Validation: native/2× ordered frame inspection; eight distinct moving foot-row renders versus one stationary render; a 5.6-second real-keyboard final-gallery pass; all 77 tests and production build. Sonnet's independent image review confirmed the original fixed-foot silhouette and no visible detached leg, but could not confidently resolve every small foot pixel in the full atlas. Its low-confidence contrast/shadow hypotheses are not established defects. Review cost $0.020068; cumulative spend $0.1616705 of $5 across eleven calls.
+
 ## 2026-10-05 — side boundary visibility
 
 Real keyboard movement to `x=18` exposed a clipped broom tip and side panels drawn on walkable floor. The side wall art now sits beyond the existing west/east collision boundaries, and the camera includes 49 pixels of exterior wall at either edge. Neither the playable area nor combat geometry changes. A second real keyboard pass confirmed the entire broom remains visible at the west edge.

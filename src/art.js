@@ -517,13 +517,22 @@ function armor(ctx, e, time, ink) {
   aimedEmitter(ctx, e, ink, PALETTE.stoneTop, 3);
 }
 function curator(ctx, e, time, ink) {
-  const x = Math.round(e.x),
+  const gait = pose(e, time, { stride: 4.5 }),
+    x = Math.round(e.x),
     y = Math.round(e.y),
-    bob = Math.round(Math.sin(Math.floor(time * 12) * 0.24));
+    bob = gait.moving
+      ? gait.bob
+      : Math.round(Math.sin(Math.floor(time * 12) * 0.24));
   shadow(ctx, x, y, 29);
   for (const side of [-1, 1]) {
-    pixel(ctx, x + side * 12 - 5, y - 16, 11, 16, ink);
-    pixel(ctx, x + side * 12 - 3, y - 15, 7, 13, PALETTE.wood);
+    const stride = side < 0 ? gait.leftStride : gait.rightStride,
+      lift = side < 0 ? gait.leftLift : gait.rightLift,
+      footX = x + side * 12 + stride,
+      footY = y - lift;
+    pixel(ctx, footX - 5, footY - 16, 11, 16, ink);
+    pixel(ctx, footX - 3, footY - 15, 7, 13, PALETTE.wood);
+    pixel(ctx, footX - 5, footY - 3, 12, 3, ink);
+    pixel(ctx, footX - 4, footY - 3, 10, 1, PALETTE.creamDark);
     oval(ctx, x + side * 22, y - 38 + bob, 11, 11, ink);
     oval(ctx, x + side * 22, y - 40 + bob, 9, 9, PALETTE.gold);
     oval(ctx, x + side * 22, y - 40 + bob, 5, 5, PALETTE.wood);
