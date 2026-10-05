@@ -766,7 +766,7 @@ function shot(
     pierce,
     r: radius,
     color: owner?.color ?? 0,
-    life: hostile ? 7 : 2.2,
+    life: hostile ? 7 : weapon === "disc" ? WB.disc.life : 2.2,
     _hits: [],
   });
   return true;

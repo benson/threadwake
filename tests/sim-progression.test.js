@@ -225,6 +225,30 @@ test("discs pierce outward, turn toward their owner and can strike again on retu
   assert.ok(disc.vx < 0);
   assert.equal(s.enemies[0].hp, 452.5);
 });
+test("a returning disc reaches an unupgraded owner moving away in open space", () => {
+  for (const character of ["custodian", "conservator", "guard"]) {
+    for (const haste of [0, 8]) {
+      const s = run([character]),
+        p = s.players[0];
+      p.weapons = ["disc"];
+      p.haste = haste;
+      p._weaponTimers.disc = 0;
+      s.enemies = [enemy(800, 800, 390, 500)];
+      step(s, {});
+      const disc = s.shots.find((q) => q.weapon === "disc");
+      p._weaponTimers.disc = 100;
+      for (let i = 0; i < 125 && s.shots.includes(disc); i++)
+        step(s, { 0: { x: -1 } });
+      assert.ok(disc.returning);
+      assert.ok(!s.shots.includes(disc), "disc eventually finishes its return");
+      const distance = Math.hypot(disc.x - p.x, disc.y - (p.y - 18));
+      assert.ok(
+        distance < 22,
+        `${character}, haste ${haste}: disc vanished ${distance.toFixed(1)}px from its owner`,
+      );
+    }
+  }
+});
 test("storm chains once per exhibit and cannot strike through solid cover", () => {
   const s = run(),
     p = s.players[0];

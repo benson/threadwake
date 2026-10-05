@@ -46,7 +46,7 @@ An opaque token stored in session storage resumes a disconnected player. Seats a
 
 Credits bank after each participated wave, plus a win bonus and five one-time play milestones. Small permanent traits are browser-local, bounded on the server, and designed for casual co-op, not competitive rankings. They are not an account save or cheat-resistant economy. Clearing browser storage removes them. Protocol 4 rejects incompatible clients and recovery checkpoints; reload after an update and create a new room if an old room cannot resume.
 
-The start screen shows your credits, best wave, permanent equipment, and tonight's gallery route. Open Staff kit from the credit balance, Pause, results, or the title screen. Three ranks each add health, movement speed, or shorter special cooldowns; the shop shows exact before-and-after values. Purchases apply to the next shift, including online restarts. Existing Threadwake balances, purchased traits and completed milestones are preserved. All controls share the arena's fixed frame. Workshop recordings use version 6 for the new simulation rules.
+The start screen shows your credits, best wave, permanent equipment, and tonight's gallery route. Open Staff kit from the credit balance, Pause, results, or the title screen. Three ranks each add health, movement speed, or shorter special cooldowns; the shop shows exact before-and-after values. Purchases apply to the next shift, including online restarts. Existing Threadwake balances, purchased traits and completed milestones are preserved. All controls share the arena's fixed frame. Workshop recordings use version 7 for the new simulation rules.
 
 ## Validation and release
 
