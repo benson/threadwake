@@ -8,6 +8,7 @@ async page => {
     const {createGame, addPlayer} = await import('/src/sim.js');
     const {pixelText} = await import('/src/pixel-ui.js');
     const viewport = document.createElement('canvas'), renderer = createRenderer(viewport);
+    const ratio = viewport.width / 640;
     const sheet = document.createElement('canvas'); sheet.id = 'ability-review';
     sheet.width = 1200; sheet.height = 1200;
     const ctx = sheet.getContext('2d'); ctx.imageSmoothingEnabled = false;
@@ -26,7 +27,7 @@ async page => {
         fromX: 616, fromY: 387, radius: kind === 'repel' ? 132 : kind === 'restore' ? 110 : 115,
         life: maxLife - age, maxLife}];
       renderer.draw(s, 'qa', age, {shake: false, reducedMotion: true});
-      ctx.drawImage(viewport, 180, 28, 280, 280, col * 300 + 10, row * 300 + 20, 280, 280);
+      ctx.drawImage(viewport, 180*ratio, 28*ratio, 280*ratio, 280*ratio, col * 300 + 10, row * 300 + 20, 280, 280);
       pixelText(ctx, kind.toUpperCase() + ' ' + Math.round(age * 1000) + 'MS', col * 300 + 12, row * 300 + 5, 1);
     }));
     return {kinds, ages};

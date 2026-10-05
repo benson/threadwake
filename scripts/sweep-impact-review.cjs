@@ -14,7 +14,7 @@ async page => {
   for(let i=0;i<4;i++){
    if(i)for(let j=0;j<(i===1?1:2);j++)step(s,{a:{cast:i===1&&j===0}},1/30);
    renderer.draw(s,'a',s.time,{shake:false,reducedMotion:true});
-   const x=(i%2)*640,y=Math.floor(i/2)*360;ctx.drawImage(c,x,y);
+   const x=(i%2)*640,y=Math.floor(i/2)*360;ctx.drawImage(c,x,y,640,360);
    samples.push({time:s.time,hp:s.enemies[0].hp,hit:s.enemies[0].hit,x:s.enemies[0].x});
   }
   document.querySelector('#game').hidden=true;document.body.append(plate);

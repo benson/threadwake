@@ -19,7 +19,7 @@ async page => {
       if(headY<60)throw Error(map.id+': north-edge actor clips or overlaps top HUD');
       const pointer=renderer.screenToWorld(320,p.y-(renderer.camera.y-180));
       if(Math.abs(pointer.x-p.x)>.01||Math.abs(pointer.y-p.y)>.01)throw Error('Camera pointer mapping diverges');
-      ctx.drawImage(canvas,(i%2)*640,Math.floor(i/2)*360);
+      ctx.drawImage(canvas,(i%2)*640,Math.floor(i/2)*360,640,360);
       p.y=782;renderer.draw(s,'a',10,{shake:false,reducedMotion:true});
       for(let j=0;j<40;j++)renderer.draw(s,'a',10+j/30,{shake:false,reducedMotion:true});
       if(p.y-(renderer.camera.y-180)>360)throw Error('South edge clips');
@@ -32,7 +32,7 @@ async page => {
         if(screenX-45<0||screenX+45>640)throw Error(map.id+': side-edge weapon clips');
         const point=sideRenderer.screenToWorld(screenX,180);
         if(Math.abs(point.x-p.x)>.01||Math.abs(point.y-p.y)>.01)throw Error('Side pointer mapping diverges');
-        sideCtx.drawImage(sideCanvas,j*640,i*360);sides.push(screenX);
+        sideCtx.drawImage(sideCanvas,j*640,i*360,640,360);sides.push(screenX);
       }
       results.push({gallery:map.id,headY,sides,pointerMapping:true});
     }

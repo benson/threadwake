@@ -124,7 +124,7 @@ export const UPGRADES = [
     id: "magnet",
     name: "Visitor bell",
     description:
-      "Clearing red shots charges nearby supply carts and pulls them toward you.",
+      "Nearby supply carts move toward you. Clearing red shots charges them faster.",
     icon: "flower",
   },
 ];
@@ -339,7 +339,14 @@ export function upgradePreview(p, id) {
   };
 }
 function effect(s, type, x, y, color = 0, extra = {}) {
-  const life = type === "supply" ? 0.6 : 0.35;
+  const life =
+    type === "death"
+      ? 1
+      : type === "chip"
+        ? 0.8
+        : type === "supply"
+          ? 0.6
+          : 0.35;
   s.effects.push({
     id: uid(s),
     type,

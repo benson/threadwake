@@ -7,7 +7,7 @@ import {
 } from "./animation.js";
 import { createRenderer } from "./render.js";
 import { initializePixelIcons, pixelLine, pixelText } from "./pixel-ui.js";
-const REPLAY_VERSION = 7;
+const REPLAY_VERSION = 8;
 import {
   createGame,
   addPlayer,
@@ -25,6 +25,15 @@ const canvas = $("preview"),
   sc = sheet.getContext("2d");
 const curve = $("curves"),
   cc = curve.getContext("2d");
+// Authoring previews use the same half-unit raster as the live game.
+for (const preview of [canvas, sheet]) {
+  preview.width *= 2;
+  preview.height *= 2;
+  const context = preview.getContext("2d");
+  context.scale(2, 2);
+  context._pixelRatio = 2;
+  context.imageSmoothingEnabled = false;
+}
 const phaseKeys = ACTION_PHASES;
 const ranges = {
   fps: [4, 24, 1, "Pose rate"],

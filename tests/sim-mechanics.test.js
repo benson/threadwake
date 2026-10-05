@@ -359,3 +359,21 @@ test("JSON recovery retains live companions and projectile ownership for exact c
   assert.equal(snapshot(s).version, 4);
   assert.ok(!JSON.stringify(snapshot(s)).includes('"_'));
 });
+
+test("death fragments remain long enough to land and are then retired", () => {
+  const { s, p } = quiet();
+  s.enemies = [enemy(800, p.x + 35, p.y, { hp: 1, maxHp: 1 })];
+  step(s, { a: { cast: true } });
+  const death = s.effects.find((e) => e.type === "death");
+  assert.ok(death, "actual combat emits physical debris");
+  for (let i = 0; i < 18; i++) step(s, {});
+  assert.ok(
+    s.effects.some((e) => e.id === death.id),
+    "debris survives its landing phase",
+  );
+  for (let i = 0; i < 20; i++) step(s, {});
+  assert.ok(
+    !s.effects.some((e) => e.id === death.id),
+    "settled debris has a bounded lifetime",
+  );
+});

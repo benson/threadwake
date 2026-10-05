@@ -294,3 +294,26 @@ test("menu hover never creates a context; hover and sliders are gentle and throt
   audio.slider(0.501);
   assert.equal(audio.played.filter((e) => e.name === "slider").length, 1);
 });
+
+test("gallery ambience follows material and water position without bursts after pause", () => {
+  const audio = new Probe(),
+    s = state();
+  s.mapId = "sculpture_court";
+  Object.assign(s.players[0], { x: 600, y: 405, vx: 120, vy: 0 });
+  audio.advance(s, 0);
+  audio.advance(s, 0.4);
+  assert.ok(audio.played.some((c) => c.name === "waterstep"));
+  assert.ok(!audio.played.some((c) => c.name === "footstep"));
+  audio.played = [];
+  audio.advance(s, 30, { paused: true });
+  audio.advance(s, 30.01);
+  assert.equal(
+    audio.played.filter((c) => ["water", "creak", "waterstep"].includes(c.name))
+      .length,
+    0,
+  );
+  s.mapId = "clock_gallery";
+  s.players[0].vx = 0;
+  audio.advance(s, 31);
+  assert.ok(audio.played.some((c) => c.name === "clocktick"));
+});

@@ -39,10 +39,10 @@ initializePixelIcons();
 for (const art of document.querySelectorAll(
   "canvas[data-menu-art], canvas[data-curio-art]",
 )) {
-  art.width = art.height = 32;
+  art.width = art.height = 64;
   if (art.dataset.menuArt)
-    drawMenuArt(art.getContext("2d"), art.dataset.menuArt);
-  else drawCurio(art.getContext("2d"), art.dataset.curioArt);
+    drawMenuArt(art.getContext("2d"), art.dataset.menuArt, 0, 0, 64);
+  else drawCurio(art.getContext("2d"), art.dataset.curioArt, 0, 0, 64);
 }
 $("milestone-details").addEventListener("toggle", () =>
   drawPixelIcon(
@@ -149,11 +149,15 @@ for (const character of CHARACTERS) {
   button.dataset.character = character.id;
   button.className = "character-card";
   const portrait = document.createElement("canvas");
-  portrait.width = 64;
-  portrait.height = 64;
+  portrait.width = 128;
+  portrait.height = 128;
   portrait.setAttribute("aria-hidden", "true");
+  const portraitContext = portrait.getContext("2d");
+  portraitContext.scale(2, 2);
+  portraitContext._pixelRatio = 2;
+  portraitContext.imageSmoothingEnabled = false;
   drawActor(
-    portrait.getContext("2d"),
+    portraitContext,
     {
       ...demo,
       x: 32,
@@ -444,10 +448,10 @@ function updateDraft() {
     const b = document.createElement("button");
     b.className = "upgrade";
     const glyph = document.createElement("canvas");
-    glyph.width = glyph.height = 32;
+    glyph.width = glyph.height = 64;
     glyph.className = "glyph curio-icon";
     glyph.setAttribute("aria-hidden", "true");
-    drawCurio(glyph.getContext("2d"), u.id);
+    drawCurio(glyph.getContext("2d"), u.id, 0, 0, 64);
     const title = document.createElement("strong");
     const player = state.players.find((p) => p.id === id);
     const rank = player?.upgrades.filter((v) => v === u.id).length || 0;
@@ -594,10 +598,10 @@ function options() {
       button.setAttribute("aria-controls", "item-details");
       if (item.icon) {
         const icon = document.createElement("canvas");
-        icon.width = icon.height = 32;
+        icon.width = icon.height = 64;
         icon.className = "loadout-icon";
         icon.setAttribute("aria-hidden", "true");
-        drawCurio(icon.getContext("2d"), item.icon);
+        drawCurio(icon.getContext("2d"), item.icon, 0, 0, 64);
         button.append(icon);
       }
       button.append(
@@ -698,12 +702,15 @@ function memories() {
     const heading = document.createElement("span"),
       illustration = document.createElement("canvas");
     heading.className = "talent-heading";
-    illustration.width = illustration.height = 32;
+    illustration.width = illustration.height = 64;
     illustration.className = "menu-art";
     illustration.setAttribute("aria-hidden", "true");
     drawCurio(
       illustration.getContext("2d"),
       { vitality: "vitality", haste: "speed", echo: "echo" }[key],
+      0,
+      0,
+      64,
     );
     heading.append(illustration, titleEl);
     const ranks = document.createElement("span");
@@ -1015,7 +1022,7 @@ function updateHud() {
   const abilityArt = $("ability").querySelector("canvas");
   if (abilityArt.dataset.character !== character.id) {
     abilityArt.dataset.character = character.id;
-    drawCurio(abilityArt.getContext("2d"), character.icon);
+    drawCurio(abilityArt.getContext("2d"), character.icon, 0, 0, 64);
   }
   iconText(
     $("health"),

@@ -4,12 +4,13 @@ async (page) => {
   const download = page.waitForEvent("download");
   const report = await page.evaluate(async () => {
     const { AudioGarden } = await import("/src/audio.js");
-    const duration = 56, rate = 44100;
+    const duration = 64, rate = 44100;
     const context = new OfflineAudioContext(2, duration * rate, rate);
     const audio = new AudioGarden(); audio.attachContext(context);
     const cues = ["hover", "click", "select", "confirm", "back", "slider", "slingshot", "disc", "lantern", "storm",
       "sweep", "restore", "repel", "telegraph", "hostile", "impact", "death", "shatter", "catch", "hurt", "down",
-      "revive", "heal", "haste", "xp", "supply", "weapon", "level", "ready", "wave", "boss", "won", "lost"];
+      "revive", "heal", "haste", "xp", "supply", "weapon", "level", "ready", "wave", "boss", "won", "lost",
+      "footstep", "waterstep", "water", "creak", "clocktick", "roomchime", "animal"];
     const events = [];
     for (let beat = 0, at = .05; at < duration - 2; beat++, at += 30 / 90)
       events.push({ at, run() { audio._score(beat, at, at < 16 ? "menu" : "play", .6); } });
@@ -41,7 +42,7 @@ async (page) => {
     const link = document.createElement("a"), url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
     link.href = url; link.download = "after-hours-audio-audition.wav"; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-    return { duration, sampleRate: rate, music: metrics(1, 16), mixed: metrics(17, 53), voices: audio.stats, cueOrder: cues };
+    return { duration, sampleRate: rate, music: metrics(1, 16), mixed: metrics(17, 62), voices: audio.stats, cueOrder: cues };
   });
   await (await download).saveAs("C:/Users/benso/Projects/threadwake/output/after-hours-audio-audition.wav");
   if (report.music.invalid || report.mixed.invalid || report.mixed.clipped || report.music.rms < .0005)

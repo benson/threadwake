@@ -59,6 +59,7 @@ async page => {
       }
     });
     const viewport=document.createElement('canvas'),renderer=createRenderer(viewport);
+    const ratio=viewport.width/640;
     const base={version:3,seed:42,mapId:'antiquities',wave:1,time:0,phase:'playing',players:[],enemies:[],companions:[],flowers:[],shots:[],effects:[]};
     const variants=[
       {name:'friendly marble',shots:[{id:1,x:600,y:400,vx:200,vy:0,r:3,hostile:false}]},
@@ -70,14 +71,14 @@ async page => {
     const effects=sheet('review-effects',4,4,256,264);
     variants.forEach((v,i)=>{
       const {x,y}=tile(effects,i,v.name);renderer.draw({...base,...v},null,0,{reducedMotion:true,shake:false});
-      effects.ctx.drawImage(viewport,200,60,240,240,x+8,y+22,240,240);
+      effects.ctx.drawImage(viewport,200*ratio,60*ratio,240*ratio,240*ratio,x+8,y+22,240,240);
     });
     const maps=sheet('review-maps',2,2,600,420);
     MAPS.forEach((map,i)=>{
       const {x,y}=tile(maps,i,`map:${map.id}`),full=document.createElement('canvas');full.width=1200;full.height=800;const fc=full.getContext('2d');fc.imageSmoothingEnabled=false;
       const s={...base,mapId:map.id};renderer.draw(s,null,0,{reducedMotion:true,shake:false});
       for(const top of [0,360,440])for(const left of [0,560]){
-        renderer.camera.x=left+320;renderer.camera.y=top+180;renderer.draw(s,null,0,{reducedMotion:true,shake:false});fc.drawImage(viewport,left,top);
+        renderer.camera.x=left+320;renderer.camera.y=top+180;renderer.draw(s,null,0,{reducedMotion:true,shake:false});fc.drawImage(viewport,left,top,640,360);
       }
       maps.ctx.drawImage(full,x,y+20,600,400);
     });

@@ -27,7 +27,8 @@ async page => {
     const viewport=document.createElement('canvas'),renderer=createRenderer(viewport),s=createGame(42);
     s.phase='playing';s.wave=1;
     const pickups=[{kind:'xp'},...weapons.map(weapon=>({kind:'weapon',weapon})),{kind:'heal'},{kind:'haste'}];
-    pickups.forEach((q,f)=>{const {x,y}=cell(arsenal.ctx,4,f);s.pickups=[{id:f+1,x:600,y:400,life:60,...q}];renderer.draw(s,null,.2,{shake:false,reducedMotion:true});arsenal.ctx.drawImage(viewport,300,147,40,40,x+23,y+57,40,40);arsenal.ctx.drawImage(viewport,300,147,40,40,x+97,y+40,80,80);});
+    const ratio=viewport.width/640;
+    pickups.forEach((q,f)=>{const {x,y}=cell(arsenal.ctx,4,f);s.pickups=[{id:f+1,x:600,y:400,life:60,...q}];renderer.draw(s,null,.2,{shake:false,reducedMotion:true});arsenal.ctx.drawImage(viewport,300*ratio,147*ratio,40*ratio,40*ratio,x+23,y+57,40,40);arsenal.ctx.drawImage(viewport,300*ratio,147*ratio,40*ratio,40*ratio,x+97,y+40,80,80);});
     return {motionRows:characters.flatMap(([c])=>[c+' walk 0..0.7s',c+' special '+ages.join('/')]),weaponRows:weapons.map(w=>w+' firing in eight directions clockwise from east'),pickupOrder:pickups};
   });
   for(const id of ['character-motion','weapon-effects'])await page.locator('#'+id).screenshot({path:'.local/art-review/'+id+'.png'});

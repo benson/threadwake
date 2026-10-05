@@ -1,5 +1,6 @@
 // Original score: "After Closing" — an eight-bar music-box miniature in E minor.
 // Every voice is synthesized; gameplay and UI share the same wood, glass and air palette.
+import { WATER_POOL, inWater } from "./ambience.js";
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const midi = (n) => 440 * 2 ** ((n - 69) / 12);
 const MELODY = [
@@ -31,6 +32,13 @@ const PRIORITY = {
   boss: 4,
 };
 const RATE = {
+  footstep: 0.25,
+  waterstep: 0.25,
+  water: 0.65,
+  creak: 8,
+  clocktick: 0.7,
+  roomchime: 20,
+  animal: 12,
   hover: 0.07,
   click: 0.05,
   confirm: 0.12,
@@ -129,6 +137,7 @@ export class AudioGarden {
     this.primed = false;
     this.xpNote = 0;
     this.sliderStep = null;
+    this.ambientBuckets = new Map();
   }
   unlock() {
     if (!this.enabled) return;
@@ -489,6 +498,38 @@ export class AudioGarden {
         tone(294, 0.17, 0.027, "sine", 1.12);
         tone(588, 0.1, 0.009, "sine", 1.07, 0.1);
         break;
+      case "footstep":
+        air(value ? 420 : 820, 0.055, 0.017, 0.45);
+        tone(value ? 100 : 180, 0.075, 0.012, "triangle", 0.48);
+        break;
+      case "waterstep":
+        air(1700, 0.18, 0.032, 0.3);
+        tone(560, 0.11, 0.013, "sine", 1.7, 0.025);
+        tone(930, 0.07, 0.008, "sine", 0.6, 0.075);
+        break;
+      case "water":
+        air(1100, 0.65, 0.018, 0.7);
+        tone(680 + value * 180, 0.16, 0.009, "sine", 1.8, 0.2);
+        tone(1280, 0.095, 0.006, "sine", 0.55, 0.38);
+        break;
+      case "creak":
+        // Staggered bowed-wood partials, quiet enough to remain environmental.
+        tone(146 + value * 33, 0.6, 0.016, "triangle", 0.68);
+        tone(227, 0.28, 0.009, "sawtooth", 0.78, 0.16);
+        air(750, 0.5, 0.013, 0.52, 0.04);
+        break;
+      case "clocktick":
+        tone(value ? 1220 : 960, 0.026, 0.017, "triangle", 0.45);
+        air(2200, 0.021, 0.011, 0.5);
+        break;
+      case "roomchime":
+        bell(71, 0.009, 0, 1.1);
+        bell(78, 0.005, 0.13, 0.9);
+        break;
+      case "animal":
+        tone(1850, 0.055, 0.006, "sine", 1.25);
+        tone(2200, 0.05, 0.004, "sine", 0.78, 0.09);
+        break;
       case "hostile":
         tone(180, 0.095, 0.027, "triangle", 0.65);
         air(1350, 0.052, 0.03, 0.6);
@@ -696,6 +737,76 @@ export class AudioGarden {
       this.nextBeat += 30 / bpm;
     }
   }
+  _ambience(state, me, active, audible) {
+    const t = state.time || 0,
+      gallery = state.mapId;
+    const emit = (name, period, source, gain, condition = true, offset = 0) => {
+      const bucket = Math.floor((t + offset) / period),
+        previous = this.ambientBuckets.get(name);
+      this.ambientBuckets.set(name, bucket);
+      if (
+        previous === undefined ||
+        previous === bucket ||
+        !active ||
+        !audible ||
+        !condition
+      )
+        return;
+      const distance = me ? Math.hypot(source.x - me.x, source.y - me.y) : 0;
+      if (distance > 650) return;
+      this.cue(name, {
+        gain: gain / (1 + distance / 240),
+        pan: me ? clamp((source.x - me.x) / 450, -0.7, 0.7) : 0,
+        value: bucket % 2,
+      });
+    };
+    const moving = me && !me.dead && Math.hypot(me.vx || 0, me.vy || 0) > 18;
+    const wet = me && inWater(gallery, me.x, me.y);
+    emit(
+      wet ? "waterstep" : "footstep",
+      0.34,
+      me || { x: 600, y: 400 },
+      0.5,
+      moving,
+    );
+    // Advance both step clocks while dry/stationary, avoiding a delayed splash.
+    this.ambientBuckets.set(
+      wet ? "footstep" : "waterstep",
+      Math.floor(t / 0.34),
+    );
+    emit("water", 0.88, WATER_POOL, 0.8, gallery === "sculpture_court", 0.19);
+    emit(
+      "clocktick",
+      0.92,
+      { x: 490, y: 290 },
+      0.6,
+      gallery === "clock_gallery",
+    );
+    emit(
+      "roomchime",
+      27,
+      { x: 600, y: 80 },
+      0.65,
+      gallery === "clock_gallery",
+      11,
+    );
+    emit(
+      "creak",
+      13.7,
+      { x: 270, y: 240 },
+      gallery === "clock_gallery" ? 0.8 : 0.5,
+      true,
+      3.4,
+    );
+    emit(
+      "animal",
+      23.1,
+      { x: 393, y: 501 },
+      0.5,
+      gallery === "natural_history",
+      5.5,
+    );
+  }
   update(state, id, { screen, paused = false } = {}) {
     if (!state) return;
     if (
@@ -735,6 +846,7 @@ export class AudioGarden {
       };
     };
     const play = (name, options = {}) => audible && this.cue(name, options);
+    this._ambience(state, me, active, audible);
     if (this.primed && audible) {
       if (
         state.phase !== this.lastPhase &&

@@ -43,7 +43,8 @@ async page => {
     await page.evaluate(async index => {
       const c = document.querySelector('#coop-arsenal'), img = new Image();
       img.src = window.__coopReviewFrames[index].data; await img.decode();
-      c.getContext('2d').drawImage(img, 0, 0);
+      const ctx=c.getContext('2d');ctx.save();ctx.setTransform(1,0,0,1,0,0);
+      ctx.drawImage(img, 0, 0);ctx.restore();
     }, i);
     await page.screenshot({path: `.local/art-review/coop-arsenal-${i}.png`});
   }
