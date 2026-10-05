@@ -7,6 +7,7 @@ async page => {
   const ids=await page.evaluate(async()=>{
     const {UPGRADES}=await import('/src/sim.js');
     const s=window.__threadwake.state,p=s.players[0];
+    p.weapons=['slingshot','lantern','disc','storm'];
     p.upgrades=UPGRADES.flatMap(u=>[u.id,u.id]);
     s._spawn=s._flower=1000;s.enemies=[];s.shots=[];
     return UPGRADES.map(u=>u.id);
@@ -18,7 +19,7 @@ async page => {
       s.choices={[s.players[0].id]:group};
     },ids.slice(i,i+3));
     await page.waitForFunction(first=>document.querySelector('#choices .upgrade-description')?.textContent===first,
-      await page.evaluate(async first=>(await import('/src/sim.js')).UPGRADES.find(u=>u.id===first).description,ids[i]));
+      await page.evaluate(async first=>(await import('/src/upgrade-copy.js')).upgradeDetails(window.__threadwake.state.players[0],first,{control:'Space'}).description,ids[i]));
     const state=await page.locator('.draft-content').evaluate(el=>{
       const a=el.getBoundingClientRect(),g=document.querySelector('#game').getBoundingClientRect();
       return {top:a.top,bottom:a.bottom,gameTop:g.top,gameBottom:g.bottom,

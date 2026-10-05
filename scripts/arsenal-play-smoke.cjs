@@ -1,9 +1,11 @@
 // Exercise the actual selector, keyboard movement, pickups and level-up choice.
 // Choose a staff member with ?qaCharacter=guard on the initial localhost URL.
 // Add &qaWave=8 to continue through the galleries with ordinary health/controls.
+// Add &qaFinish=1 to continue through the Curator encounter to an actual result.
 async page => {
   const url = new URL(page.url()), character = url.searchParams.get('qaCharacter') || 'custodian';
   const requestedWave = Math.max(0, Math.min(8, Number(url.searchParams.get('qaWave')) || 0));
+  const finish = url.searchParams.has('qaFinish');
   const names = {custodian:'Custodian',conservator:'Conservator',guard:'Guard'};
   const errors = [], milestones = {}, held = new Set();
   page.on('pageerror', error => errors.push(error.message));
@@ -18,7 +20,7 @@ async page => {
   });
   if(initial.character!==character || initial.weapons.length!==1)throw Error('Wrong starter: '+JSON.stringify(initial));
   try {
-    for(let frame=0;frame<(requestedWave ? 4000 : 1100);frame++){
+    for(let frame=0;frame<(requestedWave || finish ? 4500 : 1100);frame++){
       const observation=await page.evaluate(async()=>{
         const {mapById,steerAroundCover}=await import('/src/maps.js');
         const s=window.__threadwake.state,p=s.players[0],distance=q=>Math.hypot(q.x-p.x,q.y-p.y);
@@ -31,7 +33,8 @@ async page => {
           target={x:p.x+(p.x-e.x)/d*120,y:p.y+(p.y-e.y)/d*120};
         }
         const goal=steerAroundCover(mapById(s.mapId),p,target,12);
-        return {phase:s.phase,time:s.time,wave:s.wave,waveTime:s.waveTime,level:s.level,xp:s.xp,kills:s.kills,hp:p.hp,weapons:p.weapons,upgrades:p.upgrades.length,dx:goal.x-p.x,dy:goal.y-p.y,pickups:s.pickups.length};
+        const boss=s.enemies.find(e=>e.type==='warden');
+        return {phase:s.phase,time:s.time,wave:s.wave,waveTime:s.waveTime,level:s.level,xp:s.xp,kills:s.kills,hp:p.hp,weapons:p.weapons,upgrades:p.upgrades.length,dx:goal.x-p.x,dy:goal.y-p.y,pickups:s.pickups.length,boss:boss?{stage:boss.stage,hp:boss.hp,maxHp:boss.maxHp,fireIn:boss.fireIn}:null};
       });
       for(const [key,met] of Object.entries({kill:observation.kills>0,xp:observation.xp>0,weapon:observation.weapons.length>1}))
         if(met && milestones[key]==null)milestones[key]=observation.time;
@@ -43,15 +46,19 @@ async page => {
         milestones['wave'+observation.wave]=observation.time;
         if(requestedWave)await page.screenshot({path:'.local/art-review/play-wave-'+observation.wave+'.png'});
       }
+      if(observation.boss && milestones['bossStage'+observation.boss.stage]==null){
+        milestones['bossStage'+observation.boss.stage]=observation.time;
+        await page.screenshot({path:'.local/art-review/play-boss-stage-'+observation.boss.stage+'.png'});
+      }
       if(observation.phase==='draft'){
         for(const key of held)await page.keyboard.up(key);held.clear();
         milestones['level'+observation.level]=observation.time;
         await page.locator('#choices button').first().click();
         continue;
       }
-      if(requestedWave ? observation.wave >= requestedWave : observation.wave >= 4 || observation.weapons.length === 4){
-        await page.screenshot({path:'.local/art-review/arsenal-earned.png'});
-        await page.keyboard.press('Escape');
+      if(finish ? observation.phase==='won' : requestedWave ? observation.wave >= requestedWave : observation.wave >= 4 || observation.weapons.length === 4){
+        await page.screenshot({path:finish?'.local/art-review/play-complete.png':'.local/art-review/arsenal-earned.png'});
+        if(observation.phase==='playing')await page.keyboard.press('Escape');
         return {initial,milestones,final:observation,errors};
       }
       const wanted=new Set(['Space']);

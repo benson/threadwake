@@ -1,8 +1,9 @@
-import { UPGRADES, upgradePreview } from "./sim.js";
+import { UPGRADES } from "./sim.js";
+import { upgradeDetails } from "./upgrade-copy.js";
 import { WEAPONS } from "./characters.js";
 import { WEAPON_BALANCE } from "./config.js";
 
-export function acquiredItems(player) {
+export function acquiredItems(player, context = {}) {
   if (!player) return [];
   const count = (id) => player.upgrades.filter((value) => value === id).length;
   return [
@@ -39,14 +40,15 @@ export function acquiredItems(player) {
     }),
     ...[...new Set(player.upgrades)].map((id) => {
       const upgrade = UPGRADES.find((item) => item.id === id);
+      const details = upgradeDetails(player, id, { ...context, owned: true });
       return {
         key: `curio:${id}`,
         icon: id,
         count: count(id),
         name: upgrade.name,
-        description: upgrade.description,
-        stats: upgradePreview(player, id)
-          .stats.filter((stat) => stat.label !== "Health now")
+        description: details.description,
+        stats: details.stats
+          .filter((stat) => stat.label !== "Health now")
           .map((stat) => ({ label: stat.label, value: stat.before })),
       };
     }),

@@ -6,7 +6,6 @@ import {
   startGame,
   chooseUpgrade,
   UPGRADES,
-  upgradePreview,
 } from "./sim.js";
 import { createRenderer } from "./render.js";
 import { connectRoom } from "./net.js";
@@ -21,6 +20,7 @@ import { drawMenuArt } from "./menu-art.js";
 import { drawActor } from "./art.js";
 import { CHARACTERS, getCharacter, WEAPONS } from "./characters.js";
 import { acquiredItems } from "./inventory.js";
+import { upgradeDetails } from "./upgrade-copy.js";
 import {
   pixelIcon,
   iconText,
@@ -431,6 +431,13 @@ function upgradeById(value) {
     ? UPGRADES.find((u) => u.id === value)
     : UPGRADES[value];
 }
+function itemCopyContext() {
+  return {
+    control:
+      device === "controller" ? "A" : device === "touch" ? null : "Space",
+    teammates: state.players.length > 1,
+  };
+}
 function updateDraft() {
   const choices = state.choices?.[id] || [];
   const signature = JSON.stringify(choices);
@@ -457,10 +464,10 @@ function updateDraft() {
     const rank = player?.upgrades.filter((v) => v === u.id).length || 0;
     title.textContent = `${u.name} · ${rank + 1}`;
     const desc = document.createElement("small");
-    const preview = upgradePreview(player, u.id);
+    const preview = upgradeDetails(player, u.id, itemCopyContext());
     const definition = document.createElement("span");
     definition.className = "upgrade-description";
-    definition.textContent = u.description;
+    definition.textContent = preview.description;
     desc.append(definition);
     for (const stat of preview.stats) {
       const row = document.createElement("span");
@@ -570,7 +577,7 @@ function options() {
   const showInventory = screen !== "menu" && Boolean(player);
   $("inventory").hidden = !showInventory;
   $("options").classList.toggle("with-inventory", showInventory);
-  const items = acquiredItems(player);
+  const items = acquiredItems(player, itemCopyContext());
   const inspect = (item) => {
     inspectedItem = item.key;
     for (const button of $("loadout").children)

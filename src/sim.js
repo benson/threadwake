@@ -39,13 +39,13 @@ export const UPGRADES = [
   {
     id: "quick",
     name: "Brass metronome",
-    description: "Your weapons and tin soldiers attack more often.",
+    description: "Your automatic weapons attack more often.",
     icon: "spark",
   },
   {
     id: "heavy",
     name: "Bronze paperweight",
-    description: "Your weapons and tin soldiers deal more damage.",
+    description: "Your automatic weapons deal more damage.",
     icon: "needle",
   },
   {

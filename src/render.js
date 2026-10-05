@@ -1221,7 +1221,11 @@ function drawProp(ctx, art, prop) {
     height,
   );
 }
-function drawAttackTelegraph(ctx, enemy, time) {
+function warningPixel(ctx, x, y, w, h, color) {
+  pixel(ctx, x - 0.5, y - 0.5, w + 1, h + 1, P.ink);
+  pixel(ctx, x, y, w, h, color);
+}
+export function drawAttackTelegraph(ctx, enemy, time) {
   if (
     enemy.type === "mite" ||
     !Number.isFinite(enemy.fireIn) ||
@@ -1269,7 +1273,7 @@ function drawAttackTelegraph(ctx, enemy, time) {
     cue = charge > 0.7 ? P.white : P.redLight;
   for (let i = 0; i < 10; i++) {
     const a = (i * Math.PI * 2) / 10 + Math.floor(time * 12) * 0.12;
-    pixel(
+    warningPixel(
       ctx,
       enemy.x + Math.cos(a) * radius,
       centerY + Math.sin(a) * radius * 0.72,
@@ -1278,7 +1282,8 @@ function drawAttackTelegraph(ctx, enemy, time) {
       cue,
     );
   }
-  const aim = Math.atan2(
+  const muzzle = weaponMuzzle(enemy),
+    aim = Math.atan2(
       Number.isFinite(enemy.aimY) ? enemy.aimY : 0,
       Number.isFinite(enemy.aimX) ? enemy.aimX : enemy.face || 1,
     ),
@@ -1289,17 +1294,17 @@ function drawAttackTelegraph(ctx, enemy, time) {
     for (let j = 0; j < rays; j++) {
       const a = aim + (j - (rays - 1) / 2) * 0.22;
       for (let d = 10; d < reach; d += 7)
-        pixel(
+        warningPixel(
           ctx,
-          enemy.x + Math.cos(a) * d,
-          centerY + Math.sin(a) * d,
+          muzzle.x + Math.cos(a) * d,
+          muzzle.y + Math.sin(a) * d,
           charge > 0.75 ? 3 : 2,
           2,
           cue,
         );
     }
   }
-  pixel(ctx, enemy.x - 1, centerY - 1, 3, 3 + charge * 2, cue);
+  warningPixel(ctx, enemy.x - 1, centerY - 1, 3, 3 + charge * 2, cue);
 }
 // Scan-converted facets use the renderer's half-world-pixel material grid.
 // Shapes stay raster-only: no antialiased paths or blended vector edges.
@@ -2212,9 +2217,6 @@ export function createRenderer(canvas) {
     drawAtmosphereDetails(ctx, state, time, map, options);
     lighting.illuminate(ctx, map, lights, ox, oy);
     drawMaterialLight(ctx, state, time, map, lights, options);
-    // A hidden armored exhibit still shows the direction of its committed volley.
-    for (const enemy of state?.enemies || [])
-      drawAttackTelegraph(ctx, enemy, time);
     for (const p of state?.players || []) drawOrrery(ctx, p);
     for (const shot of state?.shots || [])
       if (
@@ -2227,6 +2229,16 @@ export function createRenderer(canvas) {
         drawShot(ctx, shot);
     for (const effect of state?.effects || [])
       drawEffect(ctx, effect, mapById(gallery));
+    // Ambient dust stays beneath all actionable threat feedback.
+    if (!options.reducedMotion)
+      for (let i = 0; i < 18; i++) {
+        const x = (i * 149 + Math.sin(time * 0.17 + i) * 8 + W) % W,
+          y = (i * 97 - time * ((i % 3) + 1) + H * 100) % H;
+        pixel(ctx, x, y, 1, 1, i % 4 ? "#657788" : P.creamDark);
+      }
+    // Committed attack warnings stay legible through friendly light and impact.
+    for (const enemy of state?.enemies || [])
+      drawAttackTelegraph(ctx, enemy, time);
     // Friendly feedback must never conceal a projectile that can still hurt staff.
     for (const shot of state?.shots || [])
       if (
@@ -2244,13 +2256,6 @@ export function createRenderer(canvas) {
         ...(state?.companions || []),
       ])
         drawCombatGeometry(ctx, actor);
-    // Sparse, slow dust in museum light; there are no leaves or fantasy motes.
-    if (!options.reducedMotion)
-      for (let i = 0; i < 18; i++) {
-        const x = (i * 149 + Math.sin(time * 0.17 + i) * 8 + W) % W,
-          y = (i * 97 - time * ((i % 3) + 1) + H * 100) % H;
-        pixel(ctx, x, y, 1, 1, i % 4 ? "#657788" : P.creamDark);
-      }
     ctx.restore();
   }
   return { draw, screenToWorld, camera };
