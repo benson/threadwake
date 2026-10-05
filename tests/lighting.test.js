@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { collectLights, lightStrength } from "../src/lighting.js";
+import {
+  collectLights,
+  lightStrength,
+  createLighting,
+} from "../src/lighting.js";
 import { pixel, line } from "../src/art.js";
 import { inWater, WATER_POOL } from "../src/ambience.js";
 
@@ -60,4 +64,74 @@ test("water audio and wakes share the walkable reflecting pool footprint", () =>
     inWater("sculpture_court", WATER_POOL.x + WATER_POOL.rx + 1, WATER_POOL.y),
     false,
   );
+});
+
+test("cached light rasters match traced occlusion and bounce hemispheres", () => {
+  const original = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      const canvas = { width: 0, height: 0, drawn: [] };
+      const ctx = {
+        createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+        putImageData: (data) => {
+          canvas.bitmap = data;
+        },
+        clearRect() {},
+        drawImage: (source) => canvas.drawn.push(source),
+      };
+      canvas.getContext = () => ctx;
+      return canvas;
+    },
+  };
+  try {
+    for (const obstacles of [[], [{ x: 20, y: -12, w: 8, h: 40 }]])
+      for (const bounce of [false, true]) {
+        const light = {
+          x: 10,
+          y: 12,
+          radius: 48,
+          power: 0.5,
+          color: [244, 178, 88],
+          bounce,
+          normalX: 1,
+          normalY: 0,
+        };
+        let exposure;
+        const ctx = {
+          save() {},
+          restore() {},
+          fillRect() {},
+          drawImage: (canvas) => {
+            exposure = canvas;
+          },
+        };
+        createLighting().illuminate(
+          ctx,
+          { id: "test", obstacles },
+          [light],
+          -100,
+          -100,
+        );
+        const field = exposure.drawn[0];
+        for (let row = 0; row < field.height; row++)
+          for (let col = 0; col < field.width; col++) {
+            const expected = Math.round(
+              lightStrength(
+                light,
+                light.x - 48 + col * 2,
+                light.y - 48 + row * 2,
+                obstacles,
+              ) * 255,
+            );
+            assert.equal(
+              field.bitmap.data[(row * field.width + col) * 4 + 3],
+              expected,
+              `${bounce} ${col},${row}`,
+            );
+          }
+      }
+  } finally {
+    if (original === undefined) delete globalThis.document;
+    else globalThis.document = original;
+  }
 });

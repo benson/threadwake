@@ -14,6 +14,12 @@ import { bodyCircle, weaponMuzzle } from "./combat-geometry.js";
 import { collectLights, createLighting } from "./lighting.js";
 import { drawAtmosphereGround, drawAtmosphereDetails } from "./atmosphere.js";
 import { drawDebris } from "./debris.js";
+import { drawMaterialLight } from "./light-materials.js";
+import {
+  collectBounceLights,
+  createLightShafts,
+  drawWindowFrames,
+} from "./light-rays.js";
 
 const W = 1200,
   H = 800,
@@ -1162,6 +1168,7 @@ function bake(seed, gallery) {
     pixel(ctx, x - 3, 76, 7, 3, "#a88b5e");
   }
   ctx.restore();
+  drawWindowFrames(ctx, mapById(gallery));
   // Low wall panels and a few ceiling-light reflections appear at the sides.
   for (let y = 160; y < H; y += 128)
     for (const x of [-SIDE_WALL + 6, W + 6]) {
@@ -2049,6 +2056,7 @@ export function createRenderer(canvas) {
   ctx._pixelRatio = RASTER_SCALE;
   const camera = { x: 600, y: 400 };
   const lighting = createLighting();
+  const lightShafts = createLightShafts();
   let art = null,
     lastSeed = null,
     lastGallery = null,
@@ -2116,9 +2124,11 @@ export function createRenderer(canvas) {
       art.ground.height / RASTER_SCALE,
     );
     const map = mapById(gallery),
-      lights = collectLights(state, options.reducedMotion);
+      directLights = collectLights(state, options.reducedMotion),
+      lights = [...directLights, ...collectBounceLights(map, directLights)];
     drawAtmosphereGround(ctx, state, time, map, options);
-    lighting.shadows(ctx, state, lights);
+    lightShafts.draw(ctx, map, { x: ox, y: oy, w: 640, h: 360 }, options);
+    lighting.shadows(ctx, state, lights, map);
     for (const station of state?.flowers || []) drawFlower(ctx, station, time);
     for (const pickup of state?.pickups || [])
       if (
@@ -2195,6 +2205,7 @@ export function createRenderer(canvas) {
     }
     drawAtmosphereDetails(ctx, state, time, map, options);
     lighting.illuminate(ctx, map, lights, ox, oy);
+    drawMaterialLight(ctx, state, time, map, lights, options);
     // A hidden armored exhibit still shows the direction of its committed volley.
     for (const enemy of state?.enemies || [])
       drawAttackTelegraph(ctx, enemy, time);

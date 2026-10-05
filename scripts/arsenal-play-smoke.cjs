@@ -1,7 +1,9 @@
 // Exercise the actual selector, keyboard movement, pickups and level-up choice.
 // Choose a staff member with ?qaCharacter=guard on the initial localhost URL.
+// Add &qaWave=8 to continue through the galleries with ordinary health/controls.
 async page => {
   const url = new URL(page.url()), character = url.searchParams.get('qaCharacter') || 'custodian';
+  const requestedWave = Math.max(0, Math.min(8, Number(url.searchParams.get('qaWave')) || 0));
   const names = {custodian:'Custodian',conservator:'Conservator',guard:'Guard'};
   const errors = [], milestones = {}, held = new Set();
   page.on('pageerror', error => errors.push(error.message));
@@ -16,7 +18,7 @@ async page => {
   });
   if(initial.character!==character || initial.weapons.length!==1)throw Error('Wrong starter: '+JSON.stringify(initial));
   try {
-    for(let frame=0;frame<1100;frame++){
+    for(let frame=0;frame<(requestedWave ? 4000 : 1100);frame++){
       const observation=await page.evaluate(async()=>{
         const {mapById,steerAroundCover}=await import('/src/maps.js');
         const s=window.__threadwake.state,p=s.players[0],distance=q=>Math.hypot(q.x-p.x,q.y-p.y);
@@ -33,14 +35,21 @@ async page => {
       });
       for(const [key,met] of Object.entries({kill:observation.kills>0,xp:observation.xp>0,weapon:observation.weapons.length>1}))
         if(met && milestones[key]==null)milestones[key]=observation.time;
-      if(observation.phase==='lost')throw Error('Opening lost: '+JSON.stringify(observation));
+      if(observation.phase==='lost'){
+        await page.screenshot({path:'.local/art-review/play-defeat.png'});
+        throw Error('Run lost: '+JSON.stringify(observation));
+      }
+      if(milestones['wave'+observation.wave]==null){
+        milestones['wave'+observation.wave]=observation.time;
+        if(requestedWave)await page.screenshot({path:'.local/art-review/play-wave-'+observation.wave+'.png'});
+      }
       if(observation.phase==='draft'){
         for(const key of held)await page.keyboard.up(key);held.clear();
         milestones['level'+observation.level]=observation.time;
         await page.locator('#choices button').first().click();
         continue;
       }
-      if(observation.wave >= 4 || observation.weapons.length === 4){
+      if(requestedWave ? observation.wave >= requestedWave : observation.wave >= 4 || observation.weapons.length === 4){
         await page.screenshot({path:'.local/art-review/arsenal-earned.png'});
         await page.keyboard.press('Escape');
         return {initial,milestones,final:observation,errors};

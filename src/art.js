@@ -55,6 +55,10 @@ export function pixel(ctx, x, y, w, h, color) {
     (Math.round((y + h) * ratio) - top) / ratio,
   );
 }
+function snap(ctx, value) {
+  const ratio = ctx._pixelRatio || 1;
+  return Math.round(value * ratio) / ratio;
+}
 export function stamp(ctx, grid, x, y, colors, flip = false) {
   for (let row = 0; row < grid.length; row++)
     for (let col = 0; col < grid[row].length; col++) {
@@ -1216,8 +1220,8 @@ function staff(ctx, actor, time, settings, kind) {
   const p = pose(actor, time, settings),
     face = p.face,
     x =
-      Math.round(actor.x || 0) + (p.hit && Math.floor(time * 24) % 2 ? 0.5 : 0),
-    y = Math.round(actor.y || 0),
+      snap(ctx, actor.x || 0) + (p.hit && Math.floor(time * 24) % 2 ? 0.5 : 0),
+    y = snap(ctx, actor.y || 0),
     lean = Math.round(p.lean) * face - p.aimX * p.recoil * 0.5,
     lift = p.bob + Math.round(p.lift),
     tx = x + lean,
@@ -1443,8 +1447,8 @@ function drawSpecialist(ctx, actor, time, settings) {
 }
 function drawSoldier(ctx, actor, time) {
   const p = pose(actor, time),
-    x = Math.round(actor.x),
-    y = Math.round(actor.y),
+    x = snap(ctx, actor.x),
+    y = snap(ctx, actor.y),
     b = p.bob,
     s = MATERIAL;
   shadow(ctx, x, y, 6);
@@ -1599,8 +1603,8 @@ export function drawActor(ctx, actor, time, settings = {}) {
   drawCustodian(ctx, actor, time, settings);
 }
 function beetle(ctx, e, time, ink) {
-  const x = Math.round(e.x),
-    y = Math.round(e.y),
+  const x = snap(ctx, e.x),
+    y = snap(ctx, e.y),
     h = Math.round(
       Math.abs(Math.sin(Math.floor(time * 12) * 0.8 + (e.id || 0))) * 2,
     ),
@@ -1768,8 +1772,8 @@ function beetle(ctx, e, time, ink) {
   }
 }
 function moth(ctx, e, time, ink) {
-  const x = Math.round(e.x),
-    y = Math.round(e.y),
+  const x = snap(ctx, e.x),
+    y = snap(ctx, e.y),
     f = Math.sin(Math.floor(time * 12) * 0.65 + (e.id || 0)) * 2,
     s = MATERIAL;
   shadow(ctx, x, y, 10);
@@ -1940,8 +1944,8 @@ function moth(ctx, e, time, ink) {
 }
 function armor(ctx, e, time, ink) {
   const p = pose(e, time, { stride: 5 }),
-    x = Math.round(e.x),
-    y = Math.round(e.y),
+    x = snap(ctx, e.x),
+    y = snap(ctx, e.y),
     b = p.bob * 0.5,
     s = MATERIAL.steel,
     g = MATERIAL.brass;
@@ -2191,8 +2195,8 @@ function armor(ctx, e, time, ink) {
 }
 function curator(ctx, e, time, ink) {
   const p = pose(e, time, { stride: 4.5 }),
-    x = Math.round(e.x),
-    y = Math.round(e.y),
+    x = snap(ctx, e.x),
+    y = snap(ctx, e.y),
     b = p.moving ? p.bob : Math.round(Math.sin(Math.floor(time * 12) * 0.24)),
     s = MATERIAL;
   shadow(ctx, x, y, 28);
@@ -2547,8 +2551,8 @@ export function drawEnemy(ctx, e, time, settings = {}) {
   else beetle(ctx, e, time, ink);
   if (hit) {
     const c = bodyCircle(e),
-      x = Math.round(c.x - (e.face || 1) * 4),
-      y = Math.round(c.y),
+      x = snap(ctx, c.x - (e.face || 1) * 4),
+      y = snap(ctx, c.y),
       r = e.hit > 0.08 ? 7 : 5;
     line(ctx, x - r, y, x + r, y, PALETTE.gold);
     line(ctx, x, y - r, x, y + r, PALETTE.gold);
@@ -2558,8 +2562,8 @@ export function drawEnemy(ctx, e, time, settings = {}) {
   }
 }
 export function drawFlower(ctx, f, time) {
-  const x = Math.round(f.x),
-    y = Math.round(f.y),
+  const x = snap(ctx, f.x),
+    y = snap(ctx, f.y),
     charge = Math.max(0, Math.min(1, f.charge || 0)),
     ready = charge >= 0.85,
     s = MATERIAL;
