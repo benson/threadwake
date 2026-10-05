@@ -26,45 +26,46 @@ export const UPGRADES = [
     id: "fork",
     name: "Porcelain prism",
     description:
-      "Split projectiles and widen lantern light and lightning chains.",
+      "Fire extra marbles and discs. Lantern light reaches farther, and lightning hits more enemies.",
     icon: "fork",
   },
   {
     id: "pierce",
     name: "Fossil arrowhead",
     description:
-      "Projectiles pierce more exhibits; lanterns and coils hit harder.",
+      "Marbles and discs pass through more enemies. Lanterns and lightning deal more damage.",
     icon: "needle",
   },
   {
     id: "quick",
     name: "Brass metronome",
-    description: "All weapons and tin soldiers attack 20% sooner.",
+    description: "Your weapons and tin soldiers attack more often.",
     icon: "spark",
   },
   {
     id: "heavy",
     name: "Bronze paperweight",
-    description: "All weapons deal 35% more damage.",
+    description: "Your weapons and tin soldiers deal more damage.",
     icon: "needle",
   },
   {
     id: "orbit",
     name: "Miniature orrery",
-    description: "An orbiting planet bumps exhibits and clears shots.",
+    description:
+      "A planet circles you, damaging enemies and blocking red shots.",
     icon: "orbit",
   },
   {
     id: "echo",
     name: "Stiff bristles",
     description:
-      "Special abilities deal 18 more damage and push exhibits farther.",
+      "Your special ability deals more damage and pushes enemies farther away.",
     icon: "echo",
   },
   {
     id: "recall",
     name: "Winding key",
-    description: "Reduce special ability cooldown by 20%.",
+    description: "Use your special ability more often.",
     icon: "echo",
   },
   {
@@ -76,51 +77,54 @@ export const UPGRADES = [
   {
     id: "bloom",
     name: "Conservator's cart",
-    description: "Supply pulses grow 25% wider and stronger.",
+    description:
+      "Charged supply carts heal you, damage enemies and clear red shots. This upgrade strengthens their pulse.",
     icon: "flower",
   },
   {
     id: "heal",
     name: "First-aid kit",
     description:
-      "Special abilities heal nearby staff; supplies restore more health.",
+      "Your special ability heals you and nearby teammates. Supply carts restore more health.",
     icon: "heart",
   },
   {
     id: "speed",
     name: "Roller skates",
-    description: "Move 15% faster.",
+    description: "Move faster.",
     icon: "wing",
   },
   {
     id: "vitality",
     name: "Padded waistcoat",
-    description: "Gain 30 maximum health and heal 40.",
+    description: "Adds maximum health and heals you when picked up.",
     icon: "heart",
   },
   {
     id: "frost",
     name: "Glacier fragment",
     description:
-      "Special abilities slow exhibits; weapons shatter them for extra damage.",
+      "Your special ability slows enemies. The next weapon hit on a slowed enemy deals bonus damage.",
     icon: "snow",
   },
   {
     id: "mirror",
     name: "Tin soldier",
-    description: "A toy companion fires marbles beside you.",
+    description:
+      "A toy soldier follows you and automatically fires marbles at enemies.",
     icon: "echo",
   },
   {
     id: "thorns",
     name: "Jack-in-the-box",
-    description: "Taking a hit launches a ring of marbles.",
+    description: "When an enemy hurts you, fire marbles in every direction.",
     icon: "star",
   },
   {
     id: "magnet",
     name: "Visitor bell",
-    description: "Cleared shots charge nearby carts and draw them closer.",
+    description:
+      "Clearing red shots charges nearby supply carts and pulls them toward you.",
     icon: "flower",
   },
 ];
@@ -176,6 +180,7 @@ function statsFor(p) {
     (1 - PERMANENT.cooldownPerRank * p.traits.echo);
 }
 export function upgradePreview(p, id) {
+  const ability = getCharacter(p.character).ability;
   const radius =
     p.character === "guard"
       ? 132
@@ -198,13 +203,13 @@ export function upgradePreview(p, id) {
     switch (id) {
       case "fork":
         return [
-          ["Projectiles", 1 + n],
+          ["Marbles and discs per attack", 1 + n],
           ["Lantern reach", `${100 + 10 * n}%`],
           ["Lightning targets", 3 + n],
         ];
       case "pierce":
         return [
-          ["Extra projectile pierces", 2 * n],
+          ["Extra enemies pierced", 2 * n],
           ["Lantern and coil damage", `${100 + 12 * n}%`],
         ];
       case "quick":
@@ -215,32 +220,35 @@ export function upgradePreview(p, id) {
         return [["Orbiting planets", n]];
       case "echo":
         return [
-          ["Special damage", damage + 18 * n],
-          ["Push", `${Math.round(((force + 20 * n) / force) * 100)}%`],
+          [`${ability} damage`, damage + 18 * n],
+          ["Push distance", `${Math.round(((force + 20 * n) / force) * 100)}%`],
         ];
       case "recall":
         return [
           [
-            "Special cooldown",
+            `${ability} recharge time`,
             `${(B.castCooldown * Math.pow(0.8, n) * (1 - PERMANENT.cooldownPerRank * (p.traits?.echo || 0))).toFixed(1)}s`,
           ],
         ];
       case "thread":
         return [
           [
-            "Special reach",
+            `${ability} range`,
             `${Math.round(((radius + 18 * n) / radius) * 100)}%`,
           ],
         ];
       case "bloom":
         return [
-          ["Supply reach", `${100 + 25 * n}%`],
-          ["Supply strength", `${100 + 25 * n}%`],
+          ["Cart pulse range", `${100 + 25 * n}%`],
+          ["Cart healing and damage", `${100 + 25 * n}%`],
         ];
       case "heal":
         return [
-          ["Special healing", 4 * n + (p.character === "conservator" ? 12 : 0)],
-          ["Base supply healing", 12 + 6 * n],
+          [
+            `${ability} healing`,
+            4 * n + (p.character === "conservator" ? 12 : 0),
+          ],
+          ["Base cart healing", 12 + 6 * n],
         ];
       case "speed":
         return [
@@ -261,7 +269,7 @@ export function upgradePreview(p, id) {
       case "frost":
         return [
           [
-            "Shatter bonus",
+            "Next-hit bonus damage",
             `${p.character === "conservator" ? 45 + 10 * n : n ? 35 + 10 * n : 0}%`,
           ],
           [
@@ -286,39 +294,38 @@ export function upgradePreview(p, id) {
         ];
       case "thorns":
         return [
-          ["Retaliation damage", 24 * n],
-          ["Marbles on hit", n ? 12 : 0],
+          ["Damage when hurt", 24 * n],
+          ["Marbles when hurt", n ? 12 : 0],
         ];
       case "magnet":
         return [
           [
-            "Supply charge per cleared shot",
+            "Cart charge per red shot cleared",
             `${Math.round((0.45 + 0.07 * n) * 100)}%`,
           ],
-          ["Supply range", `${Math.round(((220 + 40 * n) / 220) * 100)}%`],
+          [
+            "Shot-to-cart range",
+            `${Math.round(((220 + 40 * n) / 220) * 100)}%`,
+          ],
         ];
       default:
         return [];
     }
   };
   const synergy = {
-    fork: "The tin soldier borrows your prism.",
-    pierce: "Marbles lose 10% damage after each exhibit.",
-    quick: "The tin soldier keeps your tempo.",
-    heavy: "The tin soldier borrows your weight.",
-    orbit: "Planet clears also charge supplies.",
-    echo: "More force makes room for your marbles.",
-    recall: "Use your special ability more often.",
-    thread: "Reach more exhibits, shots and supply carts.",
-    bloom: "First-aid kits also strengthen the supply pulse.",
-    heal: "Nearby colleagues share the healing.",
-    speed: "Skate out after a sweep clears your path.",
-    vitality: "Heal 40 now, then recover more between shifts.",
-    frost: "Any staff member's next weapon hit can shatter the slowed exhibit.",
-    mirror:
-      "Fires its own marbles beside you, borrowing prism, fossil, paperweight and tempo.",
-    thorns: "Retaliation marbles can shatter slowed exhibits.",
-    magnet: "Each stack draws carts from farther away.",
+    fork: count(p, "mirror")
+      ? "Your tin soldier also fires extra marbles."
+      : "",
+    pierce: "Marbles lose 10% damage after each enemy they pass through.",
+    orbit: count(p, "magnet")
+      ? "Blocked shots also charge nearby supply carts."
+      : "",
+    bloom: count(p, "heal")
+      ? "Your first-aid kits also increase cart healing."
+      : "",
+    vitality: "Heal 40 now and recover more health between waves.",
+    frost: "Any teammate can trigger the bonus damage.",
+    mirror: "Also benefits from your weapon upgrades.",
   };
   const before = values(count(p, id)),
     after = values(count(p, id) + 1);

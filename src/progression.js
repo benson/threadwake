@@ -3,7 +3,7 @@ export const MILESTONES = Object.freeze([
   {
     id: "first-catch",
     name: "Clean sweep",
-    description: "Clear a hostile shot.",
+    description: "Clear a red enemy shot.",
     test: (p) => p.stats?.catches >= 1,
   },
   {
@@ -21,7 +21,7 @@ export const MILESTONES = Object.freeze([
   {
     id: "woven",
     name: "Watch your back",
-    description: "Protect a colleague with three sweeps.",
+    description: "Use your special ability near a teammate three times.",
     test: (p) => p.stats?.resonances >= 3,
   },
   {

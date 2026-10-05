@@ -229,27 +229,44 @@
           ></canvas>
           <h2 id="options-title">Options</h2>
         </div>
-        <div class="volume-controls">
-          <label
-            >Music
-            <input id="music-volume" type="range" min="0" max="100" /></label
-          ><label
-            >Effects <input id="effects-volume" type="range" min="0" max="100"
-          /></label>
+        <div class="pause-body">
+          <section id="inventory" aria-label="Acquired items" hidden>
+            <div id="loadout" aria-label="Choose an item to inspect"></div>
+            <div id="item-details" aria-live="polite" aria-atomic="true">
+              <h3 id="item-name"></h3>
+              <p id="item-description"></p>
+              <dl id="item-stats"></dl>
+            </div>
+          </section>
+          <div class="pause-settings">
+            <div class="volume-controls">
+              <label
+                >Music
+                <input
+                  id="music-volume"
+                  type="range"
+                  min="0"
+                  max="100" /></label
+              ><label
+                >Effects
+                <input id="effects-volume" type="range" min="0" max="100"
+              /></label>
+            </div>
+            <label class="check"
+              ><input type="checkbox" id="sound" /> Sound</label
+            ><label class="check"
+              ><input type="checkbox" id="motion" /> Reduced motion</label
+            >
+            <p class="controls">
+              WASD / arrows · move<br />SPACE / click · special ability<br />Weapons
+              fire automatically.<br />ESC · menu &nbsp; M · mute<br />Controller:
+              left stick · move, A · special ability
+            </p>
+            <p id="online-pause" hidden>The shift keeps going online.</p>
+            <p id="connection-health" hidden></p>
+            <button id="run-invite" hidden>Copy invite</button>
+          </div>
         </div>
-        <label class="check"><input type="checkbox" id="sound" /> Sound</label
-        ><label class="check"
-          ><input type="checkbox" id="motion" /> Reduced motion</label
-        >
-        <p class="controls">
-          WASD / arrows · move<br />SPACE / click · special ability<br />Weapons
-          fire automatically.<br />ESC · menu &nbsp; M · mute<br />Controller:
-          left stick · move, A · special ability
-        </p>
-        <p id="online-pause" hidden>The shift keeps going online.</p>
-        <p id="connection-health" hidden></p>
-        <div id="loadout" hidden></div>
-        <button id="run-invite" hidden>Copy invite</button>
         <div class="actions">
           <button id="resume" class="primary">Continue</button
           ><button id="pause-memories">Staff kit</button

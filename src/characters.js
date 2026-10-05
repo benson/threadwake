@@ -4,7 +4,8 @@ export const CHARACTERS = Object.freeze([
     name: "Custodian",
     weapon: "slingshot",
     ability: "Sweep",
-    description: "A broad broom sweep damages enemies and clears shots.",
+    description:
+      "A broom sweep damages and pushes back enemies, clearing red shots.",
     speedMultiplier: 1,
     hpBonus: 0,
     icon: "echo",
@@ -14,7 +15,8 @@ export const CHARACTERS = Object.freeze([
     name: "Conservator",
     weapon: "lantern",
     ability: "Restore",
-    description: "Freeze nearby exhibits and restore health to your team.",
+    description:
+      "Damage and stop nearby enemies, boosting the next weapon hit. Heal yourself and nearby teammates.",
     speedMultiplier: 1.08,
     hpBonus: -15,
     icon: "frost",
@@ -24,7 +26,8 @@ export const CHARACTERS = Object.freeze([
     name: "Guard",
     weapon: "disc",
     ability: "Repel",
-    description: "A heavy shockwave pushes enemies away and clears shots.",
+    description:
+      "A shockwave damages and pushes back enemies, clearing red shots.",
     speedMultiplier: 0.92,
     hpBonus: 25,
     icon: "thread",
@@ -40,7 +43,8 @@ export const WEAPONS = Object.freeze({
   },
   lantern: {
     name: "Spirit lantern",
-    description: "Pulses light through nearby enemies.",
+    description:
+      "Automatically damages all enemies near your lantern with pulses of light.",
   },
   disc: {
     name: "Returning disc",
@@ -48,6 +52,7 @@ export const WEAPONS = Object.freeze({
   },
   storm: {
     name: "Storm coil",
-    description: "Strikes nearby enemies with lightning.",
+    description:
+      "Automatically strikes an enemy with lightning that jumps to nearby enemies.",
   },
 });

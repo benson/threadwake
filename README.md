@@ -59,3 +59,5 @@ The historical Threadwake pass is recorded in `docs/ITERATION-50.md`. Browser re
 Continuing craft work and pending review priorities are recorded in `docs/ITERATION-LOG.md`.
 
 GitHub Actions gates deployment on tests and build, deploys the Worker, runs a live multiplayer smoke, then publishes `dist/` to GitHub Pages. DNS maps `threadwake.bensonperry.com` to that repository's Pages deployment. Cloudflare credentials are repository secrets, never frontend configuration.
+
+Acquired weapons and curios can be inspected from Pause by hovering, keyboard focus or clicking/tapping. Current stacked effects appear beneath the inventory. Upgrade choices explain the item's effect before showing its next-rank values. Browser fixtures `scripts/item-inspection-smoke.cjs` and `scripts/item-copy-review.cjs` exercise the full catalog and bounded layouts through Playwright CLI.

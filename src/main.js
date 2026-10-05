@@ -20,6 +20,7 @@ import { drawCurio } from "./curios.js";
 import { drawMenuArt } from "./menu-art.js";
 import { drawActor } from "./art.js";
 import { CHARACTERS, getCharacter, WEAPONS } from "./characters.js";
+import { acquiredItems } from "./inventory.js";
 import {
   pixelIcon,
   iconText,
@@ -433,7 +434,7 @@ function updateDraft() {
   draftSignature = signature;
   $("choices").replaceChildren();
   $("draft-caption").textContent =
-    `LEVEL ${state.level || 1} · Choose an upgrade`;
+    `LEVEL ${state.level || 1} · Choose an upgrade for this shift`;
   $("draft-status").textContent = choices.length
     ? ""
     : "Waiting for the others…";
@@ -453,17 +454,26 @@ function updateDraft() {
     title.textContent = `${u.name} · ${rank + 1}`;
     const desc = document.createElement("small");
     const preview = upgradePreview(player, u.id);
+    const definition = document.createElement("span");
+    definition.className = "upgrade-description";
+    definition.textContent = u.description;
+    desc.append(definition);
     for (const stat of preview.stats) {
       const row = document.createElement("span");
       row.className = "upgrade-stat";
       row.append(document.createTextNode(`${stat.label}: `));
-      pixelTransition(row, stat.before, stat.after);
+      const values = document.createElement("span");
+      values.className = "upgrade-values";
+      pixelTransition(values, stat.before, stat.after);
+      row.append(values);
       desc.append(row);
     }
-    const note = document.createElement("span");
-    note.className = "upgrade-note";
-    note.textContent = preview.synergy;
-    desc.append(note);
+    if (preview.synergy) {
+      const note = document.createElement("span");
+      note.className = "upgrade-note";
+      note.textContent = preview.synergy;
+      desc.append(note);
+    }
     const key = document.createElement("span");
     key.className = "key";
     key.textContent = `${i + 1} · choose`;
@@ -474,7 +484,7 @@ function updateDraft() {
 }
 function selectUpgrade(value) {
   if (online && status !== "connected") {
-    toast("Reconnect to borrow a curio.");
+    toast("Reconnect to choose an upgrade.");
     return;
   }
   if (online) net?.choose(value);
@@ -511,7 +521,7 @@ function showResult() {
     : "The collection got away";
   $("result-title").textContent = won ? "Shift complete." : "Clocked out.";
   $("result-stats").textContent =
-    `${state.kills || 0} exhibits contained · ${state.caught || 0} shots cleared · wave ${state.wave}`;
+    `${state.kills || 0} enemies defeated · ${state.caught || 0} red shots cleared · wave ${state.wave}`;
   const earned = bank();
   $("result-memory").hidden = false;
   $("result-memory").textContent =
@@ -539,6 +549,7 @@ function backHome() {
   history.replaceState({}, "", location.pathname);
   updateMemoryCount();
 }
+let inspectedItem = null;
 function options() {
   if ($("options").open || $("memories").open) return;
   paused = !online;
@@ -552,30 +563,58 @@ function options() {
   $("connection-health").textContent =
     latency == null ? status : `${status} · ${Math.round(latency)} ms`;
   const player = state.players.find((p) => p.id === id);
-  $("loadout").hidden = screen === "menu" || !player;
+  const showInventory = screen !== "menu" && Boolean(player);
+  $("inventory").hidden = !showInventory;
+  $("options").classList.toggle("with-inventory", showInventory);
+  const items = acquiredItems(player);
+  const inspect = (item) => {
+    inspectedItem = item.key;
+    for (const button of $("loadout").children)
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.item === item.key),
+      );
+    $("item-name").textContent = item.name;
+    $("item-description").textContent = item.description;
+    $("item-stats").replaceChildren(
+      ...item.stats.flatMap(({ label, value }) => {
+        const term = document.createElement("dt"),
+          detail = document.createElement("dd");
+        term.textContent = label;
+        detail.textContent = value;
+        return [term, detail];
+      }),
+    );
+  };
   $("loadout").replaceChildren(
-    ...(player?.weapons || []).map((value) => {
-      const el = document.createElement("span");
-      el.textContent = WEAPONS[value]?.name || value;
-      return el;
-    }),
-    ...[...new Set(player?.upgrades || [])].map((value) => {
-      const el = document.createElement("span"),
-        u = upgradeById(value);
-      const icon = document.createElement("canvas");
-      icon.width = icon.height = 32;
-      icon.className = "loadout-icon";
-      icon.setAttribute("aria-hidden", "true");
-      drawCurio(icon.getContext("2d"), value);
-      el.append(
-        icon,
+    ...items.map((item) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.item = item.key;
+      button.setAttribute("aria-controls", "item-details");
+      if (item.icon) {
+        const icon = document.createElement("canvas");
+        icon.width = icon.height = 32;
+        icon.className = "loadout-icon";
+        icon.setAttribute("aria-hidden", "true");
+        drawCurio(icon.getContext("2d"), item.icon);
+        button.append(icon);
+      }
+      button.append(
         document.createTextNode(
-          `${u.name} · ${player.upgrades.filter((v) => v === value).length}`,
+          item.name + (item.count ? ` ×${item.count}` : ""),
         ),
       );
-      return el;
+      button.addEventListener("pointerenter", (event) => {
+        if (event.pointerType !== "touch") inspect(item);
+      });
+      button.addEventListener("focus", () => inspect(item));
+      button.addEventListener("click", () => inspect(item));
+      return button;
     }),
   );
+  if (items.length)
+    inspect(items.find((item) => item.key === inspectedItem) || items[0]);
   $("options").showModal();
 }
 function closeOptions() {
@@ -603,7 +642,7 @@ function updateMemoryCount() {
     for (const map of MAPS) {
       const item = document.createElement("li"),
         waves = document.createElement("span");
-      waves.textContent = `${map.waves[0]}–${map.waves[1]}`;
+      waves.textContent = `Waves ${map.waves[0]}–${map.waves[1]}`;
       item.append(document.createTextNode(map.name), waves);
       $("gallery-route").append(item);
     }
@@ -646,7 +685,7 @@ function memories() {
   const data = [
     ["vitality", "Work coat", "Maximum health"],
     ["haste", "Soft soles", "Movement speed"],
-    ["echo", "Grip tape", "Special cooldown"],
+    ["echo", "Grip tape", "Ability recharge time"],
   ];
   for (const [key, title, label] of data) {
     const rank = memory.traits[key],
@@ -1039,15 +1078,15 @@ function updateHud() {
   );
   $("downed").hidden = !p.dead;
   $("downed").textContent =
-    `${p.revive ? `Helping up ${Math.round(p.revive * 100)}%` : "Stay close to a colleague to help them up."}`;
+    `${p.revive ? `Being helped up ${Math.round(p.revive * 100)}%` : "A teammate can stand near you to help you up."}`;
   $("lesson").textContent = !lessonProgress.moved
-    ? "Keep moving. Collect XP from defeated exhibits."
+    ? "Keep moving. Collect XP from defeated enemies."
     : !lessonProgress.cast
       ? `${castKey}: ${character.description} Hold to repeat.`
       : !(p.stats?.catches > 0)
         ? "Your special ability also clears red shots."
         : !(p.stats?.blooms > 0)
-          ? "Stand near a supply cart to recover health."
+          ? "Stand near a supply cart to charge its healing pulse."
           : "";
 }
 function interpolated(now) {
