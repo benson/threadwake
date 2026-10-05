@@ -1,16 +1,18 @@
 // Read-only production renderer crowd fixture; animation-frame paced, no simulation claims.
 async page => {
+  const compare = new URL(page.url()).searchParams.has('compare');
   const origin = new URL(page.url()).origin;
   await page.route('**/__crowd_review__', route => route.fulfill({contentType:'text/html',body:'<!doctype html><html><body style="margin:0;background:#111b27"></body></html>'}));
   await page.goto(origin+'/__crowd_review__');
   await page.setViewportSize({width:1280,height:720});
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async (compare) => {
     const {createRenderer}=await import('/src/render.js');
     const {createGame,addPlayer}=await import('/src/sim.js');
     const {mapById,safePosition}=await import('/src/maps.js');
     const {collectLights}=await import('/src/lighting.js');
     const canvas=document.createElement('canvas');canvas.id='crowd';canvas.style.cssText='display:block;width:1280px;height:720px;image-rendering:pixelated';document.body.append(canvas);
     const renderer=createRenderer(canvas),state=createGame(54),map=mapById('clock_gallery');
+    const baselineRenderer=compare?createRenderer(document.createElement('canvas')):null;
     Object.assign(state,{phase:'playing',mapId:'clock_gallery',wave:8,time:330});
     for(let i=0;i<4;i++){
       const p=addPlayer(state,'p'+i,'Staff '+i,{},['custodian','conservator','guard','custodian'][i]);
@@ -22,7 +24,7 @@ async page => {
       state.enemies.push({id:i+100,type,...base,baseX:base.x,baseY:base.y,hp:80,maxHp:80,r:type==='warden'?24:12,hit:0,phase:i*.31,face:i%2?1:-1,slow:0,stagger:0,stage:2,attack:type==='thorn'?'fan':'needle',fireIn:.25,shotAge:1,aimX:-1,aimY:0});
     }
     for(let i=0;i<48;i++) state.shots.push({id:1000+i,hostile:i<24,weapon:i%2?'slingshot':'disc',x:0,y:0,vx:i%2?115:-100,vy:i%3?32:-45,r:i<24?3:2,age:0,life:5,color:i%4});
-    const costs=[],cadence=[],copies=[];let lastTs=null,lightsRange=[999,0],visibleEnemyRange=[999,0];
+    const costs=[],baselineCosts=[],cadence=[],copies=[];let lastTs=null,lightsRange=[999,0],visibleEnemyRange=[999,0];
     const start=performance.now();
     for(let f=0;f<150;f++){
       const ts=await new Promise(resolve=>requestAnimationFrame(resolve)),t=(ts-start)/1000;
@@ -37,7 +39,13 @@ async page => {
         state.effects.push({id:2010+i,type:'storm',x:state.enemies[i*13].x,y:state.enemies[i*13].y-10,fromX:p.x,fromY:p.y-13,color:i,life:.35-((t+i*.07)%.35),maxLife:.35});
         state.effects.push({id:2020+i,type:'death',x:440+i*90+Math.sin(t+i)*10,y:330+i*25,color:i,life:.35-((t+i*.09)%.35),maxLife:.35});
       }
-      const a=performance.now();renderer.draw(state,'p0',t,{shake:false,reducedMotion:false});const cost=performance.now()-a;
+      let cost,baselineCost;
+      const drawCached=()=>{const a=performance.now();renderer.draw(state,'p0',t,{shake:false,reducedMotion:false});cost=performance.now()-a;};
+      const drawBaseline=()=>{const a=performance.now();baselineRenderer.draw(state,'p0',t,{shake:false,reducedMotion:false,spriteCache:false});baselineCost=performance.now()-a;};
+      if(compare && f%2===0)drawBaseline();
+      drawCached();
+      if(compare && f%2!==0)drawBaseline();
+      if(compare && f>=30)baselineCosts.push(baselineCost);
       if(f>=30){costs.push(cost);if(lastTs!==null)cadence.push(ts-lastTs);}
       lastTs=ts;
       const n=collectLights(state).length;lightsRange=[Math.min(lightsRange[0],n),Math.max(lightsRange[1],n)];
@@ -45,8 +53,8 @@ async page => {
       if(f===50||f===120){const copy=document.createElement('canvas');copy.width=1280;copy.height=720;copy.id='frame-'+f;copy.getContext('2d').drawImage(canvas,0,0);copy.style.display='none';document.body.append(copy);copies.push({frame:f,timeSeconds:t,lights:n,renderMs:cost});}
     }
     const stats=xs=>{const sort=[...xs].sort((a,b)=>a-b),q=p=>+sort[Math.floor((sort.length-1)*p)].toFixed(2);return {count:xs.length,mean:+(xs.reduce((a,b)=>a+b,0)/xs.length).toFixed(2),p50:q(.5),p95:q(.95),p99:q(.99),max:q(1),over16_7:xs.filter(x=>x>16.7).length,over33_3:xs.filter(x=>x>33.3).length};};
-    return {fixture:'Production renderer only; synthetic bounded crowd; not simulation or network profiling',warmupFrames:30,measuredFrames:120,backing:[canvas.width,canvas.height],players:4,enemies:60,visibleEnemyRange,shots:48,hostileShots:24,effects:12,lightsRange,renderMs:stats(costs),animationFrameIntervalMs:stats(cadence),captures:copies,elapsedSeconds:+((performance.now()-start)/1000).toFixed(2)};
-  });
+    return {fixture:'Production renderer only; synthetic bounded crowd; not simulation or network profiling',comparison:compare?'Same state, alternating draw order, cache disabled vs enabled':null,baselineMs:compare?stats(baselineCosts):null,warmupFrames:30,measuredFrames:120,backing:[canvas.width,canvas.height],players:4,enemies:60,visibleEnemyRange,shots:48,hostileShots:24,effects:12,lightsRange,renderMs:stats(costs),animationFrameIntervalMs:stats(cadence),captures:copies,elapsedSeconds:+((performance.now()-start)/1000).toFixed(2)};
+  },compare);
   for(const frame of [50,120]){
     await page.evaluate(f=>{document.querySelectorAll('canvas').forEach(c=>c.style.display=c.id==='frame-'+f?'block':'none');},frame);
     await page.locator('#frame-'+frame).screenshot({path:'.local/art-review/crowd-frame-'+frame+'.png'});

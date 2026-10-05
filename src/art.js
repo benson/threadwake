@@ -1602,21 +1602,27 @@ export function drawActor(ctx, actor, time, settings = {}) {
     return drawSpecialist(ctx, actor, time, settings);
   drawCustodian(ctx, actor, time, settings);
 }
-function beetle(ctx, e, time, ink) {
+export function beetleMotion(e, time) {
+  const step = Math.floor(time * 12);
+  return {
+    step,
+    hop: Math.round(Math.abs(Math.sin(step * 0.8 + (e.id || 0))) * 2),
+  };
+}
+function beetle(ctx, e, time, ink, omitShadow = false) {
   const x = snap(ctx, e.x),
     y = snap(ctx, e.y),
-    h = Math.round(
-      Math.abs(Math.sin(Math.floor(time * 12) * 0.8 + (e.id || 0))) * 2,
-    ),
+    motion = beetleMotion(e, time),
+    h = motion.hop,
     s = MATERIAL;
-  shadow(ctx, x, y, 9);
+  if (!omitShadow) shadow(ctx, x, y, 9);
   for (const side of [-1, 1])
     for (let leg = 0; leg < 3; leg++) {
       const root = y - 12 + leg * 4 - h,
         kx = x + side * (10 + (leg === 1 ? 2 : 0)),
         ky = root + (leg - 1) * 2,
         tx = kx + side * 3,
-        ty = ky + 3 + ((Math.floor(time * 12) + leg + (side > 0 ? 1 : 0)) % 2);
+        ty = ky + 3 + ((motion.step + leg + (side > 0 ? 1 : 0)) % 2);
       line(ctx, x + side * 5, root, kx, ky, ink, 2);
       line(ctx, kx, ky, tx, ty, ink, 1.5);
       line(ctx, x + side * 5.5, root, kx, ky, s.steel[2], 1);
@@ -1771,12 +1777,12 @@ function beetle(ctx, e, time, ink) {
     oval(ctx, x + side * 7.5, y - 22.5 - h, 0.75, 0.75, s.brass[3]);
   }
 }
-function moth(ctx, e, time, ink) {
+function moth(ctx, e, time, ink, omitShadow = false) {
   const x = snap(ctx, e.x),
     y = snap(ctx, e.y),
     f = Math.sin(Math.floor(time * 12) * 0.65 + (e.id || 0)) * 2,
     s = MATERIAL;
-  shadow(ctx, x, y, 10);
+  if (!omitShadow) shadow(ctx, x, y, 10);
   for (const side of [-1, 1]) {
     const mirror = (points) => points.map(([px, py]) => [side * px, py]);
     shape(
@@ -2540,15 +2546,18 @@ function curator(ctx, e, time, ink) {
   }
   aimedEmitter(ctx, e, ink, s.brass[3], 3.5);
 }
-export function drawEnemy(ctx, e, time, settings = {}) {
+export function drawEnemyBody(ctx, e, time, settings = {}) {
   const hit = e.hit > 0 || settings.state === "hit",
     ink = hit ? PALETTE.white : PALETTE.ink;
-  if (e.type === "moth") {
-    moth(ctx, e, time, ink);
-    aimedEmitter(ctx, e, ink, PALETTE.creamShade, 1);
-  } else if (e.type === "thorn") armor(ctx, e, time, ink);
+  if (e.type === "moth") moth(ctx, e, time, ink, settings.omitShadow);
+  else if (e.type === "thorn") armor(ctx, e, time, ink);
   else if (e.type === "warden") curator(ctx, e, time, ink);
-  else beetle(ctx, e, time, ink);
+  else beetle(ctx, e, time, ink, settings.omitShadow);
+}
+export function drawEnemyDetails(ctx, e, time, settings = {}) {
+  const hit = e.hit > 0 || settings.state === "hit",
+    ink = hit ? PALETTE.white : PALETTE.ink;
+  if (e.type === "moth") aimedEmitter(ctx, e, ink, PALETTE.creamShade, 1);
   if (hit) {
     const c = bodyCircle(e),
       x = snap(ctx, c.x - (e.face || 1) * 4),
@@ -2560,6 +2569,10 @@ export function drawEnemy(ctx, e, time, settings = {}) {
     pixel(ctx, x - 1, y - 3, 3, 7, PALETTE.white);
     pixel(ctx, x - 3, y - 1, 7, 3, PALETTE.white);
   }
+}
+export function drawEnemy(ctx, e, time, settings = {}) {
+  drawEnemyBody(ctx, e, time, settings);
+  drawEnemyDetails(ctx, e, time, settings);
 }
 export function drawFlower(ctx, f, time) {
   const x = snap(ctx, f.x),

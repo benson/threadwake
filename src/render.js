@@ -15,6 +15,7 @@ import { collectLights, createLighting } from "./lighting.js";
 import { drawAtmosphereGround, drawAtmosphereDetails } from "./atmosphere.js";
 import { drawDebris } from "./debris.js";
 import { drawMaterialLight } from "./light-materials.js";
+import { createSpriteCache } from "./sprite-cache.js";
 import {
   collectBounceLights,
   createLightShafts,
@@ -2057,6 +2058,7 @@ export function createRenderer(canvas) {
   const camera = { x: 600, y: 400 };
   const lighting = createLighting();
   const lightShafts = createLightShafts();
+  const spriteCache = createSpriteCache(RASTER_SCALE);
   let art = null,
     lastSeed = null,
     lastGallery = null,
@@ -2163,7 +2165,11 @@ export function createRenderer(canvas) {
         drawProp(ctx, art, item);
         continue;
       }
-      drawActor(ctx, item, time, options.animation || {});
+      if (
+        options.spriteCache === false ||
+        !spriteCache.draw(ctx, item, time, options.animation || {})
+      )
+        drawActor(ctx, item, time, options.animation || {});
       if (item.type === "warden") {
         pixel(ctx, item.x - 24, item.y - 75, 48, 5, P.ink);
         pixel(
