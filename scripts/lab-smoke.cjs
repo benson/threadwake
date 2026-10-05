@@ -20,8 +20,9 @@ async page => {
   await page.getByRole('button',{name:'Encounter',exact:true}).click();
   await page.getByRole('combobox',{name:'Scenario',exact:true}).selectOption('garden');
   await page.getByRole('checkbox',{name:'Invincible',exact:true}).check();
-  await page.getByRole('listbox',{name:'Upgrades',exact:true}).selectOption(['fork','mirror','orbit']);
+  await page.getByRole('listbox',{name:'Upgrades',exact:true}).selectOption(['fork','mirror','orbit','vitality']);
   await page.getByRole('button',{name:'Start / reset',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('#encounter-status').textContent.includes('HP 140/140'));
   await page.keyboard.down('d');await page.waitForTimeout(600);await page.keyboard.up('d');
   await page.keyboard.down('Space');await page.waitForTimeout(180);await page.keyboard.up('Space');await page.waitForTimeout(200);
   await page.getByRole('button',{name:'Pause',exact:true}).click();

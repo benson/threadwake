@@ -1,5 +1,11 @@
 # Continuing craft work
 
+## 2026-10-04 — boss cues and workshop build repair
+
+The Grand Clock's aimed warning now shows five rays for its five-shot fan and three for its final three-shot spread. Attack timings and damage are unchanged. A wave-eight keyboard playtest exposed a separate workshop initialization bug: `startGame` replaces player objects, so selected curios were being assigned to a discarded reference. Workshop builds now apply to the active player. Replay version 5 rejects takes recorded with the old initialization.
+
+Validation: 77 tests and production build passed. Workshop browser smoke now checks that Padded waistcoat produces 140 HP; replay and export/import remain pixel-identical with the selected build, with no page errors or mobile overflow. An 18-second wave-eight movement/sweep pass with seven selected curios ended at 122/140 HP and six shots cleared. This is a bounded control/readability check, not a completed boss fight or balance verdict.
+
 ## Active direction — After Hours
 
 On October 4, Benson rejected the time-echo premise and selected a haunted museum night shift. The game is being redesigned as **After Hours**: a custodian with automatic marble shots, an immediate broom sweep, and borrowed curios that create unusual survivor builds. This supersedes the woodland/echo design documented below. Keep the existing hosting and earned progression while replacing the old mechanic.

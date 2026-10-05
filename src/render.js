@@ -412,7 +412,15 @@ function drawAttackTelegraph(ctx, enemy, time) {
       );
     }
   if (enemy.fireIn <= 0.65) {
-    const rays = attack === "fan" ? 3 : 1;
+    const rays = boss
+      ? attack === "fan"
+        ? 5
+        : attack === "spiral"
+          ? 3
+          : 1
+      : attack === "fan"
+        ? 3
+        : 1;
     for (let j = 0; j < rays; j++) {
       const a = aim + (j - (rays - 1) / 2) * (boss ? 0.2 : 0.22);
       for (let d = 10; d < reach; d += 7)

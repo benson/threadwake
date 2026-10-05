@@ -7,7 +7,7 @@ import {
 } from "./animation.js";
 import { createRenderer } from "./render.js";
 import { initializePixelIcons, pixelLine, pixelText } from "./pixel-ui.js";
-const REPLAY_VERSION = 4;
+const REPLAY_VERSION = 5;
 import {
   createGame,
   addPlayer,
@@ -367,8 +367,9 @@ function readConfig() {
 }
 function initialize(c) {
   const s = createGame(c.seed);
-  const p = addPlayer(s, "lab", "Custodian");
+  addPlayer(s, "lab", "Custodian");
   startGame(s);
+  const p = s.players[0];
   if (c.wave > 1) {
     s.wave = c.wave - 1;
     s.phase = "draft";
