@@ -982,7 +982,7 @@ function dropPickup(s, kind, position, value = 1, weapon = null) {
 function damageEnemy(s, e, amount, p, source = "marble") {
   if (e.hp <= 0) return;
   e.hp -= amount;
-  e.hit = source === "sweep" ? 0.16 : 0.09;
+  e.hit = Math.max(e.hit || 0, source === "sweep" ? 0.16 : 0.09);
   if (e.hp <= 0) {
     s.kills++;
     dropPickup(

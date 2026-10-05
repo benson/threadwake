@@ -94,6 +94,24 @@ test("sweep impact remains visible across a multiplayer snapshot interval withou
   for (let i = 0; i < 3; i++) step(s, {});
   assert.equal(target.hit, 0, "impact fades after 200ms");
 });
+test("a simultaneous weapon hit cannot shorten a still-visible sweep impact", () => {
+  const { s, p } = quiet();
+  const target = enemy(800, p.x + 40, p.y);
+  s.enemies = [target];
+  // The sweep moves the moth before this existing marble reaches its torso.
+  s.shots = [
+    bullet(801, target.x + B.sweepKnockback, target.y - 13, {
+      hostile: false,
+      r: 3,
+    }),
+  ];
+  step(s, { a: { cast: true } });
+  assert.equal(target.hp, 500 - B.sweepDamage - 20);
+  assert.ok(
+    target.hit >= 0.16 - 1 / 30 - 1e-9,
+    "another weapon must not erase the longer sweep response",
+  );
+});
 test("radial sweep clears hostile shots behind the custodian but preserves outside and friendly marbles", () => {
   const { s, p } = quiet();
   s.shots = [
