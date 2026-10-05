@@ -13,7 +13,8 @@ import { lineBlocked, mapById } from "./maps.js";
 import { bodyCircle, weaponMuzzle } from "./combat-geometry.js";
 
 const W = 1200,
-  H = 800;
+  H = 800,
+  BACK_WALL = 125;
 function random(seed) {
   let s = seed >>> 0;
   return () => {
@@ -151,9 +152,10 @@ function exhibitSprite(o, gallery) {
   return c;
 }
 function bake(seed, gallery) {
-  const c = surface(W, H),
+  const c = surface(W, H + BACK_WALL),
     ctx = c.getContext("2d"),
     r = random(seed || 42);
+  ctx.translate(0, BACK_WALL);
   const sculpture = gallery === "sculpture_court",
     clock = gallery === "clock_gallery",
     natural = gallery === "natural_history",
@@ -316,6 +318,9 @@ function bake(seed, gallery) {
     oval(ctx, 600, 402, 3, 2, "#603e4a");
   }
   // Back wall, wainscoting and framed collection art ground the museum theme.
+  // The wall sits beyond the north floor boundary, never on walkable tiles.
+  ctx.save();
+  ctx.translate(0, -BACK_WALL);
   pixel(ctx, 0, 0, W, 125, "#1a2633");
   for (let y = 0; y < 125; y += 24) pixel(ctx, 0, y, W, 2, "#293848");
   pixel(ctx, 0, 112, W, 8, P.wood);
@@ -336,6 +341,7 @@ function bake(seed, gallery) {
     [1050, 1],
   ])
     frame(ctx, x, 23, 70, 66, (motif + motifOffset) % 3);
+  ctx.restore();
   // Low wall panels and a few ceiling-light reflections appear at the sides.
   for (let y = 160; y < H; y += 128)
     for (const x of [12, W - 49]) {
@@ -712,10 +718,11 @@ export function createRenderer(canvas) {
       follow = 1 - Math.exp(-dt * 8);
     if (galleryChanged) {
       camera.x = Math.max(320, Math.min(W - 320, tx));
-      camera.y = Math.max(180, Math.min(H - 180, ty));
+      camera.y = Math.max(180 - BACK_WALL, Math.min(H - 180, ty));
     }
     camera.x += (Math.max(320, Math.min(W - 320, tx)) - camera.x) * follow;
-    camera.y += (Math.max(180, Math.min(H - 180, ty)) - camera.y) * follow;
+    camera.y +=
+      (Math.max(180 - BACK_WALL, Math.min(H - 180, ty)) - camera.y) * follow;
     if (player && previousHP !== null && player.hp < previousHP) damage = 0.15;
     previousHP = player?.hp ?? null;
     damage = Math.max(0, damage - dt);
@@ -728,7 +735,7 @@ export function createRenderer(canvas) {
     pixel(ctx, 0, 0, 640, 360, P.shadow);
     ctx.save();
     ctx.translate(-ox, -oy);
-    ctx.drawImage(art.ground, 0, 0);
+    ctx.drawImage(art.ground, 0, -BACK_WALL);
     for (const station of state?.flowers || []) drawFlower(ctx, station, time);
     sorted.length = 0;
     for (const prop of art.props)

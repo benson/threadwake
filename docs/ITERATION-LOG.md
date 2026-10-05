@@ -1,5 +1,11 @@
 # Continuing craft work
 
+## 2026-10-05 — north wall and camera boundary
+
+Fresh-profile keyboard play cleared waves one and two, earned four credits, chose Padded waistcoat and Tin soldier, and entered Natural History with the expected health and one companion. Moving to the north boundary then exposed a rendering mismatch: the decorative back wall occupied the top 125 pixels of playable floor, and the camera clipped the custodian at `y=18`.
+
+The baked back wall now sits above the floor boundary. The camera includes that exterior wall when following actors near the north edge, keeping their complete bodies below the HUD. The 1200×800 playable area, collision rules, spawn positions and progression are unchanged. Real keyboard movement verified the corrected north edge. `scripts/north-edge-smoke.cjs` checks all four galleries, pointer mapping and south-edge visibility, and renders a native-scale contact sheet for visual inspection.
+
 ## 2026-10-05 — readable Grand Clock warnings
 
 A real-keyboard wave-eight encounter with seven selected curios reached victory in 23.7 seconds, ending at 66/140 HP with five shots cleared. It covered movement, exhibit cover, held sweeping and all boss stages; this is one seeded workshop encounter, not a full-run difficulty judgment.
