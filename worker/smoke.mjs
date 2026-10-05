@@ -32,10 +32,11 @@ async function until(fn, label) {
   error.transientStartup = ["join", "two player snapshot"].includes(label);
   throw error;
 }
-async function join(token) {
+async function join(token, character = "custodian") {
   const url = new URL(`/room/${room}`, base);
   url.searchParams.set("name", `Player ${peers.length + 1}`);
   url.searchParams.set("protocol", String(PROTOCOL_VERSION));
+  url.searchParams.set("character", character);
   if (token) url.searchParams.set("token", token);
   const peer = {
     socket: new WebSocket(url, { origin }),
@@ -68,8 +69,14 @@ const heartbeat = setInterval(() => {
     }
 }, 100);
 try {
+  const healthUrl = new URL("/health", base);
+  healthUrl.protocol = healthUrl.protocol === "wss:" ? "https:" : "http:";
+  assert.equal(
+    (await (await fetch(healthUrl)).json()).protocol,
+    PROTOCOL_VERSION,
+  );
   const incompatible = new WebSocket(
-    new URL(`/room/${room}?protocol=2`, base),
+    new URL(`/room/${room}?protocol=${PROTOCOL_VERSION - 1}`, base),
     { origin },
   );
   await new Promise((resolve, reject) => {
@@ -91,7 +98,7 @@ try {
       }
     });
   });
-  const host = await join();
+  const host = await join(null, "guard");
   assert.equal(host.identity.protocol, PROTOCOL_VERSION);
   host.socket.send(JSON.stringify({ type: "ping", id: 123 }));
   await until(() => host.pong?.id === 123, "latency ping echo");
@@ -99,6 +106,28 @@ try {
   await until(() => host.state?.players.length === 2, "two player snapshot");
   assert.equal(host.state.version, SIMULATION_VERSION);
   assert.equal(host.state.hostId, host.identity.id);
+  assert.equal(
+    host.state.players.find((p) => p.id === host.identity.id).character,
+    "guard",
+  );
+  guest.socket.send(
+    JSON.stringify({ type: "character", character: "conservator" }),
+  );
+  await until(
+    () =>
+      host.state.players.find((p) => p.id === guest.identity.id)?.character ===
+      "conservator",
+    "shared character choice",
+  );
+  guest.socket.send(
+    JSON.stringify({ type: "character", character: "custodian" }),
+  );
+  await until(
+    () =>
+      host.state.players.find((p) => p.id === guest.identity.id)?.character ===
+      "custodian",
+    "custodian selection",
+  );
   guest.socket.send(JSON.stringify({ type: "rename", name: "Juniper" }));
   await until(
     () =>
@@ -113,6 +142,13 @@ try {
   await until(
     () => guest.state?.phase === "playing",
     "host starts both clients",
+  );
+  guest.socket.send(JSON.stringify({ type: "character", character: "guard" }));
+  await sleep(120);
+  assert.equal(
+    guest.state.players.find((p) => p.id === guest.identity.id).character,
+    "custodian",
+    "active run rejects character changes",
   );
   const before = guest.state.players.find((p) => p.id === guest.identity.id).x;
   guest.input = { x: 1, y: 0, cast: true };
@@ -139,6 +175,10 @@ try {
   await until(
     () => reconnected.state?.players.length === 2,
     "old socket close preserves replacement",
+  );
+  assert.equal(
+    reconnected.state.players.find((p) => p.id === oldId).character,
+    "custodian",
   );
   await join();
   await join();

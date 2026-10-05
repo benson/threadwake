@@ -24,6 +24,23 @@ export const BALANCE = Object.freeze({
   maxShots: 380,
   maxEffects: 110,
   maxFlowers: 18,
+  maxPickups: 150,
+  xpFirstLevel: 16,
+  xpGrowth: 6,
+  pickupRadius: 26,
+  pickupAttract: 150,
+});
+export const WEAPON_BALANCE = Object.freeze({
+  slingshot: { interval: 0.65, damage: 20 },
+  lantern: { interval: 1.25, damage: 18, radius: 115 },
+  disc: { interval: 1.15, damage: 25, speed: 420, pierce: 2, returnAfter: 0.8 },
+  storm: {
+    interval: 1.8,
+    damage: 26,
+    radius: 380,
+    chainRadius: 160,
+    targets: 3,
+  },
 });
 // Each wave has a different pressure pattern, rather than the same lottery
 // with inflated health. Rates are per spawn; packs remain bounded by maxEnemies.

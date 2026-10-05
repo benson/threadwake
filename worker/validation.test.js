@@ -1,5 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { CHARACTER_IDS, cleanCharacter, isCharacter } from "./validation.js";
+import { CHARACTERS } from "../src/characters.js";
+
+test("wire character identifiers exactly match playable characters and reject tampering", () => {
+  assert.deepEqual(
+    CHARACTER_IDS,
+    CHARACTERS.map((c) => c.id),
+  );
+  for (const id of CHARACTER_IDS) {
+    assert.equal(cleanCharacter(id), id);
+    assert.equal(isCharacter(id), true);
+  }
+  for (const bad of [undefined, null, "Guard", "__proto__", {}, ["guard"], 3]) {
+    assert.equal(cleanCharacter(bad), "custodian");
+    assert.equal(isCharacter(bad), false);
+  }
+});
 import {
   allowedOrigin,
   cleanInput,

@@ -9,13 +9,14 @@ import {
 } from "../src/sim.js";
 import { waveDuration } from "../src/config.js";
 
-test("the first shift introduces enemies immediately and offers the actual draft at 38 seconds", () => {
+test("the first shift introduces enemies immediately and advances at 38 seconds with level drafts during combat", () => {
   const s = createGame(42);
   addPlayer(s, "a");
   startGame(s);
   let firstEnemy = 0,
     firstShot = 0;
-  for (let i = 0; i < 1141 && s.phase === "playing"; i++) {
+  for (let i = 0; i < 1180 && s.wave === 1; i++) {
+    if (s.phase === "draft") { chooseUpgrade(s, "a", s.choices.a[0]); continue; }
     const p = s.players[0],
       angle = s.time * 0.3;
     step(s, {
@@ -30,24 +31,24 @@ test("the first shift introduces enemies immediately and offers the actual draft
   }
   assert.ok(firstEnemy <= 1);
   assert.ok(firstShot <= 8);
-  assert.equal(s.phase, "draft");
+  assert.equal(s.phase, "playing");
   assert.ok(s.time >= 38 && s.time < 38.04);
-  assert.equal(s.waveDuration, 38);
+  assert.equal(s.wave, 2);
   assert.equal(s.players[0].wavesSurvived, 1);
   assert.ok(s.players[0].hp > 0);
-  chooseUpgrade(s, "a", s.choices.a[0]);
-  assert.equal(s.wave, 2);
   assert.equal(s.waveDuration, waveDuration(2));
   s._spawn = 1000;
   s._flower = 1000;
   s.enemies = [];
   s.flowers = [];
+  s.pickups = [];
   for (let i = 0; i < 1949; i++) step(s, {});
   assert.equal(s.phase, "playing");
   step(s, {});
   step(s, {});
-  assert.equal(s.phase, "draft");
-  assert.ok(s.waveTime >= 65 && s.waveTime < 65.04);
+  assert.equal(s.phase, "playing");
+  assert.equal(s.wave, 3);
+  assert.ok(s.waveTime < .04);
 });
 test("late staff earn only shifts with meaningful participation", () => {
   const s = createGame(42);
@@ -58,7 +59,8 @@ test("late staff earn only shifts with meaningful participation", () => {
   s.players[0]._waveTime = 37;
   s._spawn = s._flower = 100;
   for (let i = 0; i < 31; i++) step(s, {});
-  assert.equal(s.phase, "draft");
+  assert.equal(s.phase, "playing");
+  assert.equal(s.wave, 2);
   assert.equal(s.players[0].wavesSurvived, 1);
   assert.equal(s.players[1].wavesSurvived, 0);
 });

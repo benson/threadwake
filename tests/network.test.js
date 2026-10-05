@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { connectRoom } from "../src/net.js";
+import { PROTOCOL_VERSION, SIMULATION_VERSION } from "../worker/protocol.js";
 
 function browser(t) {
   t.mock.timers.enable({
@@ -61,11 +62,74 @@ function browser(t) {
 }
 const identity = {
   type: "identity",
-  protocol: 3,
+  protocol: PROTOCOL_VERSION,
   id: "player",
   token: "opaque",
 };
-const state = { type: "state", state: { version: 3, phase: "lobby" } };
+const state = {
+  type: "state",
+  state: { version: SIMULATION_VERSION, phase: "lobby" },
+};
+
+test("character choice is allowlisted, handshaken and retained across reconnect", async (t) => {
+  const sockets = browser(t);
+  const connection = await connectRoom({
+    room: "test-room",
+    character: "conservator",
+  });
+  t.after(() => connection.close());
+  assert.equal(sockets[0].url.searchParams.get("character"), "conservator");
+  assert.equal(connection.setCharacter("guard"), true);
+  assert.equal(connection.setCharacter("__proto__"), false);
+  assert.equal(sockets[0].sent.length, 0);
+  sockets[0].receive(identity);
+  assert.deepEqual(
+    sockets[0].sent.find((x) => x.type === "character"),
+    { type: "character", character: "guard" },
+  );
+  connection.setCharacter("custodian");
+  assert.deepEqual(sockets[0].sent.at(-1), {
+    type: "character",
+    character: "custodian",
+  });
+  sockets[0].listeners.close({ code: 1006 });
+  connection.setCharacter("conservator");
+  t.mock.timers.tick(500);
+  assert.equal(sockets[1].url.searchParams.get("character"), "conservator");
+  sockets[1].receive(identity);
+  assert.equal(
+    sockets[1].sent.find((x) => x.type === "character").character,
+    "conservator",
+  );
+});
+
+test("invalid constructor character falls back to custodian", async (t) => {
+  const sockets = browser(t);
+  const connection = await connectRoom({
+    room: "test-room",
+    character: { id: "guard" },
+  });
+  t.after(() => connection.close());
+  assert.equal(sockets[0].url.searchParams.get("character"), "custodian");
+});
+
+test("reloading with another tab's character preference does not overwrite the recovered seat", async (t) => {
+  const sockets = browser(t);
+  sessionStorage.getItem = () => "saved-room-token";
+  const connection = await connectRoom({
+    room: "test-room",
+    character: "custodian",
+  });
+  t.after(() => connection.close());
+  assert.equal(sockets[0].url.searchParams.get("token"), "saved-room-token");
+  sockets[0].receive(identity);
+  assert.ok(!sockets[0].sent.some((message) => message.type === "character"));
+  connection.setCharacter("guard");
+  assert.deepEqual(sockets[0].sent.at(-1), {
+    type: "character",
+    character: "guard",
+  });
+});
 
 test("trait purchases are bounded and retained across reconnect and handshake", async (t) => {
   const sockets = browser(t);
@@ -124,7 +188,7 @@ test("client requires matching identity and simulation before accepting state", 
     onState: (x) => states.push(x),
   });
   t.after(() => connection.close());
-  assert.equal(sockets[0].url.searchParams.get("protocol"), "3");
+  assert.equal(sockets[0].url.searchParams.get("protocol"), "4");
   assert.equal(statuses.at(-1)[0], "connecting");
   sockets[0].receive({ ...identity, protocol: 2 });
   assert.equal(statuses.at(-1)[0], "error");

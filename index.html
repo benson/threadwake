@@ -36,7 +36,16 @@
       ></canvas>
       <div id="hud" hidden>
         <div class="hud-left">
-          <span id="health"></span><span id="squad"></span>
+          <span id="health"></span>
+          <div id="experience">
+            <span id="level"></span><span id="xp-count"></span
+            ><span
+              id="xp-meter"
+              role="progressbar"
+              aria-label="Experience toward next level"
+            ></span>
+          </div>
+          <span id="squad"></span>
         </div>
         <div class="hud-center">
           <span id="gallery-name"></span><span id="wave"></span
@@ -84,6 +93,9 @@
         </div>
         <div class="title-body">
           <div class="menu-actions">
+            <button id="character-button" class="character-trigger">
+              Custodian · change
+            </button>
             <button id="solo" class="primary illustrated-button">
               <canvas
                 class="menu-art"
@@ -134,9 +146,8 @@
           </aside>
         </div>
         <p class="controls">
-          WASD / arrows · move &nbsp; SPACE · sweep attack<br />Sweeps damage
-          enemies, push them back and clear shots.<br />Your slingshot fires
-          automatically.
+          WASD / arrows · move &nbsp; SPACE · special ability<br />Weapons fire
+          automatically. Collect XP to level up.
         </p>
         <a class="workshop-link" href="/lab.html">Workshop</a>
       </section>
@@ -157,6 +168,9 @@
             autocomplete="nickname"
             placeholder="Custodian"
           />
+          <button id="lobby-character" class="character-trigger">
+            Custodian · change
+          </button>
           <div id="party"></div>
           <p id="connection" role="status">Connecting…</p>
           <div class="actions">
@@ -201,6 +215,11 @@
           </div>
         </div>
       </section>
+      <dialog id="characters" aria-labelledby="characters-heading">
+        <h2 id="characters-heading">Choose your night staff</h2>
+        <div id="character-choices"></div>
+        <button id="character-done" class="primary">Done</button>
+      </dialog>
       <dialog id="options">
         <div class="illustrated-heading options-heading">
           <canvas
@@ -223,9 +242,9 @@
           ><input type="checkbox" id="motion" /> Reduced motion</label
         >
         <p class="controls">
-          WASD / arrows · move<br />SPACE / click · sweep attack<br />Damage
-          nearby enemies, push them back and clear shots.<br />ESC · menu &nbsp;
-          M · mute<br />Controller: left stick · move, A · sweep
+          WASD / arrows · move<br />SPACE / click · special ability<br />Weapons
+          fire automatically.<br />ESC · menu &nbsp; M · mute<br />Controller:
+          left stick · move, A · special ability
         </p>
         <p id="online-pause" hidden>The shift keeps going online.</p>
         <p id="connection-health" hidden></p>

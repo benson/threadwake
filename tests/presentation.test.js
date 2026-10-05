@@ -7,7 +7,7 @@ import { mapForWave, isBlocked } from "../src/maps.js";
 const STEP = 1 / TICK_RATE;
 function world() {
   return {
-    version: 3,
+    version: 4,
     seed: 1,
     runNumber: 1,
     phase: "playing",
@@ -53,6 +53,7 @@ function world() {
     companions: [
       { id: 7, owner: "a", type: "soldier", x: 580, y: 420, fireIn: 1 },
     ],
+    pickups: [{ id: 8, kind: "xp", x: 570, y: 400, life: 60 }],
     effects: [
       { id: 5, type: "cast", x: 600, y: 400, life: 0.2, maxLife: 0.35 },
     ],
@@ -73,6 +74,7 @@ function pair() {
   current.shots[0].x += 360 * STEP;
   current.echoes[0].x += 2;
   current.companions[0].x += 4;
+  current.pickups[0].x += 8;
   return { previous, current };
 }
 
@@ -95,7 +97,14 @@ test("all moving groups interpolate with bounded alpha while gameplay values sta
   current.enemies[0].hp = 12;
   current.enemies[0].stage = 2;
   const view = presentState(previous, current, { alpha: 0.5 });
-  for (const key of ["players", "enemies", "shots", "echoes", "companions"])
+  for (const key of [
+    "players",
+    "enemies",
+    "shots",
+    "echoes",
+    "companions",
+    "pickups",
+  ])
     assert.ok(
       Math.abs(view[key][0].x - (previous[key][0].x + current[key][0].x) / 2) <
         1e-6,

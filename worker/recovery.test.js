@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import worker, { Room } from "./index.js";
 import { addPlayer, startGame, step } from "../src/sim.js";
+import { PROTOCOL_VERSION, SIMULATION_VERSION } from "./protocol.js";
 function context(store = new Map()) {
   const ctx = {
     pending: [],
@@ -20,7 +21,7 @@ function context(store = new Map()) {
   return ctx;
 }
 
-test("purchased traits wait for authorized restart and survive private recovery and reconnect", async (t) => {
+function mockSockets(t) {
   const originals = new Map();
   for (const [key, value] of Object.entries({
     WebSocketPair: class {
@@ -53,13 +54,19 @@ test("purchased traits wait for authorized restart and survive private recovery 
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
       else delete globalThis[key];
   });
+}
+
+test("purchased traits wait for authorized restart and survive private recovery and reconnect", async (t) => {
+  mockSockets(t);
   const store = new Map(),
     ctx = context(store),
     room = new Room(ctx);
   await ctx.ready;
   t.after(() => clearInterval(room.timer));
   const join = (target, token, traits = {}) => {
-    const url = new URL("https://example.test/room/test-room?protocol=3");
+    const url = new URL(
+      `https://example.test/room/test-room?protocol=${PROTOCOL_VERSION}`,
+    );
     url.searchParams.set("traits", JSON.stringify(traits));
     if (token) url.searchParams.set("token", token);
     target.fetch(new Request(url));
@@ -134,6 +141,81 @@ test("purchased traits wait for authorized restart and survive private recovery 
   assert.equal(nextHost.hp, nextHost.maxHp);
   await Promise.all(nextCtx.pending);
 });
+
+test("character joins and changes are seat-scoped, phase-gated and recover without trusting reconnect query", async (t) => {
+  mockSockets(t);
+  const store = new Map(),
+    ctx = context(store),
+    room = new Room(ctx);
+  await ctx.ready;
+  t.after(() => clearInterval(room.timer));
+  const join = (target, character, token) => {
+    const url = new URL(
+      `https://example.test/room/test-room?protocol=${PROTOCOL_VERSION}`,
+    );
+    url.searchParams.set("character", character);
+    url.searchParams.set("traits", JSON.stringify({ vitality: 2, haste: 1 }));
+    if (token) url.searchParams.set("token", token);
+    target.fetch(new Request(url));
+  };
+  const message = (peer, value) =>
+    room.message(peer, peer.socket, { data: JSON.stringify(value) });
+  join(room, "guard");
+  const host = room.sessions.get(room.hostId);
+  join(room, "invalid");
+  const guest = [...room.sessions.values()].find((peer) => peer !== host);
+  assert.equal(room.game.players[0].character, "guard");
+  assert.equal(room.game.players[1].character, "custodian");
+  message(guest, { type: "character", id: host.id, character: "conservator" });
+  assert.equal(
+    room.game.players[0].character,
+    "guard",
+    "cannot select another seat's character",
+  );
+  assert.equal(room.game.players[1].character, "conservator");
+  const selected = structuredClone(room.game.players[1]);
+  for (const character of ["__proto__", { id: "guard" }, null])
+    message(guest, { type: "character", character });
+  assert.deepEqual(
+    room.game.players[1],
+    selected,
+    "invalid messages do not reset selected character",
+  );
+  message(host, { type: "start" });
+  assert.equal(room.game.players[1].character, "conservator");
+  assert.deepEqual(room.game.players[1].traits, {
+    vitality: 2,
+    haste: 1,
+    echo: 0,
+  });
+  const active = structuredClone(room.game.players[1]);
+  for (const phase of ["playing", "draft"]) {
+    room.game.phase = phase;
+    message(guest, { type: "character", character: "guard" });
+    assert.deepEqual(
+      room.game.players[1],
+      active,
+      `cannot reset HP/weapons during ${phase}`,
+    );
+  }
+  room.game.phase = "lost";
+  message(guest, { type: "character", character: "guard" });
+  assert.equal(room.game.players[1].character, "guard");
+  room.checkpoint();
+  await Promise.all(ctx.pending);
+  const nextCtx = context(store),
+    recovered = new Room(nextCtx);
+  await nextCtx.ready;
+  t.after(() => clearInterval(recovered.timer));
+  join(recovered, "custodian", guest.token);
+  assert.equal(
+    recovered.game.players.find((player) => player.id === guest.id).character,
+    "guard",
+    "stale reconnect URL preserves character",
+  );
+  assert.equal(recovered.sessions.size, 2);
+  await Promise.all(nextCtx.pending);
+});
 test("private checkpoint restores simulation internals and reconnect identity", async () => {
   const store = new Map();
   const firstContext = context(store);
@@ -151,8 +233,8 @@ test("private checkpoint restores simulation internals and reconnect identity", 
   });
   first.checkpoint();
   await Promise.all(firstContext.pending);
-  assert.equal(store.get("checkpoint").protocol, 3);
-  assert.equal(store.get("checkpoint").game.version, 3);
+  assert.equal(store.get("checkpoint").protocol, PROTOCOL_VERSION);
+  assert.equal(store.get("checkpoint").game.version, SIMULATION_VERSION);
   // Missing pending-purchase metadata falls back to active purchased traits.
   delete store.get("checkpoint").peers[0].pendingTraits;
   const nextContext = context(store);
@@ -177,8 +259,8 @@ test("private checkpoint restores simulation internals and reconnect identity", 
 
 test("recovery fails closed for incompatible checkpoint protocol or simulation", async () => {
   for (const mismatch of [
-    { protocol: 2, version: 3 },
-    { protocol: 3, version: 2 },
+    { protocol: 3, version: SIMULATION_VERSION },
+    { protocol: PROTOCOL_VERSION, version: 3 },
   ]) {
     const saved = {
       protocol: mismatch.protocol,
@@ -200,12 +282,12 @@ test("recovery fails closed for incompatible checkpoint protocol or simulation",
   }
 });
 
-test("worker advertises protocol 3 and echoes only bounded ping IDs", async () => {
+test("worker advertises protocol 4 and echoes only bounded ping IDs", async () => {
   const response = await worker.fetch(
     new Request("https://example.test/health"),
     {},
   );
-  assert.equal((await response.json()).protocol, 3);
+  assert.equal((await response.json()).protocol, 4);
   const ctx = context(),
     room = new Room(ctx);
   await ctx.ready;

@@ -321,7 +321,7 @@ test("curio previews explain different next stacks without developer distance un
     { label: "Slow duration", before: "0s", after: "1.4s" },
   ]);
   assert.deepEqual(upgradePreview(p, "mirror").stats, [
-    { label: "Companion damage", before: "0%", after: "60%" },
+    { label: "Companion damage", before: "0", after: "12" },
   ]);
 });
 test("JSON recovery retains live companions and projectile ownership for exact continuation", () => {
@@ -338,6 +338,6 @@ test("JSON recovery retains live companions and projectile ownership for exact c
     step(restored, input);
   }
   assert.deepEqual(restored, s);
-  assert.equal(snapshot(s).version, 3);
+  assert.equal(snapshot(s).version, 4);
   assert.ok(!JSON.stringify(snapshot(s)).includes('"_'));
 });

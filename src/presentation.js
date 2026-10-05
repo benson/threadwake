@@ -6,7 +6,14 @@ const MAX_GAP = 0.2;
 const finite = (value, fallback = 0) =>
   Number.isFinite(value) ? value : fallback;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
-const groups = ["players", "enemies", "shots", "echoes", "companions"];
+const groups = [
+  "players",
+  "enemies",
+  "shots",
+  "echoes",
+  "companions",
+  "pickups",
+];
 const motionFields = [
   "x",
   "y",

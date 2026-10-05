@@ -4,6 +4,7 @@ import {
   waveDuration,
   WAVES,
   PERMANENT,
+  WEAPON_BALANCE as WB,
   BALANCE as B,
 } from "./config.js";
 import {
@@ -16,6 +17,7 @@ import {
   steerAroundCover,
 } from "./maps.js";
 import { bodyCircle, weaponMuzzle, aimFromWeapon } from "./combat-geometry.js";
+import { getCharacter, WEAPONS } from "./characters.js";
 
 // IDs remain stable for existing saves and room input. Every object now has a
 // museum rule; no movement history, old selves, or thread geometry is simulated.
@@ -23,25 +25,27 @@ export const UPGRADES = [
   {
     id: "fork",
     name: "Porcelain prism",
-    description: "Launch one extra marble in a spread.",
+    description:
+      "Split projectiles and widen lantern light and lightning chains.",
     icon: "fork",
   },
   {
     id: "pierce",
     name: "Fossil arrowhead",
-    description: "Marbles pass through two more exhibits.",
+    description:
+      "Projectiles pierce more exhibits; lanterns and coils hit harder.",
     icon: "needle",
   },
   {
     id: "quick",
     name: "Brass metronome",
-    description: "Marbles and tin soldiers fire 20% sooner.",
+    description: "All weapons and tin soldiers attack 20% sooner.",
     icon: "spark",
   },
   {
     id: "heavy",
     name: "Bronze paperweight",
-    description: "Marbles deal 35% more damage.",
+    description: "All weapons deal 35% more damage.",
     icon: "needle",
   },
   {
@@ -53,19 +57,20 @@ export const UPGRADES = [
   {
     id: "echo",
     name: "Stiff bristles",
-    description: "Sweeps deal 18 more damage and push exhibits farther.",
+    description:
+      "Special abilities deal 18 more damage and push exhibits farther.",
     icon: "echo",
   },
   {
     id: "recall",
     name: "Winding key",
-    description: "Reduce broom cooldown by 20%.",
+    description: "Reduce special ability cooldown by 20%.",
     icon: "echo",
   },
   {
     id: "thread",
     name: "Velvet rope",
-    description: "Extend your sweep's reach.",
+    description: "Extend your special ability's reach.",
     icon: "thread",
   },
   {
@@ -77,7 +82,8 @@ export const UPGRADES = [
   {
     id: "heal",
     name: "First-aid kit",
-    description: "Sweeps heal nearby staff; supplies restore more health.",
+    description:
+      "Special abilities heal nearby staff; supplies restore more health.",
     icon: "heart",
   },
   {
@@ -95,7 +101,8 @@ export const UPGRADES = [
   {
     id: "frost",
     name: "Glacier fragment",
-    description: "Sweeps slow exhibits; marbles shatter them for extra damage.",
+    description:
+      "Special abilities slow exhibits; weapons shatter them for extra damage.",
     icon: "snow",
   },
   {
@@ -143,54 +150,86 @@ function credit(s, p, key, amount = 1) {
   if (p) p.stats[key] += amount;
 }
 function statsFor(p) {
+  const character = getCharacter(p.character);
   p.speed =
+    character.speedMultiplier *
+    (p.haste > 0 ? 1.3 : 1) *
     B.speed *
     (1 + 0.15 * count(p, "speed") + PERMANENT.speedPerRank * p.traits.haste);
-  p.sweepRadius = B.sweepRadius + 18 * count(p, "thread");
-  p.sweepDamage = B.sweepDamage + 18 * count(p, "echo");
+  p.sweepRadius =
+    (p.character === "guard"
+      ? 132
+      : p.character === "conservator"
+        ? 110
+        : B.sweepRadius) +
+    18 * count(p, "thread");
+  p.sweepDamage =
+    (p.character === "guard"
+      ? 42
+      : p.character === "conservator"
+        ? 24
+        : B.sweepDamage) +
+    18 * count(p, "echo");
   p.cooldownDuration =
     B.castCooldown *
     Math.pow(0.8, count(p, "recall")) *
     (1 - PERMANENT.cooldownPerRank * p.traits.echo);
 }
 export function upgradePreview(p, id) {
+  const radius =
+    p.character === "guard"
+      ? 132
+      : p.character === "conservator"
+        ? 110
+        : B.sweepRadius;
+  const damage =
+    p.character === "guard"
+      ? 42
+      : p.character === "conservator"
+        ? 24
+        : B.sweepDamage;
+  const force =
+    p.character === "guard"
+      ? 150
+      : p.character === "conservator"
+        ? 30
+        : B.sweepKnockback;
   const values = (n) => {
     switch (id) {
       case "fork":
-        return [["Marbles", 1 + n]];
-      case "pierce":
-        return [["Exhibits per marble", 1 + 2 * n]];
-      case "quick":
         return [
-          [
-            "Volley interval",
-            `${(B.fireInterval * Math.pow(0.8, n)).toFixed(2)}s`,
-          ],
+          ["Projectiles", 1 + n],
+          ["Lantern reach", `${100 + 10 * n}%`],
+          ["Lightning targets", 3 + n],
         ];
+      case "pierce":
+        return [
+          ["Extra projectile pierces", 2 * n],
+          ["Lantern and coil damage", `${100 + 12 * n}%`],
+        ];
+      case "quick":
+        return [["Firing speed", `${Math.round(100 / Math.pow(0.8, n))}%`]];
       case "heavy":
-        return [["Marble damage", Math.round(B.shotDamage * (1 + 0.35 * n))]];
+        return [["Weapon damage", `${100 + 35 * n}%`]];
       case "orbit":
         return [["Orbiting planets", n]];
       case "echo":
         return [
-          ["Sweep damage", B.sweepDamage + 18 * n],
-          [
-            "Push",
-            `${Math.round(((B.sweepKnockback + 20 * n) / B.sweepKnockback) * 100)}%`,
-          ],
+          ["Special damage", damage + 18 * n],
+          ["Push", `${Math.round(((force + 20 * n) / force) * 100)}%`],
         ];
       case "recall":
         return [
           [
-            "Sweep cooldown",
+            "Special cooldown",
             `${(B.castCooldown * Math.pow(0.8, n) * (1 - PERMANENT.cooldownPerRank * (p.traits?.echo || 0))).toFixed(1)}s`,
           ],
         ];
       case "thread":
         return [
           [
-            "Sweep reach",
-            `${Math.round(((B.sweepRadius + 18 * n) / B.sweepRadius) * 100)}%`,
+            "Special reach",
+            `${Math.round(((radius + 18 * n) / radius) * 100)}%`,
           ],
         ];
       case "bloom":
@@ -200,14 +239,14 @@ export function upgradePreview(p, id) {
         ];
       case "heal":
         return [
-          ["Sweep healing", 4 * n],
+          ["Special healing", 4 * n + (p.character === "conservator" ? 12 : 0)],
           ["Base supply healing", 12 + 6 * n],
         ];
       case "speed":
         return [
           [
             "Movement speed",
-            `${Math.round((1 + 0.15 * n + PERMANENT.speedPerRank * (p.traits?.haste || 0)) * 100)}%`,
+            `${Math.round(getCharacter(p.character).speedMultiplier * (1 + 0.15 * n + PERMANENT.speedPerRank * (p.traits?.haste || 0)) * 100)}%`,
           ],
         ];
       case "vitality": {
@@ -216,24 +255,33 @@ export function upgradePreview(p, id) {
           hp = Math.min(maxHp, p.hp + 40 * added);
         return [
           ["Maximum health", maxHp],
-          [
-            "Health after break",
-            Math.round(
-              Math.min(maxHp, Math.max(hp + maxHp * 0.32, maxHp * 0.55)),
-            ),
-          ],
+          ["Health now", Math.round(hp)],
         ];
       }
       case "frost":
         return [
-          ["Shatter bonus", `${n ? 35 + 10 * n : 0}%`],
-          ["Slow duration", `${n ? (1.1 + 0.3 * n).toFixed(1) : 0}s`],
+          [
+            "Shatter bonus",
+            `${p.character === "conservator" ? 45 + 10 * n : n ? 35 + 10 * n : 0}%`,
+          ],
+          [
+            "Slow duration",
+            p.character !== "conservator" && !n
+              ? "0s"
+              : `${(p.character === "conservator" ? 2 + 0.3 * n : 1.1 + 0.3 * n).toFixed(1)}s`,
+          ],
         ];
       case "mirror":
         return [
           [
             "Companion damage",
-            `${n ? Math.round((0.6 + 0.2 * (n - 1)) * 100) : 0}%`,
+            n
+              ? Math.round(
+                  B.shotDamage *
+                    (1 + 0.35 * count(p, "heavy")) *
+                    (0.6 + 0.2 * (n - 1)),
+                )
+              : 0,
           ],
         ];
       case "thorns":
@@ -260,15 +308,15 @@ export function upgradePreview(p, id) {
     heavy: "The tin soldier borrows your weight.",
     orbit: "Planet clears also charge supplies.",
     echo: "More force makes room for your marbles.",
-    recall: "With a first-aid kit, every sweep also heals you.",
+    recall: "Use your special ability more often.",
     thread: "Reach more exhibits, shots and supply carts.",
     bloom: "First-aid kits also strengthen the supply pulse.",
     heal: "Nearby colleagues share the healing.",
     speed: "Skate out after a sweep clears your path.",
     vitality: "Heal 40 now, then recover more between shifts.",
-    frost: "Any staff member's next marble can shatter the slowed exhibit.",
+    frost: "Any staff member's next weapon hit can shatter the slowed exhibit.",
     mirror:
-      "Fires beside you using your marble damage, prism, fossil and tempo.",
+      "Fires its own marbles beside you, borrowing prism, fossil, paperweight and tempo.",
     thorns: "Retaliation marbles can shatter slowed exhibits.",
     magnet: "Each stack draws carts from farther away.",
   };
@@ -298,7 +346,7 @@ function effect(s, type, x, y, color = 0, extra = {}) {
 }
 export function createGame(seed = 1) {
   return {
-    version: 3,
+    version: 4,
     seed: finite(seed, 1) >>> 0,
     runNumber: 0,
     tick: 0,
@@ -314,6 +362,11 @@ export function createGame(seed = 1) {
     echoes: [],
     companions: [],
     flowers: [],
+    pickups: [],
+    level: 1,
+    xp: 0,
+    xpToNext: B.xpFirstLevel,
+    draftKind: null,
     effects: [],
     choices: {},
     kills: 0,
@@ -324,9 +377,18 @@ export function createGame(seed = 1) {
     _spawn: 0,
     _flower: 0,
     _opening: 0,
+    _levelPending: 0,
+    _weaponDrops: 0,
+    _unlockedWeapons: [],
   };
 }
-export function addPlayer(s, id, name = "Custodian", traits = {}) {
+export function addPlayer(
+  s,
+  id,
+  name = "Custodian",
+  traits = {},
+  characterId = "custodian",
+) {
   if (typeof id !== "string" || !id || id.length > 80 || s.players.length >= 4)
     return null;
   const existing = s.players.find((p) => p.id === id);
@@ -335,15 +397,21 @@ export function addPlayer(s, id, name = "Custodian", traits = {}) {
     t = {};
   for (const key of ["vitality", "haste", "echo"])
     t[key] = clamp(Math.floor(finite(traits?.[key])), 0, 3);
+  const character = getCharacter(characterId);
   const p = {
     id,
     name: String(name).trim().slice(0, 18) || "Custodian",
+    character: character.id,
+    weapons: [character.weapon],
+    lastWeapon: character.weapon,
+    haste: 0,
     x: 600 + color * 24,
     y: 400,
     vx: 0,
     vy: 0,
-    hp: B.playerHp + PERMANENT.healthPerRank * t.vitality,
-    maxHp: B.playerHp + PERMANENT.healthPerRank * t.vitality,
+    hp: B.playerHp + character.hpBonus + PERMANENT.healthPerRank * t.vitality,
+    maxHp:
+      B.playerHp + character.hpBonus + PERMANENT.healthPerRank * t.vitality,
     dead: false,
     color,
     face: 1,
@@ -363,26 +431,50 @@ export function addPlayer(s, id, name = "Custodian", traits = {}) {
     aimY: 0,
     traits: t,
     _fire: 0.2,
+    _weaponTimers: { lantern: 0.2, disc: 0.2, storm: 0.2 },
     _orbit: 0,
     _waveTime: 0,
     _castBuffer: 0,
   };
-  for (let i = 1; i < s.wave; i++)
+  const earnedUpgrades = Math.max(
+    0,
+    s.level - 1 - s._levelPending - (s.draftKind === "level" ? 1 : 0),
+  );
+  for (let i = 0; i < earnedUpgrades; i++)
     p.upgrades.push(
-      ["quick", "heavy", "fork", "bloom", "orbit", "pierce"][(i - 1) % 6],
+      ["quick", "heavy", "fork", "bloom", "orbit", "pierce"][i % 6],
     );
   Object.assign(p, safePosition(mapById(s.mapId), p, 10, 18));
   statsFor(p);
+  for (const weapon of s._unlockedWeapons)
+    if (!p.weapons.includes(weapon)) p.weapons.push(weapon);
   s.players.push(p);
   if (s.phase === "draft") s.choices[id] = rollChoices(s, p);
   return p;
+}
+export function setCharacter(s, id, characterId) {
+  const p = s.players.find((q) => q.id === id);
+  if (!p || !["lobby", "won", "lost"].includes(s.phase)) return false;
+  const character = getCharacter(characterId);
+  if (character.id !== characterId) return false;
+  p.character = character.id;
+  p.weapons = [character.weapon];
+  p.lastWeapon = character.weapon;
+  p.maxHp =
+    B.playerHp +
+    character.hpBonus +
+    PERMANENT.healthPerRank * p.traits.vitality;
+  p.hp = p.maxHp;
+  p.haste = 0;
+  statsFor(p);
+  return true;
 }
 export function removePlayer(s, id) {
   s.players = s.players.filter((p) => p.id !== id);
   s.companions = s.companions.filter((p) => p.owner !== id);
   delete s.choices[id];
   if (s.phase === "draft" && s.players.length && !Object.keys(s.choices).length)
-    nextWave(s);
+    finishDraft(s);
 }
 export function startGame(s) {
   if (!["lobby", "won", "lost"].includes(s.phase) || !s.players.length)
@@ -391,11 +483,12 @@ export function startGame(s) {
       id: p.id,
       name: p.name,
       traits: p.traits,
+      character: p.character,
     })),
     runNumber = (s.runNumber || 0) + 1;
   Object.assign(s, createGame(s.seed));
   s.runNumber = runNumber;
-  for (const p of ps) addPlayer(s, p.id, p.name, p.traits);
+  for (const p of ps) addPlayer(s, p.id, p.name, p.traits, p.character);
   nextWave(s);
   return true;
 }
@@ -439,11 +532,27 @@ export function chooseUpgrade(s, id, upgradeId) {
   }
   statsFor(p);
   delete s.choices[id];
-  if (!Object.keys(s.choices).length) nextWave(s);
+  if (!Object.keys(s.choices).length) finishDraft(s);
   return true;
+}
+function levelDraft(s) {
+  if (!s._levelPending || !s.players.length) return;
+  s._levelPending--;
+  s.phase = "draft";
+  s.draftKind = "level";
+  s.choices = {};
+  for (const p of s.players) s.choices[p.id] = rollChoices(s, p);
+}
+function finishDraft(s) {
+  if (s.draftKind === "level") {
+    s.phase = "playing";
+    s.draftKind = null;
+    if (s._levelPending) levelDraft(s);
+  } else nextWave(s);
 }
 function nextWave(s) {
   s.wave++;
+  s.draftKind = null;
   s.phase = "playing";
   s.waveTime = 0;
   s.waveDuration = waveDuration(s.wave);
@@ -457,6 +566,20 @@ function nextWave(s) {
   s.echoes = [];
   s.companions = [];
   s.flowers = [];
+  if (relocate)
+    for (const pickup of s.pickups)
+      Object.assign(
+        pickup,
+        safePosition(
+          gallery,
+          {
+            x: gallery.spawn.x + (random(s) - 0.5) * 100,
+            y: gallery.spawn.y + (random(s) - 0.5) * 60,
+          },
+          5,
+          20,
+        ),
+      );
   s._flower = 0;
   for (const p of s.players) {
     if (relocate)
@@ -599,6 +722,7 @@ function shot(
   pierce = 0,
   speed = 360,
   mode = "weapon",
+  weapon = "slingshot",
 ) {
   if (s.shots.length >= B.maxShots) return false;
   const center = bodyCircle(origin),
@@ -632,6 +756,9 @@ function shot(
     y: muzzle.y,
     originX: muzzle.x,
     originY: muzzle.y,
+    weapon,
+    age: 0,
+    returning: false,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
     hostile,
@@ -666,6 +793,191 @@ function fire(s, p, origin = p, scale = 1) {
         2 * count(p, "pierce"),
       ) || fired;
   if (fired) origin.shotAge = 0;
+  if (fired && origin === p) p.lastWeapon = "slingshot";
+}
+function autoWeapon(s, p, weapon) {
+  if (weapon === "slingshot") {
+    fire(s, p);
+    return;
+  }
+  const e = target(s, p);
+  if (!e) return;
+  const aim = aimFromWeapon(p, e);
+  p.aimX = aim.dx;
+  p.aimY = aim.dy;
+  const origin = weaponMuzzle(p),
+    map = mapById(s.mapId),
+    rule = WB[weapon];
+  const damage =
+    rule.damage *
+    (1 + 0.35 * count(p, "heavy")) *
+    (weapon === "lantern" || weapon === "storm"
+      ? 1 + 0.12 * count(p, "pierce")
+      : 1);
+  let fired = false;
+  if (weapon === "disc") {
+    const n = 1 + count(p, "fork");
+    for (let i = 0; i < n; i++)
+      fired =
+        shot(
+          s,
+          p,
+          p,
+          aim.angle + (i - (n - 1) / 2) * 0.14,
+          false,
+          damage,
+          rule.pierce + 2 * count(p, "pierce"),
+          rule.speed,
+          "weapon",
+          "disc",
+        ) || fired;
+  } else if (weapon === "lantern") {
+    const radius = rule.radius * (1 + 0.1 * count(p, "fork"));
+    for (const foe of s.enemies)
+      if (
+        foe.hp > 0 &&
+        dist2(origin, bodyCircle(foe)) <= (radius + bodyCircle(foe).r) ** 2 &&
+        !lineBlocked(map, bodyCircle(p), origin, 3) &&
+        !lineBlocked(map, origin, bodyCircle(foe))
+      ) {
+        weaponDamage(s, foe, damage, p);
+        fired = true;
+      }
+    if (fired)
+      effect(s, "lantern", origin.x, origin.y, p.color, {
+        radius,
+        owner: p.id,
+      });
+  } else if (weapon === "storm") {
+    let from = origin;
+    const struck = new Set();
+    for (let i = 0; i < rule.targets + count(p, "fork"); i++) {
+      const range = i ? rule.chainRadius : rule.radius;
+      const foe = s.enemies
+        .filter(
+          (q) =>
+            q.hp > 0 &&
+            !struck.has(q.id) &&
+            dist2(from, bodyCircle(q)) <= range ** 2 &&
+            !lineBlocked(map, from, bodyCircle(q)),
+        )
+        .sort(
+          (a, b) => dist2(from, bodyCircle(a)) - dist2(from, bodyCircle(b)),
+        )[0];
+      if (!foe || lineBlocked(map, bodyCircle(p), origin, 3)) break;
+      const to = bodyCircle(foe);
+      effect(s, "storm", to.x, to.y, p.color, {
+        fromX: from.x,
+        fromY: from.y,
+        owner: p.id,
+      });
+      weaponDamage(s, foe, damage, p);
+      struck.add(foe.id);
+      from = to;
+      fired = true;
+    }
+  }
+  if (fired) {
+    p.shotAge = 0;
+    p.lastWeapon = weapon;
+  }
+}
+function weaponDamage(s, e, damage, p) {
+  const shatter = e.brittle > 0 ? e._shatter || 0.45 : 0;
+  damageEnemy(s, e, damage * (1 + shatter), p);
+  if (shatter) {
+    e.brittle = 0;
+    e._shatter = 0;
+    effect(s, "shatter", e.x, e.y, p?.color ?? 0);
+  }
+}
+function collectPickups(s, dt) {
+  const ps = alive(s),
+    map = mapById(s.mapId);
+  let experience = 0,
+    collector = null;
+  for (const q of s.pickups) {
+    q.life -= dt;
+    if (q.life <= 0 || !ps.length) continue;
+    const p = ps.reduce((a, b) => (dist2(q, a) < dist2(q, b) ? a : b)),
+      d = Math.hypot(p.x - q.x, p.y - q.y);
+    if (
+      d < B.pickupAttract + 20 * count(p, "magnet") &&
+      !lineBlocked(map, q, p)
+    ) {
+      const distance = Math.min(d, dt * 230);
+      Object.assign(
+        q,
+        moveInMap(
+          map,
+          q,
+          ((p.x - q.x) / (d || 1)) * distance,
+          ((p.y - q.y) / (d || 1)) * distance,
+          5,
+          20,
+        ),
+      );
+    }
+    if (dist2(q, p) > B.pickupRadius ** 2 || lineBlocked(map, q, p)) continue;
+    q.life = 0;
+    if (q.kind === "xp") {
+      experience += q.value;
+      collector = p;
+    } else if (q.kind === "weapon" && WEAPONS[q.weapon]) {
+      if (!s._unlockedWeapons.includes(q.weapon))
+        s._unlockedWeapons.push(q.weapon);
+      for (const ally of s.players)
+        if (!ally.weapons.includes(q.weapon)) {
+          ally.weapons.push(q.weapon);
+          effect(s, "weapon", ally.x, ally.y, ally.color, {
+            weapon: q.weapon,
+            owner: ally.id,
+          });
+        }
+    } else if (q.kind === "heal") healPlayer(s, p, p, q.value);
+    else if (q.kind === "haste") {
+      p.haste = Math.max(p.haste, q.value);
+      effect(s, "haste", p.x, p.y, p.color, { owner: p.id });
+    }
+  }
+  s.pickups = s.pickups.filter((q) => q.life > 0).slice(-B.maxPickups);
+  if (experience) {
+    s.xp += experience;
+    effect(s, "xp", collector.x, collector.y, collector.color, {
+      value: experience,
+      owner: collector.id,
+    });
+    while (s.xp >= s.xpToNext) {
+      s.xp -= s.xpToNext;
+      s.level++;
+      s.xpToNext = B.xpFirstLevel + (s.level - 1) * B.xpGrowth;
+      s._levelPending++;
+    }
+  }
+}
+function dropPickup(s, kind, position, value = 1, weapon = null) {
+  const at = safePosition(mapById(s.mapId), position, 5, 20);
+  if (s.pickups.length >= B.maxPickups) {
+    const xp = s.pickups.filter((q) => q.kind === "xp");
+    if (kind === "xp" && xp.length) {
+      const q = xp.sort((a, b) => dist2(a, at) - dist2(b, at))[0];
+      q.value += value;
+      q.life = 70;
+      return;
+    }
+    const disposable = s.pickups.findIndex((q) => q.kind !== "weapon");
+    const removed = s.pickups.splice(disposable >= 0 ? disposable : 0, 1)[0];
+    if (removed.kind === "xp" && xp.length > 1)
+      xp.find((q) => q.id !== removed.id).value += removed.value;
+  }
+  s.pickups.push({
+    id: uid(s),
+    ...at,
+    kind,
+    value,
+    weapon,
+    life: kind === "weapon" ? 90 : 70,
+  });
 }
 function damageEnemy(s, e, amount, p, source = "marble") {
   if (e.hp <= 0) return;
@@ -673,6 +985,29 @@ function damageEnemy(s, e, amount, p, source = "marble") {
   e.hit = source === "sweep" ? 0.16 : 0.09;
   if (e.hp <= 0) {
     s.kills++;
+    dropPickup(
+      s,
+      "xp",
+      e,
+      e.type === "warden" ? 20 : e.type === "thorn" ? 2 : 1,
+    );
+    if (s.kills >= [12, 45, 110, 200][s._weaponDrops]) {
+      s._weaponDrops++;
+      const waiting = new Set(
+        s.pickups.filter((q) => q.kind === "weapon").map((q) => q.weapon),
+      );
+      const weapon = Object.keys(WEAPONS)
+        .filter((key) => !s._unlockedWeapons.includes(key) && !waiting.has(key))
+        .map((key) => ({
+          key,
+          gain: s.players.filter((q) => !q.weapons.includes(key)).length,
+        }))
+        .filter((q) => q.gain > 0)
+        .sort((a, b) => b.gain - a.gain)[0]?.key;
+      if (weapon) dropPickup(s, "weapon", e, 1, weapon);
+    }
+    if (s.kills % 18 === 0) dropPickup(s, "heal", e, 16);
+    else if (s.kills % 29 === 0) dropPickup(s, "haste", e, 8);
     if (p) p.kills++;
     if (source === "sweep") credit(s, p, "threadKills");
     effect(s, "death", e.x, e.y, p?.color ?? 0);
@@ -723,7 +1058,13 @@ function sweep(s, p) {
   p.invulnerable = Math.max(p.invulnerable, 0.22);
   const radius = p.sweepRadius,
     map = mapById(s.mapId);
-  effect(s, "sweep", p.x, p.y, p.color, { radius, owner: p.id });
+  const ability =
+    p.character === "conservator"
+      ? "restore"
+      : p.character === "guard"
+        ? "repel"
+        : "sweep";
+  effect(s, "sweep", p.x, p.y, p.color, { radius, owner: p.id, ability });
   for (const b of s.shots)
     if (
       b.hostile &&
@@ -744,7 +1085,12 @@ function sweep(s, p) {
         length = Math.hypot(dx, dy),
         a = length > 0 ? Math.atan2(dy, dx) : Math.atan2(p.aimY, p.aimX);
       const force =
-        (B.sweepKnockback + 20 * count(p, "echo")) *
+        ((p.character === "guard"
+          ? 150
+          : p.character === "conservator"
+            ? 30
+            : B.sweepKnockback) +
+          20 * count(p, "echo")) *
         (e.type === "warden" ? 0.35 : 1);
       Object.assign(
         e,
@@ -752,13 +1098,22 @@ function sweep(s, p) {
       );
       e.stagger = Math.max(
         e.stagger || 0,
-        B.sweepStagger * (e.type === "warden" ? 0.5 : 1),
+        (p.character === "conservator"
+          ? 2
+          : p.character === "guard"
+            ? 1
+            : B.sweepStagger) * (e.type === "warden" ? 0.5 : 1),
       );
       const frost = count(p, "frost");
       if (frost) {
         e.slow = 1.1 + 0.3 * frost;
         e.brittle = e.slow;
         e._shatter = Math.max(e._shatter || 0, 0.35 + 0.1 * frost);
+      }
+      if (p.character === "conservator") {
+        e.slow = Math.max(e.slow, 2 + 0.3 * frost);
+        e.brittle = Math.max(e.brittle, e.slow);
+        e._shatter = Math.max(e._shatter, 0.45 + 0.1 * frost);
       }
     }
   for (const f of s.flowers)
@@ -776,7 +1131,13 @@ function sweep(s, p) {
         if (kit) ally.revive = Math.min(0.95, ally.revive + 0.08 * kit);
         continue;
       }
-      if (kit) healPlayer(s, p, ally, 4 * kit);
+      if (kit || p.character === "conservator")
+        healPlayer(
+          s,
+          p,
+          ally,
+          4 * kit + (p.character === "conservator" ? 12 : 0),
+        );
       if (ally.id !== p.id) {
         ally.invulnerable = Math.max(ally.invulnerable, 0.35);
         ally.stats.resonances++;
@@ -884,6 +1245,7 @@ export function step(s, inputs = {}, dt = 1 / 30) {
   const map = mapById(s.mapId);
   for (const p of s.players) {
     p.runTicks++;
+    p.haste = Math.max(0, p.haste - dt);
     p._waveTime += dt;
     p.hit = Math.max(0, p.hit - dt);
     p.invulnerable = Math.max(0, p.invulnerable - dt);
@@ -942,10 +1304,19 @@ export function step(s, inputs = {}, dt = 1 / 30) {
     }
     p._castBuffer = Math.max(0, p._castBuffer - dt);
     p._fire -= dt;
-    if (p._fire <= 0) {
+    if (p._fire <= 0 && p.weapons.includes("slingshot")) {
       fire(s, p);
       p._fire = B.fireInterval * Math.pow(0.8, count(p, "quick"));
     }
+    for (const weapon of p.weapons)
+      if (weapon !== "slingshot" && WB[weapon]) {
+        p._weaponTimers[weapon] = (p._weaponTimers[weapon] ?? 0.2) - dt;
+        if (p._weaponTimers[weapon] <= 0) {
+          autoWeapon(s, p, weapon);
+          p._weaponTimers[weapon] =
+            WB[weapon].interval * Math.pow(0.8, count(p, "quick"));
+        }
+      }
     p._orbit += dt * 2.7;
     p.orbitPhase = p._orbit;
     const planets = count(p, "orbit");
@@ -1145,6 +1516,27 @@ export function step(s, inputs = {}, dt = 1 / 30) {
   for (const b of s.shots) {
     if (b.life <= 0) continue;
     b.life -= dt;
+    b.age = (b.age || 0) + dt;
+    if (b.weapon === "disc" && !b.hostile && b.age >= WB.disc.returnAfter) {
+      const owner = s.players.find((p) => p.id === b.owner && !p.dead);
+      if (owner) {
+        if (!b.returning) {
+          b.returning = true;
+          b._hits = [];
+          b.pierce = 2 + 2 * count(owner, "pierce");
+        }
+        const body = bodyCircle(owner),
+          dx = body.x - b.x,
+          dy = body.y - b.y,
+          d = Math.hypot(dx, dy);
+        if (d < 16) {
+          b.life = 0;
+          continue;
+        }
+        b.vx = (dx / d) * WB.disc.speed;
+        b.vy = (dy / d) * WB.disc.speed;
+      }
+    }
     const old = { x: b.x, y: b.y };
     b.x += b.vx * dt;
     b.y += b.vy * dt;
@@ -1171,18 +1563,12 @@ export function step(s, inputs = {}, dt = 1 / 30) {
         .filter((hit) => Number.isFinite(hit.at) && hit.at < wall)
         .sort((a, c) => a.at - c.at);
       for (const { e } of hits) {
-        const shatter = e.brittle > 0 ? e._shatter || 0.45 : 0;
-        damageEnemy(
+        weaponDamage(
           s,
           e,
-          b.damage * (1 + shatter),
+          b.damage,
           s.players.find((p) => p.id === b.owner),
         );
-        if (shatter) {
-          e.brittle = 0;
-          e._shatter = 0;
-          effect(s, "shatter", e.x, e.y, b.color);
-        }
         b._hits.push(e.id);
         if (b.pierce-- <= 0) {
           b.life = 0;
@@ -1214,6 +1600,7 @@ export function step(s, inputs = {}, dt = 1 / 30) {
     )
     .slice(-B.maxShots);
   s.flowers = s.flowers.filter((f) => f.life > 0);
+  collectPickups(s, dt);
   for (const e of s.effects) e.life -= dt;
   s.effects = s.effects.filter((e) => e.life > 0).slice(-B.maxEffects);
   if (!alive(s).length) {
@@ -1230,13 +1617,9 @@ export function step(s, inputs = {}, dt = 1 / 30) {
     }
   } else if (s.waveTime >= waveDuration(s.wave)) {
     for (const p of s.players) if (p._waveTime + 1e-6 >= 10) p.wavesSurvived++;
-    s.phase = "draft";
-    s.shots = [];
-    s.enemies = [];
-    s.companions = [];
-    s.choices = {};
-    for (const p of s.players) s.choices[p.id] = rollChoices(s, p);
+    nextWave(s);
   }
+  if (s.phase === "playing" && s._levelPending) levelDraft(s);
 }
 export function snapshot(s) {
   return JSON.parse(

@@ -1,4 +1,15 @@
 export const ROOM_PATTERN = /^[a-zA-Z0-9_-]{8,64}$/;
+export const CHARACTER_IDS = Object.freeze([
+  "custodian",
+  "conservator",
+  "guard",
+]);
+export function isCharacter(value) {
+  return CHARACTER_IDS.includes(value);
+}
+export function cleanCharacter(value) {
+  return isCharacter(value) ? value : "custodian";
+}
 export function allowedOrigin(origin) {
   try {
     const u = new URL(origin);

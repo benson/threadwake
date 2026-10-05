@@ -3,7 +3,11 @@ import {
   SIMULATION_VERSION,
   UPDATE_REQUIRED,
 } from "../worker/protocol.js";
-import { cleanTraits } from "../worker/validation.js";
+import {
+  cleanTraits,
+  cleanCharacter,
+  isCharacter,
+} from "../worker/validation.js";
 
 const SERVER =
   import.meta.env?.VITE_ROOM_SERVER ||
@@ -13,6 +17,7 @@ export async function connectRoom({
   room,
   name,
   traits = {},
+  character = "custodian",
   onState = () => {},
   onStatus = () => {},
   onIdentity = () => {},
@@ -20,12 +25,14 @@ export async function connectRoom({
 }) {
   if (!/^[a-zA-Z0-9_-]{8,64}$/.test(room)) throw new Error("Invalid room code");
   traits = cleanTraits(traits);
+  character = cleanCharacter(character);
   const storageKey = `threadwake:room:${room}`;
   let token = "";
   try {
     token = sessionStorage.getItem(storageKey) || "";
   } catch {}
   let socket,
+    characterPending = false,
     closed = false,
     retryTimer,
     attempt = 0,
@@ -78,6 +85,7 @@ export async function connectRoom({
     const url = new URL(`/room/${room}`, server);
     url.searchParams.set("name", String(name || "Weaver").slice(0, 18));
     url.searchParams.set("traits", JSON.stringify(traits));
+    url.searchParams.set("character", character);
     url.searchParams.set("protocol", String(PROTOCOL_VERSION));
     if (token) url.searchParams.set("token", token);
     const current = new WebSocket(url);
@@ -110,6 +118,12 @@ export async function connectRoom({
         onIdentity({ id: msg.id, room });
         send({ type: "rename", name: String(name || "Weaver").slice(0, 18) });
         send({ type: "traits", traits });
+        // The join URL initializes a new seat. A reconnect must retain the
+        // server's choice, unless this client explicitly changed it offline.
+        if (characterPending) {
+          send({ type: "character", character });
+          characterPending = false;
+        }
       } else if (msg.type === "state") {
         if (!identified || msg.state?.version !== SIMULATION_VERSION)
           return incompatible();
@@ -200,6 +214,13 @@ export async function connectRoom({
     setTraits(value) {
       traits = cleanTraits(value);
       send({ type: "traits", traits });
+    },
+    setCharacter(value) {
+      if (!isCharacter(value)) return false;
+      character = value;
+      characterPending = !identified || socket?.readyState !== WebSocket.OPEN;
+      send({ type: "character", character });
+      return true;
     },
     choose(id) {
       send({ type: "choose", id });

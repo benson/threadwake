@@ -2,9 +2,9 @@
 
 The museum is closed. The exhibits disagree. A pixel survivor for one to four friends at **https://threadwake.bensonperry.com**.
 
-You are the night custodian. Move with WASD or arrows; a gift-shop slingshot fires marbles automatically. Space, click, or controller A sweeps the broom around you, knocking exhibits back and clearing nearby projectiles. Hold to sweep again when ready. Supply carts restore health, and staying beside a fallen colleague helps them back up.
+Choose your night staff: the Custodian starts with a slingshot and broom sweep, the Conservator carries a spirit lantern and restores nearby staff while freezing exhibits, and the Guard throws returning discs and repels enemies with a shockwave. Move with WASD or arrows. Weapons fire automatically; Space, click, or controller A uses your special ability. Hold to repeat when ready. Supply carts restore health, and staying beside a fallen colleague helps them back up.
 
-Between waves, borrow a curio: a porcelain prism splits shots, a miniature orrery circles you, and a tin soldier lends a hand. Sixteen stackable curios change your build. Survive eight waves and the Grand Clock before opening time. The first wave lasts 38 seconds. Touch controls are included; real phone hardware has not been verified.
+Defeated exhibits drop XP. Collect it to level up and borrow a curio during the fight: a porcelain prism strengthens weapon patterns, a miniature orrery circles you, and a tin soldier lends a hand. Sixteen stackable curios change your build. Weapon pickups add slingshots, lanterns, returning discs, and storm coils to your automatic arsenal; health and speed powerups also drop. XP and collected weapons are shared in co-op. Level choices pause the fight and resume it in place; wave transitions no longer trigger upgrade choices. Survive eight waves and the Grand Clock before opening time. The first wave lasts 38 seconds. Touch controls are included; real phone hardware has not been verified.
 
 The shift crosses four maps: Antiquities (waves 1–2), Natural History (3–4), Sculpture Court (5–6), and the Clock Gallery (7–8). Each has its own exhibit layout. Shared map geometry drives the renderer and authoritative collisions.
 
@@ -30,7 +30,7 @@ npm test
 npm run build
 ```
 
-The frontend uses Vite with two entry points and no UI framework. Pixel sprites are authored in source; backgrounds are baked and actors are sorted by their feet. The VT323 font is bundled with its license. Audio is synthesized locally from original note patterns.
+The frontend uses Vite with two entry points and no UI framework. Pixel sprites are authored in source; backgrounds are baked and actors are sorted by their feet. The VT323 font is bundled with its license. Audio is synthesized locally: an original adaptive music-box score, spatial weapon and enemy cues, pickup and ability sounds, and gentle pointer/keyboard feedback. Separate music and effects controls adjust real mixer buses; playback starts after an input gesture.
 
 ```sh
 npx wrangler dev --config worker/wrangler.toml
@@ -44,9 +44,9 @@ One Cloudflare Durable Object owns each room and runs the simulation at 30 Hz. B
 
 An opaque token stored in session storage resumes a disconnected player. Seats are reserved for 60 seconds. A disconnected player's draft receives an automatic choice after 10 seconds, so the party can continue. Empty rooms stop ticking. Private wave/upgrade checkpoints support short server interruptions; a server restart can roll the run back to the last checkpoint. Ordinary socket reconnects retain the current in-memory run. Active rooms consume server time and do not hibernate while a run is ticking.
 
-Credits bank after each participated wave, plus a win bonus and five one-time play milestones. Small permanent traits are browser-local, bounded on the server, and designed for casual co-op, not competitive rankings. They are not an account save or cheat-resistant economy. Clearing browser storage removes them. Protocol 3 rejects incompatible clients and recovery checkpoints; reload after an update and create a new room if an old room cannot resume.
+Credits bank after each participated wave, plus a win bonus and five one-time play milestones. Small permanent traits are browser-local, bounded on the server, and designed for casual co-op, not competitive rankings. They are not an account save or cheat-resistant economy. Clearing browser storage removes them. Protocol 4 rejects incompatible clients and recovery checkpoints; reload after an update and create a new room if an old room cannot resume.
 
-The start screen shows your credits, best wave, permanent equipment, and tonight's gallery route. Open Staff kit from the credit balance, Pause, results, or the title screen. Three ranks each add health, movement speed, or shorter sweep cooldowns; the shop shows exact before-and-after values. Purchases apply to the next shift, including online restarts. Existing Threadwake balances, purchased traits and completed milestones are preserved. All controls share the arena's fixed frame. Workshop recordings use version 4 for the new simulation rules.
+The start screen shows your credits, best wave, permanent equipment, and tonight's gallery route. Open Staff kit from the credit balance, Pause, results, or the title screen. Three ranks each add health, movement speed, or shorter special cooldowns; the shop shows exact before-and-after values. Purchases apply to the next shift, including online restarts. Existing Threadwake balances, purchased traits and completed milestones are preserved. All controls share the arena's fixed frame. Workshop recordings use version 6 for the new simulation rules.
 
 ## Validation and release
 

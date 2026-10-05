@@ -129,9 +129,9 @@ export function iconText(target, kind, text, color = gold) {
     document.createTextNode(` ${text}`),
   );
 }
-export function pixelMeter(target, count, maximum) {
+export function pixelMeter(target, count, maximum, color = gold) {
   count = Math.max(0, Math.min(maximum, count));
-  const key = `${count}/${maximum}`;
+  const key = `${count}/${maximum}/${color}`;
   if (target.dataset.pixelMeter === key) return;
   target.dataset.pixelMeter = key;
   target.setAttribute("aria-label", `${count} of ${maximum}`);
@@ -144,7 +144,7 @@ export function pixelMeter(target, count, maximum) {
   canvas.setAttribute("aria-hidden", "true");
   const ctx = canvas.getContext("2d");
   for (let i = 0; i < maximum; i++)
-    paint(ctx, i < count ? "credit" : "empty", i * 12);
+    paint(ctx, i < count ? "credit" : "empty", i * 12, color);
   target.replaceChildren(canvas);
 }
 export function pixelTransition(target, before, after) {

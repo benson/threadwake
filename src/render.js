@@ -157,7 +157,14 @@ function bake(seed, gallery) {
     ctx = c.getContext("2d"),
     r = random(seed || 42);
   ctx.translate(SIDE_WALL, BACK_WALL);
-  pixel(ctx, -SIDE_WALL, -BACK_WALL, W + SIDE_WALL * 2, H + BACK_WALL, "#1a2633");
+  pixel(
+    ctx,
+    -SIDE_WALL,
+    -BACK_WALL,
+    W + SIDE_WALL * 2,
+    H + BACK_WALL,
+    "#1a2633",
+  );
   const sculpture = gallery === "sculpture_court",
     clock = gallery === "clock_gallery",
     natural = gallery === "natural_history",
@@ -436,8 +443,7 @@ function drawAttackTelegraph(ctx, enemy, time) {
       Number.isFinite(enemy.aimY) ? enemy.aimY : 0,
       Number.isFinite(enemy.aimX) ? enemy.aimX : enemy.face || 1,
     ),
-    attack =
-      enemy.attack || (enemy.type === "thorn" ? "fan" : "needle"),
+    attack = enemy.attack || (enemy.type === "thorn" ? "fan" : "needle"),
     reach = 38 * (0.55 + charge * 0.45);
   if (enemy.fireIn <= 0.65) {
     const rays = attack === "fan" ? 3 : 1;
@@ -480,6 +486,76 @@ function drawOrrery(ctx, player) {
     }
   }
 }
+function drawWeaponGlyph(ctx, weapon, x, y) {
+  if (weapon === "lantern") {
+    pixel(ctx, x - 2, y - 7, 5, 4, P.gold);
+    pixel(ctx, x - 1, y - 6, 3, 2, P.ink);
+    pixel(ctx, x - 5, y - 3, 11, 8, P.ink);
+    pixel(ctx, x - 4, y - 3, 9, 1, P.gold);
+    pixel(ctx, x - 3, y - 2, 7, 6, P.gold);
+    pixel(ctx, x - 2, y - 2, 5, 5, P.cream);
+    pixel(ctx, x, y - 2, 1, 5, P.wood);
+    pixel(ctx, x - 4, y + 4, 9, 1, P.gold);
+  } else if (weapon === "disc") {
+    oval(ctx, x, y - 1, 6, 3, P.ink);
+    oval(ctx, x, y - 2, 5, 2, P.stoneLight);
+    pixel(ctx, x - 2, y - 3, 5, 1, P.white);
+    pixel(ctx, x - 1, y - 1, 3, 2, P.gold);
+  } else if (weapon === "storm") {
+    pixel(ctx, x - 2, y - 6, 6, 3, P.ink);
+    pixel(ctx, x - 1, y - 6, 4, 2, P.blue);
+    pixel(ctx, x - 3, y - 3, 5, 3, P.tealLight);
+    pixel(ctx, x, y, 5, 3, P.white);
+    pixel(ctx, x - 1, y + 2, 3, 2, P.blue);
+  } else {
+    line(ctx, x, y + 4, x, y - 3, P.wood, 2);
+    line(ctx, x, y - 3, x - 4, y - 6, P.wood, 2);
+    line(ctx, x, y - 3, x + 4, y - 6, P.wood, 2);
+    line(ctx, x - 4, y - 6, x + 4, y - 6, P.creamShade);
+    pixel(ctx, x - 1, y - 2, 3, 2, P.gold);
+  }
+}
+function drawPickup(ctx, pickup, time) {
+  const x = Math.round(pickup.x),
+    y = Math.round(pickup.y),
+    bob = Math.round(Math.sin(time * 6 + (pickup.id || 0)) * 2),
+    cy = y - 8 - bob;
+  shadow(ctx, x, y, pickup.kind === "weapon" ? 10 : 6);
+  if (pickup.kind === "xp") {
+    // Faceted five-color crystal, never a font glyph or smooth gradient.
+    pixel(ctx, x - 2, cy - 6, 5, 2, P.ink);
+    pixel(ctx, x - 4, cy - 4, 9, 5, P.ink);
+    pixel(ctx, x - 3, cy - 4, 7, 4, P.tealDark);
+    pixel(ctx, x - 2, cy - 5, 4, 3, P.white);
+    pixel(ctx, x - 3, cy - 2, 3, 3, P.tealLight);
+    pixel(ctx, x, cy - 2, 4, 3, P.blue);
+    pixel(ctx, x - 2, cy + 1, 5, 2, P.creamShade);
+    pixel(ctx, x - 1, cy + 3, 3, 2, P.ink);
+    pixel(ctx, x + 6, cy - 4, 1, 2, P.white);
+  } else if (pickup.kind === "weapon") {
+    pixel(ctx, x - 10, cy - 10, 21, 20, P.ink);
+    pixel(ctx, x - 9, cy - 9, 19, 18, P.gold);
+    pixel(ctx, x - 7, cy - 7, 15, 14, P.stone);
+    pixel(ctx, x - 6, cy - 6, 13, 12, P.shadow);
+    drawWeaponGlyph(ctx, pickup.weapon, x, cy + 1);
+    pixel(ctx, x - 9, cy - 9, 4, 1, P.white);
+    pixel(ctx, x + 6, cy + 8, 3, 1, P.creamShade);
+  } else if (pickup.kind === "heal") {
+    pixel(ctx, x - 7, cy - 7, 15, 15, P.ink);
+    pixel(ctx, x - 6, cy - 6, 13, 13, P.creamShade);
+    pixel(ctx, x - 2, cy - 5, 5, 11, P.red);
+    pixel(ctx, x - 5, cy - 2, 11, 5, P.red);
+    pixel(ctx, x - 1, cy - 4, 3, 7, P.redLight);
+  } else if (pickup.kind === "haste") {
+    pixel(ctx, x - 7, cy - 7, 15, 15, P.ink);
+    pixel(ctx, x - 6, cy - 6, 13, 13, P.gold);
+    pixel(ctx, x - 4, cy - 4, 9, 9, P.wood);
+    line(ctx, x, cy, x + 3, cy - 3, P.white, 2);
+    line(ctx, x, cy, x - 2, cy + 3, P.creamShade, 2);
+    pixel(ctx, x - 11, cy - 2, 3, 1, P.tealLight);
+    pixel(ctx, x - 12, cy + 2, 4, 1, P.tealLight);
+  }
+}
 function drawShot(ctx, shot) {
   const hostile = shot.hostile,
     angle = Math.atan2(shot.vy, shot.vx);
@@ -503,6 +579,27 @@ function drawShot(ctx, shot) {
       P.redLight,
     );
     pixel(ctx, shot.x - 1, shot.y - 1, 2, 2, P.white);
+  } else if (shot.weapon === "disc") {
+    const spin = Math.floor((shot.age || 0) * 18) % 2;
+    pixel(
+      ctx,
+      shot.x - Math.cos(angle) * 6 - 2,
+      shot.y - Math.sin(angle) * 6,
+      4,
+      2,
+      P.tealDark,
+    );
+    oval(ctx, shot.x, shot.y, 6, spin ? 3 : 2, P.ink);
+    oval(
+      ctx,
+      shot.x,
+      shot.y - 1,
+      5,
+      spin ? 2 : 1,
+      shot.returning ? P.tealLight : P.stoneLight,
+    );
+    pixel(ctx, shot.x - 3, shot.y - 2, 7, 1, P.white);
+    pixel(ctx, shot.x - 1, shot.y, 3, 2, P.gold);
   } else {
     pixel(
       ctx,
@@ -518,7 +615,11 @@ function drawShot(ctx, shot) {
   }
 }
 function drawSweep(ctx, effect, progress, map) {
-  const radius = Number.isFinite(effect.radius) ? effect.radius : 96;
+  const radius = Number.isFinite(effect.radius) ? effect.radius : 96,
+    restore = effect.ability === "restore",
+    repel = effect.ability === "repel",
+    main = restore ? P.tealLight : repel ? P.blue : P.gold,
+    glint = restore ? P.white : repel ? P.cream : P.white;
   // Full true collision radius appears on frame one; only its brightness fades.
   ctx.globalAlpha = Math.max(0, Math.min(1, 0.9 * (1 - progress)));
   for (let i = 0; i < 96; i++) {
@@ -539,7 +640,7 @@ function drawSweep(ctx, effect, progress, map) {
       effect.y + Math.sin(a0) * radius,
       effect.x + Math.cos(a1) * radius,
       effect.y + Math.sin(a1) * radius,
-      bright ? P.white : P.gold,
+      bright ? glint : main,
       bright ? 2 : 1,
     );
   }
@@ -554,7 +655,7 @@ function drawSweep(ctx, effect, progress, map) {
       effect.y + Math.sin(a) * r - 9,
       i < 3 ? 3 : 2,
       2,
-      i < 3 ? P.white : P.creamShade,
+      i < 3 ? glint : main,
     );
   }
   for (let i = 0; i < 12; i++) {
@@ -566,8 +667,32 @@ function drawSweep(ctx, effect, progress, map) {
       effect.y + Math.sin(a) * r,
       1,
       1,
-      i % 3 ? P.creamDark : P.gold,
+      i % 3 ? main : glint,
     );
+  }
+  if (restore) {
+    for (let i = 0; i < 6; i++) {
+      const a = (i * Math.PI) / 3 + progress * 0.4,
+        px = effect.x + Math.cos(a) * radius * 0.55,
+        py = effect.y + Math.sin(a) * radius * 0.55;
+      pixel(ctx, px - 1, py - 4, 3, 9, P.tealLight);
+      pixel(ctx, px - 4, py - 1, 9, 3, P.white);
+    }
+  } else if (repel) {
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6,
+        inner = radius * 0.64,
+        outer = radius * 0.72;
+      line(
+        ctx,
+        effect.x + Math.cos(a) * inner,
+        effect.y + Math.sin(a) * inner,
+        effect.x + Math.cos(a) * outer,
+        effect.y + Math.sin(a) * outer,
+        i % 2 ? P.white : P.blue,
+        2,
+      );
+    }
   }
 }
 function drawEffect(ctx, effect, map) {
@@ -579,6 +704,81 @@ function drawEffect(ctx, effect, map) {
     x = effect.x,
     y = effect.y;
   if (kind === "sweep") return drawSweep(ctx, effect, progress, map);
+  if (kind === "lantern") {
+    // The pulse damages at its full radius immediately; the visible ring agrees.
+    const radius = effect.radius || 88;
+    for (let i = 0; i < 96; i++) {
+      const a = (i * Math.PI * 2) / 96,
+        px = x + Math.cos(a) * radius,
+        py = y + Math.sin(a) * radius;
+      if (map && lineBlocked(map, effect, { x: px, y: py })) continue;
+      pixel(
+        ctx,
+        px,
+        py,
+        i % 8 ? 2 : 3,
+        i % 8 ? 2 : 3,
+        i % 8 ? P.gold : P.white,
+      );
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4,
+        px = x + Math.cos(a) * radius * (0.3 + progress * 0.35),
+        py = y + Math.sin(a) * radius * (0.3 + progress * 0.35);
+      pixel(ctx, px - 1, py - 3, 3, 7, P.creamShade);
+      pixel(ctx, px - 3, py - 1, 7, 3, P.white);
+    }
+    return;
+  }
+  if (kind === "storm") {
+    const x0 = Number.isFinite(effect.fromX) ? effect.fromX : x,
+      y0 = Number.isFinite(effect.fromY) ? effect.fromY : y,
+      dx = x - x0,
+      dy = y - y0,
+      length = Math.hypot(dx, dy) || 1,
+      steps = Math.max(2, Math.ceil(length / 8));
+    let px = x0,
+      py = y0;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps,
+        jitter = i === steps ? 0 : i % 2 ? 3 : -3,
+        nx = x0 + dx * t - (dy / length) * jitter,
+        ny = y0 + dy * t + (dx / length) * jitter;
+      line(ctx, px, py, nx, ny, P.ink, 5);
+      line(ctx, px, py, nx, ny, i % 2 ? P.blue : P.tealLight, 3);
+      line(ctx, px, py, nx, ny, P.white);
+      px = nx;
+      py = ny;
+    }
+    for (const [ex, ey] of [
+      [x0, y0],
+      [x, y],
+    ]) {
+      pixel(ctx, ex - 1, ey - 5, 3, 11, P.white);
+      pixel(ctx, ex - 5, ey - 1, 11, 3, P.blue);
+    }
+    return;
+  }
+  if (kind === "xp" || kind === "weapon" || kind === "haste") {
+    const reach = 4 + progress * (kind === "weapon" ? 18 : 12),
+      count = kind === "weapon" ? 12 : 8;
+    for (let i = 0; i < count; i++) {
+      const a = (i * Math.PI * 2) / count,
+        px = x + Math.cos(a) * reach,
+        py = y - 7 + Math.sin(a) * reach;
+      pixel(
+        ctx,
+        px,
+        py,
+        kind === "weapon" ? 3 : 2,
+        2,
+        kind === "haste" ? P.blue : kind === "weapon" ? P.gold : P.tealLight,
+      );
+    }
+    if (kind === "weapon")
+      drawWeaponGlyph(ctx, effect.weapon, x, y - 12 - progress * 7);
+    return;
+  }
   if (kind === "supply" || kind === "bloom") {
     const radius = (effect.radius || 118) * Math.min(1, progress * 2.5);
     for (let i = 0; i < 72; i++) {
@@ -730,7 +930,9 @@ export function createRenderer(canvas) {
       camera.y = Math.max(180 - BACK_WALL, Math.min(H - 180, ty));
     }
     camera.x +=
-      (Math.max(320 - SIDE_WALL, Math.min(W - 320 + SIDE_WALL, tx)) - camera.x) * follow;
+      (Math.max(320 - SIDE_WALL, Math.min(W - 320 + SIDE_WALL, tx)) -
+        camera.x) *
+      follow;
     camera.y +=
       (Math.max(180 - BACK_WALL, Math.min(H - 180, ty)) - camera.y) * follow;
     if (player && previousHP !== null && player.hp < previousHP) damage = 0.15;
@@ -747,6 +949,14 @@ export function createRenderer(canvas) {
     ctx.translate(-ox, -oy);
     ctx.drawImage(art.ground, -SIDE_WALL, -BACK_WALL);
     for (const station of state?.flowers || []) drawFlower(ctx, station, time);
+    for (const pickup of state?.pickups || [])
+      if (
+        pickup.x > ox - 16 &&
+        pickup.x < ox + 656 &&
+        pickup.y > oy - 20 &&
+        pickup.y < oy + 380
+      )
+        drawPickup(ctx, pickup, time);
     sorted.length = 0;
     for (const prop of art.props)
       if (
@@ -829,7 +1039,13 @@ export function createRenderer(canvas) {
       drawEffect(ctx, effect, mapById(gallery));
     // Friendly feedback must never conceal a projectile that can still hurt staff.
     for (const shot of state?.shots || [])
-      if (shot.hostile && shot.x > ox - 12 && shot.x < ox + 652 && shot.y > oy - 12 && shot.y < oy + 372)
+      if (
+        shot.hostile &&
+        shot.x > ox - 12 &&
+        shot.x < ox + 652 &&
+        shot.y > oy - 12 &&
+        shot.y < oy + 372
+      )
         drawShot(ctx, shot);
     if (options.hitboxes)
       for (const actor of [

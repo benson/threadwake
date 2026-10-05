@@ -173,6 +173,91 @@ function slingshot(ctx, actor, p, shoulderX, shoulderY) {
     );
   }
 }
+function heldWeapon(ctx, actor, p, shoulderX, shoulderY) {
+  const starting =
+    actor.character === "conservator"
+      ? "lantern"
+      : actor.character === "guard"
+        ? "disc"
+        : "slingshot";
+  const owned = Array.isArray(actor.weapons) ? actor.weapons : [];
+  const weapon =
+    actor.lastWeapon && owned.includes(actor.lastWeapon)
+      ? actor.lastWeapon
+      : owned[0] || starting;
+  if (weapon === "slingshot")
+    return slingshot(ctx, actor, p, shoulderX, shoulderY);
+  const m = weaponMuzzle(actor),
+    ax = p.aimX,
+    ay = p.aimY,
+    nx = -ay,
+    ny = ax,
+    handX = m.x - ax * (7 + p.recoil),
+    handY = m.y - ay * (7 + p.recoil);
+  line(ctx, shoulderX, shoulderY, handX, handY, PALETTE.ink, 4);
+  line(
+    ctx,
+    shoulderX,
+    shoulderY,
+    handX,
+    handY,
+    actor.character === "guard" ? PALETTE.stone : PALETTE.creamShade,
+    2,
+  );
+  pixel(ctx, handX - 1, handY - 1, 3, 3, PALETTE.skin);
+  if (weapon === "lantern") {
+    const lampX = m.x - ax * 4,
+      lampY = m.y - ay * 4;
+    oval(ctx, lampX, lampY, 6, 6, PALETTE.ink);
+    oval(ctx, lampX, lampY, 4, 5, PALETTE.gold);
+    oval(ctx, lampX, lampY, 2, 3, PALETTE.cream);
+    line(
+      ctx,
+      lampX - nx * 4,
+      lampY - ny * 4,
+      lampX + nx * 4,
+      lampY + ny * 4,
+      PALETTE.wood,
+      2,
+    );
+    pixel(
+      ctx,
+      m.x - 1,
+      m.y - 1,
+      3,
+      3,
+      p.firing ? PALETTE.white : PALETTE.creamShade,
+    );
+  } else if (weapon === "disc") {
+    line(ctx, handX, handY, m.x, m.y, PALETTE.ink, 3);
+    const discX = m.x - ax * 2,
+      discY = m.y - ay * 2;
+    oval(ctx, discX, discY, 6, 4, PALETTE.ink);
+    oval(ctx, discX, discY - 1, 5, 2, PALETTE.stoneLight);
+    pixel(ctx, discX - 3, discY - 2, 7, 1, PALETTE.white);
+    pixel(ctx, discX - 1, discY, 3, 2, PALETTE.gold);
+  } else {
+    // Storm coil: a split copper wand with a lit porcelain contact.
+    line(ctx, handX, handY, m.x, m.y, PALETTE.ink, 5);
+    line(ctx, handX, handY, m.x, m.y, PALETTE.wood, 2);
+    for (const side of [-1, 1])
+      line(
+        ctx,
+        m.x - ax * 5 + nx * side * 3,
+        m.y - ay * 5 + ny * side * 3,
+        m.x + nx * side * 4,
+        m.y + ny * side * 4,
+        PALETTE.gold,
+        2,
+      );
+    pixel(ctx, m.x - 2, m.y - 2, 5, 5, p.firing ? PALETTE.white : PALETTE.blue);
+    pixel(ctx, m.x - 1, m.y - 1, 2, 2, PALETTE.tealLight);
+  }
+  if (p.firing) {
+    pixel(ctx, m.x + nx * 5, m.y + ny * 5, 2, 2, PALETTE.white);
+    pixel(ctx, m.x - nx * 5, m.y - ny * 5, 2, 2, PALETTE.gold);
+  }
+}
 function aimedEmitter(ctx, actor, ink, color, width) {
   const c = bodyCircle(actor),
     m = weaponMuzzle(actor),
@@ -233,8 +318,10 @@ export function drawCombatGeometry(ctx, actor) {
   }
   line(ctx, c.x - 2, c.y, c.x + 2, c.y, PALETTE.tealLight);
   line(ctx, c.x, c.y - 2, c.x, c.y + 2, PALETTE.tealLight);
-  line(ctx, m.x - 2, m.y - 2, m.x + 2, m.y + 2, PALETTE.redLight);
-  line(ctx, m.x - 2, m.y + 2, m.x + 2, m.y - 2, PALETTE.redLight);
+  if (actor.type !== "mite") {
+    line(ctx, m.x - 2, m.y - 2, m.x + 2, m.y + 2, PALETTE.redLight);
+    line(ctx, m.x - 2, m.y + 2, m.x + 2, m.y - 2, PALETTE.redLight);
+  }
 }
 function drawCustodian(ctx, actor, time, settings) {
   const p = pose(actor, time, settings),
@@ -344,7 +431,146 @@ function drawCustodian(ctx, actor, time, settings) {
   pixel(ctx, x - 7 + lean, top + 7, 14, 1, uniform[1]);
   pixel(ctx, x - 1 + lean, top + 4, 3, 3, PALETTE.gold);
   pixel(ctx, x + lean, top + 4, 1, 1, PALETTE.white);
-  slingshot(ctx, actor, p, x + face * 6 + lean - p.aimX * p.recoil, top + 19);
+  heldWeapon(ctx, actor, p, x + face * 6 + lean - p.aimX * p.recoil, top + 19);
+}
+function drawSpecialist(ctx, actor, time, settings) {
+  const p = pose(actor, time, settings),
+    conservator = actor.character === "conservator",
+    face = p.face,
+    x = Math.round(actor.x || 0) + (p.hit && Math.floor(time * 24) % 2 ? 1 : 0),
+    y = Math.round(actor.y || 0),
+    top = y - 34 - p.bob - Math.round(p.lift),
+    lean = Math.round(p.lean) * face - Math.round(p.aimX * p.recoil * 0.5),
+    ink = p.hit ? PALETTE.white : PALETTE.ink,
+    coat = conservator ? "#d9c9aa" : "#29475c",
+    shade = conservator ? "#b49f86" : "#42677a",
+    trim = conservator ? PALETTE.tealLight : PALETTE.gold;
+  shadow(ctx, x, y, conservator ? 12 : 13);
+  if (actor.dead) {
+    pixel(ctx, x - 14, y - 6, 28, 6, ink);
+    pixel(ctx, x - 11, y - 7, 22, 4, coat);
+    pixel(ctx, x + 10, y - 5, 5, 3, PALETTE.skin);
+    return;
+  }
+  // The coat and guard tunic swing around two independently planted feet.
+  for (const [dx, stride, lift] of [
+    [-7, p.leftStride, p.leftLift],
+    [3, p.rightStride, p.rightLift],
+  ]) {
+    const fx = x + dx + stride * face,
+      fy = y - 6 - lift;
+    pixel(ctx, fx, fy, 5, 6, ink);
+    pixel(
+      ctx,
+      fx,
+      fy + 3,
+      5,
+      2,
+      conservator ? PALETTE.wood : PALETTE.stoneLight,
+    );
+  }
+  if (conservator) {
+    // Split ivory lab coat, green restoration apron, and rolled cuffs.
+    pixel(ctx, x - 13 + lean, top + 15, 26, 15, ink);
+    pixel(ctx, x - 12 + lean, top + 16, 24, 13, coat);
+    pixel(ctx, x - 12 + lean + p.coatSwing, top + 26, 9, 5, shade);
+    pixel(ctx, x + 4 + lean - p.coatSwing, top + 26, 9, 5, shade);
+    pixel(ctx, x - 5 + lean, top + 18, 10, 12, PALETTE.tealDark);
+    pixel(ctx, x - 4 + lean, top + 19, 8, 10, PALETTE.teal);
+    pixel(ctx, x - 6 + lean, top + 17, 12, 3, PALETTE.cream);
+    pixel(ctx, x - 2 + lean, top + 23, 4, 2, PALETTE.gold);
+    for (const side of [-1, 1]) {
+      pixel(ctx, x + side * 11 - 3 + lean, top + 20, 5, 6, ink);
+      pixel(ctx, x + side * 11 - 2 + lean, top + 21, 3, 4, PALETTE.cream);
+    }
+  } else {
+    // Broad shoulders, a structured vest, bright badge, and heavy belt.
+    pixel(ctx, x - 13 + lean, top + 14, 27, 17, ink);
+    pixel(ctx, x - 12 + lean, top + 15, 25, 15, coat);
+    for (const side of [-1, 1]) {
+      pixel(ctx, x + side * 11 - 4 + lean, top + 15, 8, 5, PALETTE.stone);
+      pixel(ctx, x + side * 11 - 2 + lean, top + 16, 4, 2, trim);
+    }
+    pixel(ctx, x - 8 + lean, top + 20, 16, 9, PALETTE.stone);
+    pixel(ctx, x - 7 + lean, top + 21, 14, 7, shade);
+    for (const dy of [22, 26]) pixel(ctx, x - 1 + lean, top + dy, 2, 2, trim);
+    pixel(ctx, x - 10 + lean, top + 28, 20, 4, ink);
+    pixel(ctx, x - 9 + lean, top + 29, 18, 2, PALETTE.wood);
+    pixel(ctx, x + 6 + lean, top + 20, 4, 4, PALETTE.gold);
+  }
+  // A short tool occupies the free hand and responds on the ability's first frame.
+  const freeX = x - face * 12 + lean,
+    freeY = top + 23;
+  line(ctx, x - face * 8 + lean, top + 19, freeX, freeY, ink, 3);
+  pixel(ctx, freeX - 1, freeY - 1, 3, 3, PALETTE.skin);
+  if (conservator) {
+    const reach = p.cast ? 10 + p.broomReach : 5;
+    line(
+      ctx,
+      freeX,
+      freeY,
+      freeX - face * reach,
+      freeY - (p.cast ? 6 : 1),
+      PALETTE.wood,
+      2,
+    );
+    pixel(
+      ctx,
+      freeX - face * reach - 2,
+      freeY - (p.cast ? 8 : 3),
+      5,
+      4,
+      p.cast ? PALETTE.tealLight : PALETTE.cream,
+    );
+  } else {
+    const shieldY = freeY - (p.cast ? 8 : 4);
+    pixel(ctx, freeX - 5, shieldY - 5, 10, 12, ink);
+    pixel(ctx, freeX - 4, shieldY - 4, 8, 10, PALETTE.stone);
+    pixel(
+      ctx,
+      freeX - 3,
+      shieldY - 3,
+      6,
+      7,
+      p.cast ? PALETTE.gold : PALETTE.blue,
+    );
+    pixel(ctx, freeX - 1, shieldY, 2, 3, PALETTE.cream);
+  }
+  // Matching face coordinates keep the shared damage body centered on each staff member.
+  pixel(ctx, x - 8 + lean, top + 5, 17, 12, ink);
+  pixel(ctx, x - 7 + lean, top + 6, 15, 10, PALETTE.skin);
+  if (!p.back) {
+    for (const dx of [-4, 4]) {
+      pixel(
+        ctx,
+        x + dx - 1 + lean,
+        top + 11,
+        2,
+        2,
+        p.blink ? PALETTE.skin : ink,
+      );
+      if (!p.blink)
+        pixel(ctx, x + dx - 1 + lean, top + 11, 1, 1, PALETTE.white);
+    }
+    pixel(ctx, x - 1 + lean, top + 15, 3, 1, PALETTE.wood);
+  } else pixel(ctx, x - 6 + lean, top + 10, 13, 4, coat);
+  if (conservator) {
+    pixel(ctx, x - 9 + lean, top + 1, 19, 7, ink);
+    pixel(ctx, x - 8 + lean, top + 2, 17, 5, PALETTE.wood);
+    pixel(ctx, x - 9 + lean, top + 5, 19, 3, shade);
+    pixel(ctx, x + 6 + lean, top - 2, 6, 8, ink);
+    pixel(ctx, x + 7 + lean, top - 1, 4, 6, PALETTE.wood);
+    pixel(ctx, x - 7 + lean, top + 9, 5, 2, PALETTE.cream);
+    pixel(ctx, x + 3 + lean, top + 9, 5, 2, PALETTE.cream);
+  } else {
+    pixel(ctx, x - 10 + lean, top - 1, 21, 9, ink);
+    pixel(ctx, x - 8 + lean, top, 17, 6, coat);
+    pixel(ctx, x - 7 + lean, top + 1, 15, 2, shade);
+    pixel(ctx, x - 11 + lean, top + 7, 22, 3, ink);
+    pixel(ctx, x - 7 + lean, top + 7, 15, 1, PALETTE.gold);
+    pixel(ctx, x - 1 + lean, top + 3, 3, 3, PALETTE.gold);
+  }
+  heldWeapon(ctx, actor, p, x + face * 7 + lean - p.aimX * p.recoil, top + 19);
 }
 function drawSoldier(ctx, actor, time) {
   const gait = pose(actor, time),
@@ -378,6 +604,8 @@ export function drawActor(ctx, actor, time, settings = {}) {
   if (actor.type === "soldier") return drawSoldier(ctx, actor, time);
   if (actor.type && actor.type !== "player")
     return drawEnemy(ctx, actor, time, settings);
+  if (actor.character === "conservator" || actor.character === "guard")
+    return drawSpecialist(ctx, actor, time, settings);
   drawCustodian(ctx, actor, time, settings);
 }
 

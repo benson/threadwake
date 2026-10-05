@@ -32,15 +32,16 @@ export function playRun({
   build = "marbles",
   casts = true,
   traits = {},
+  character = "custodian",
 } = {}) {
   const s = createGame(seed);
-  for (let i = 0; i < size; i++) addPlayer(s, String(i), "Custodian", traits);
+  for (let i = 0; i < size; i++) addPlayer(s, String(i), "Staff", traits, Array.isArray(character) ? character[i % character.length] : character);
   startGame(s);
   const preference = LOADOUTS[build],
     rank = (id) => (preference.includes(id) ? preference.indexOf(id) : 99);
   let minHp = s.players[0].maxHp,
     bossAt = 0,
-    sweeps = 0;
+    sweeps = 0, firstLevel = null, firstWeapon = null;
   const seen = new Set(),
     maps = new Set();
   for (
@@ -49,6 +50,7 @@ export function playRun({
     tick++
   ) {
     if (s.phase === "draft") {
+      if (firstLevel === null) firstLevel = s.time;
       for (const p of s.players)
         if (s.choices[p.id])
           chooseUpgrade(
@@ -60,6 +62,7 @@ export function playRun({
     }
     if (s.wave === 8 && !bossAt) bossAt = s.time;
     maps.add(s.mapId);
+    if (firstWeapon === null && s.players[0].weapons.length > 1) firstWeapon = s.time;
     const inputs = {},
       map = mapById(s.mapId);
     for (const [i, p] of s.players.entries()) {
@@ -105,7 +108,7 @@ export function playRun({
       }
   }
   return {
-    label: `${build}/${size}p/seed${seed}${casts ? "" : "/no-sweep"}`,
+    label: `${character}/${build}/${size}p/seed${seed}${casts ? "" : "/no-sweep"}`,
     result: s.phase,
     wave: s.wave,
     mapId: s.mapId,
@@ -119,6 +122,9 @@ export function playRun({
     bossSeconds: bossAt ? Math.round(s.time - bossAt) : null,
     stats: s.stats,
     upgrades: s.players.map((p) => p.upgrades),
+    level: s.level, firstLevel: firstLevel === null ? null : Math.round(firstLevel * 10) / 10,
+    firstWeapon: firstWeapon === null ? null : Math.round(firstWeapon * 10) / 10,
+    weapons: s.players.map((p) => p.weapons),
   };
 }
 
@@ -143,4 +149,13 @@ test("real-health museum curio builds progress through bounded gallery runs", ()
         `${result.label} should encounter automatic supplies`,
       );
     }
+});
+test("character parties progress with real starting weapons, XP levels and shared pickups", (t) => {
+  for (const character of ["custodian", "conservator", "guard"]) for (const size of [1, 2, 4]) {
+    const result = playRun({ character, size });
+    t.diagnostic(JSON.stringify({ character, size, result: result.result, wave: result.wave, level: result.level,
+      firstLevel: result.firstLevel, firstWeapon: result.firstWeapon, seconds: result.seconds, minHp: result.minHp, weapons: result.weapons[0] }));
+    assert.ok(["won", "lost"].includes(result.result)); assert.ok(result.wave >= 4, result.label);
+    assert.ok(result.level >= 3, result.label); assert.ok(result.weapons.every((weapons) => weapons.length >= 2), result.label);
+  }
 });

@@ -6,6 +6,7 @@ import {
   chooseUpgrade,
   startGame,
   snapshot,
+  setCharacter,
 } from "../src/sim.js";
 import {
   ROOM_PATTERN,
@@ -13,6 +14,8 @@ import {
   cleanInput,
   cleanName,
   cleanTraits,
+  cleanCharacter,
+  isCharacter,
 } from "./validation.js";
 import {
   PROTOCOL_VERSION,
@@ -142,6 +145,7 @@ export class Room {
         peer.id,
         cleanName(url.searchParams.get("name")),
         peer.pendingTraits,
+        cleanCharacter(url.searchParams.get("character")),
       );
       if (!this.hostId) this.hostId = peer.id;
     }
@@ -215,6 +219,20 @@ export class Room {
       startGame(this.game);
       this.broadcast();
       this.checkpoint();
+    } else if (
+      msg.type === "character" &&
+      isCharacter(msg.character) &&
+      ["lobby", "won", "lost"].includes(this.game.phase)
+    ) {
+      const player = this.game.players.find((p) => p.id === peer.id);
+      if (
+        player &&
+        player.character !== msg.character &&
+        setCharacter(this.game, peer.id, msg.character)
+      ) {
+        this.broadcast();
+        this.checkpoint();
+      }
     } else if (msg.type === "traits") {
       const traits = cleanTraits(msg.traits);
       if (

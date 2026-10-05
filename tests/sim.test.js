@@ -97,7 +97,17 @@ test("nearby supplies activate and heal staff without sweeping", () => {
 test("draft waits for team, rejects invalid picks and progresses after disconnect", () => {
   const s = run();
   addPlayer(s, "b");
-  s.waveTime = WAVE_DURATION;
+  s.pickups = [
+    {
+      id: 2222,
+      x: s.players[0].x,
+      y: s.players[0].y,
+      kind: "xp",
+      value: s.xpToNext,
+      weapon: null,
+      life: 10,
+    },
+  ];
   step(s, {});
   assert.equal(s.phase, "draft");
   assert.equal(s.choices.a.length, 3);
@@ -108,7 +118,7 @@ test("draft waits for team, rejects invalid picks and progresses after disconnec
   assert.equal(s.phase, "draft");
   removePlayer(s, "b");
   assert.equal(s.phase, "playing");
-  assert.equal(s.wave, 2);
+  assert.equal(s.wave, 1);
   addPlayer(s, "late");
   assert.equal(s.players.at(-1).upgrades.length, 1);
 });

@@ -7,7 +7,7 @@ import {
 } from "./animation.js";
 import { createRenderer } from "./render.js";
 import { initializePixelIcons, pixelLine, pixelText } from "./pixel-ui.js";
-const REPLAY_VERSION = 5;
+const REPLAY_VERSION = 6;
 import {
   createGame,
   addPlayer,

@@ -464,6 +464,7 @@ dialog::backdrop {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-width: 260px;
 }
 #health {
   font-size: 21px;
@@ -473,6 +474,69 @@ dialog::backdrop {
 #squad {
   font-size: 18px;
   color: #c9d5ba;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+#experience {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px 12px;
+  font-size: 17px;
+  color: #b7d0ce;
+}
+#xp-count {
+  text-align: right;
+}
+#xp-meter {
+  grid-column: 1 / -1;
+  line-height: 8px;
+}
+.character-trigger {
+  font-size: 21px;
+  padding: 6px 12px;
+}
+#characters {
+  width: 850px;
+}
+#characters h2 {
+  margin-bottom: 18px;
+}
+#character-choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.character-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.character-card[aria-pressed="true"] {
+  background: #405365;
+  border-color: #f3e6c8;
+}
+.character-card canvas {
+  width: 80px;
+  height: 80px;
+  image-rendering: pixelated;
+}
+.character-card strong {
+  font-size: 27px;
+  font-weight: 400;
+}
+.character-card > span {
+  color: #d8b775;
+  font-size: 21px;
+}
+.character-card small {
+  font-size: 19px;
+  color: #c4c5c2;
+  line-height: 1.15;
 }
 .hud-center {
   display: flex;

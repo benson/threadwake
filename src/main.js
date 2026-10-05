@@ -1,6 +1,7 @@
 import {
   createGame,
   addPlayer,
+  setCharacter,
   step,
   startGame,
   chooseUpgrade,
@@ -17,6 +18,8 @@ import { MAPS, mapForWave } from "./maps.js";
 import { capturePresentation, presentState } from "./presentation.js";
 import { drawCurio } from "./curios.js";
 import { drawMenuArt } from "./menu-art.js";
+import { drawActor } from "./art.js";
+import { CHARACTERS, getCharacter, WEAPONS } from "./characters.js";
 import {
   pixelIcon,
   iconText,
@@ -112,6 +115,12 @@ let castUntil = 0,
 let memoryReturnTo = "play";
 const lessonProgress = { moved: false, cast: false };
 const name = store.get("threadwake.name", "Custodian");
+let selectedCharacter = getCharacter(
+  store.get("afterhours.character", "custodian"),
+).id;
+let knownWeapons = null;
+let knownWeaponRun = "";
+const seenPowerups = new Set();
 $("name").value = name;
 audio.enabled = settings.sound;
 audio.musicVolume = (settings.musicVolume ?? 65) / 100;
@@ -120,10 +129,112 @@ $("music-volume").value = settings.musicVolume ?? 65;
 $("effects-volume").value = settings.effectsVolume ?? 80;
 $("sound").checked = settings.sound;
 $("motion").checked = settings.motion;
-addPlayer(state, id, name);
+addPlayer(state, id, name, {}, selectedCharacter);
 const demo = state.players[0];
 demo.x = 600;
 demo.y = 420;
+function updateCharacterChoice() {
+  const character = getCharacter(selectedCharacter);
+  for (const key of ["character-button", "lobby-character"])
+    $(key).textContent = `${character.name} · change`;
+  for (const button of $("character-choices").children)
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.character === selectedCharacter),
+    );
+}
+for (const character of CHARACTERS) {
+  const button = document.createElement("button");
+  button.dataset.character = character.id;
+  button.className = "character-card";
+  const portrait = document.createElement("canvas");
+  portrait.width = 64;
+  portrait.height = 64;
+  portrait.setAttribute("aria-hidden", "true");
+  drawActor(
+    portrait.getContext("2d"),
+    {
+      ...demo,
+      x: 32,
+      y: 55,
+      character: character.id,
+      weapons: [character.weapon],
+      lastWeapon: character.weapon,
+      invulnerable: 0,
+    },
+    0,
+  );
+  const title = document.createElement("strong");
+  title.textContent = character.name;
+  const weapon = document.createElement("span");
+  weapon.textContent = WEAPONS[character.weapon].name;
+  const description = document.createElement("small");
+  description.textContent = `${WEAPONS[character.weapon].description} ${character.description}`;
+  button.append(portrait, title, weapon, description);
+  button.onclick = () => {
+    if (!["lobby", "won", "lost"].includes(state.phase)) return;
+    selectedCharacter = character.id;
+    store.set("afterhours.character", selectedCharacter);
+    if (online) net?.setCharacter(selectedCharacter);
+    else setCharacter(state, id, selectedCharacter);
+    updateCharacterChoice();
+  };
+  $("character-choices").append(button);
+}
+updateCharacterChoice();
+for (const key of ["character-button", "lobby-character"])
+  $(key).onclick = () => $("characters").showModal();
+$("character-done").onclick = () => $("characters").close();
+const soundControl = (target) =>
+  target instanceof Element
+    ? target.closest("button, a, input[type='checkbox'], select")
+    : null;
+document.addEventListener("pointerdown", () => audio.unlock(), {
+  capture: true,
+});
+document.addEventListener("keydown", () => audio.unlock(), { capture: true });
+document.addEventListener("pointerover", (event) => {
+  const control = soundControl(event.target);
+  if (
+    event.pointerType === "touch" ||
+    !control ||
+    control.disabled ||
+    control.contains(event.relatedTarget)
+  )
+    return;
+  audio.hover?.();
+});
+document.addEventListener("focusin", (event) => {
+  const control = soundControl(event.target);
+  if (control && !control.disabled && control.matches(":focus-visible"))
+    audio.hover?.();
+});
+document.addEventListener(
+  "click",
+  (event) => {
+    const control = soundControl(event.target);
+    if (!control || control.disabled) return;
+    if (
+      ["solo", "begin", "again"].includes(control.id) ||
+      control.matches(".upgrade")
+    )
+      audio.confirm?.();
+    else if (control.matches(".character-card, .talent")) audio.select?.();
+    else if (
+      [
+        "home",
+        "quit",
+        "leave-lobby",
+        "resume",
+        "close-memories",
+        "character-done",
+      ].includes(control.id)
+    )
+      audio.back?.();
+    else audio.click();
+  },
+  { capture: true },
+);
 function show(which) {
   screen = which;
   for (const s of ["menu", "lobby", "draft", "result"])
@@ -168,7 +279,8 @@ function startSolo() {
   $("network-status").hidden = true;
   id = "solo";
   state = createGame(crypto.getRandomValues(new Uint32Array(1))[0]);
-  addPlayer(state, id, safeName(), memory.traits);
+  addPlayer(state, id, safeName(), memory.traits, selectedCharacter);
+  knownWeapons = null;
   startGame(state);
   phase = "";
   paused = false;
@@ -205,6 +317,7 @@ async function join(room) {
       room,
       name: safeName(),
       traits: memory.traits,
+      character: selectedCharacter,
       onHealth(health) {
         if (generation !== roomGeneration) return;
         latency = health.latencyMs;
@@ -250,6 +363,13 @@ async function join(room) {
         if (generation !== roomGeneration) return;
         previousState = capturePresentation(state);
         state = next;
+        if (state.phase === "lobby") {
+          const self = state.players.find((p) => p.id === id);
+          if (self && self.character !== selectedCharacter) {
+            selectedCharacter = getCharacter(self.character).id;
+            updateCharacterChoice();
+          }
+        }
         receivedAt = performance.now();
         updatePhase();
       },
@@ -271,7 +391,7 @@ function updateLobby() {
   $("party").replaceChildren(
     ...state.players.map((p) => {
       const el = document.createElement("span");
-      el.textContent = `${p.name}${p.id === id ? " · you" : ""}${p.id === state.hostId ? " · host" : ""}`;
+      el.textContent = `${p.name} · ${getCharacter(p.character).name}${p.id === id ? " · you" : ""}${p.id === state.hostId ? " · host" : ""}`;
       return el;
     }),
   );
@@ -283,6 +403,7 @@ function updatePhase() {
   if (state.phase !== phase) {
     phase = state.phase;
     if (phase === "playing") {
+      $("characters").close();
       show("play");
       draftSignature = "";
     } else if (phase === "draft") {
@@ -311,9 +432,8 @@ function updateDraft() {
   if (signature === draftSignature) return;
   draftSignature = signature;
   $("choices").replaceChildren();
-  const nextGallery = mapForWave(state.wave + 1);
   $("draft-caption").textContent =
-    `Wave ${state.wave} cleared${nextGallery.id !== mapForWave(state.wave).id ? ` · Next: ${nextGallery.name}` : ""}`;
+    `LEVEL ${state.level || 1} · Choose an upgrade`;
   $("draft-status").textContent = choices.length
     ? ""
     : "Waiting for the others…";
@@ -357,7 +477,6 @@ function selectUpgrade(value) {
     toast("Reconnect to borrow a curio.");
     return;
   }
-  audio.click();
   if (online) net?.choose(value);
   else {
     chooseUpgrade(state, id, value);
@@ -413,7 +532,8 @@ function backHome() {
   previousState = null;
   accumulator = 0;
   id = "solo";
-  addPlayer(state, id, safeName());
+  addPlayer(state, id, safeName(), {}, selectedCharacter);
+  knownWeapons = null;
   phase = "lobby";
   show("menu");
   history.replaceState({}, "", location.pathname);
@@ -432,8 +552,13 @@ function options() {
   $("connection-health").textContent =
     latency == null ? status : `${status} · ${Math.round(latency)} ms`;
   const player = state.players.find((p) => p.id === id);
-  $("loadout").hidden = screen === "menu" || !player?.upgrades.length;
+  $("loadout").hidden = screen === "menu" || !player;
   $("loadout").replaceChildren(
+    ...(player?.weapons || []).map((value) => {
+      const el = document.createElement("span");
+      el.textContent = WEAPONS[value]?.name || value;
+      return el;
+    }),
     ...[...new Set(player?.upgrades || [])].map((value) => {
       const el = document.createElement("span"),
         u = upgradeById(value);
@@ -486,7 +611,7 @@ function updateMemoryCount() {
 }
 function permanentStat(key, rank) {
   if (key === "vitality")
-    return `${BALANCE.playerHp + rank * PERMANENT.healthPerRank}`;
+    return `${BALANCE.playerHp + getCharacter(state.players.find((p) => p.id === id)?.character || selectedCharacter).hpBonus + rank * PERMANENT.healthPerRank}`;
   if (key === "haste")
     return `${Math.round(100 * (1 + rank * PERMANENT.speedPerRank))}%`;
   return `${(BALANCE.castCooldown * (1 - rank * PERMANENT.cooldownPerRank)).toFixed(2)}s`;
@@ -521,7 +646,7 @@ function memories() {
   const data = [
     ["vitality", "Work coat", "Maximum health"],
     ["haste", "Soft soles", "Movement speed"],
-    ["echo", "Grip tape", "Sweep cooldown"],
+    ["echo", "Grip tape", "Special cooldown"],
   ];
   for (const [key, title, label] of data) {
     const rank = memory.traits[key],
@@ -568,7 +693,6 @@ function memories() {
       memory.traits[key]++;
       store.set("threadwake.memories", memory);
       net?.setTraits?.(memory.traits);
-      audio.click();
       memories();
     };
     $("talents").append(b);
@@ -635,6 +759,7 @@ for (const kind of ["music", "effects"])
     settings[kind + "Volume"] = Number($(kind + "-volume").value);
     audio[kind + "Volume"] = settings[kind + "Volume"] / 100;
     audio.unlock();
+    if (kind === "effects") audio.slider(settings[kind + "Volume"] / 100);
     store.set("threadwake.settings", settings);
   };
 $("name").onchange = () => {
@@ -644,6 +769,12 @@ $("name").onchange = () => {
 window.addEventListener("keydown", (e) => {
   device = "keyboard";
   if (e.target instanceof HTMLInputElement) return;
+  if (
+    e.code === "Space" &&
+    e.target instanceof Element &&
+    e.target.closest("button, a")
+  )
+    return;
   if (
     ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
       e.code,
@@ -807,6 +938,46 @@ function input() {
 function updateHud() {
   const p = state.players.find((p) => p.id === id);
   if (!p) return;
+  const runKey = `${state.seed}:${state.runNumber}:${id}`;
+  if (runKey !== knownWeaponRun) {
+    knownWeaponRun = runKey;
+    knownWeapons = null;
+    seenPowerups.clear();
+  }
+  const character = getCharacter(p.character);
+  $("level").textContent = `LV ${state.level || 1}`;
+  $("xp-count").textContent = `${state.xp || 0} / ${state.xpToNext || 1} XP`;
+  const xpRatio = Math.max(
+    0,
+    Math.min(1, (state.xp || 0) / (state.xpToNext || 1)),
+  );
+  pixelMeter($("xp-meter"), Math.floor(xpRatio * 10), 10, "#80b7c2");
+  $("xp-meter").setAttribute("aria-label", "Experience toward next level");
+  $("xp-meter").setAttribute("aria-valuenow", state.xp || 0);
+  $("xp-meter").setAttribute("aria-valuemin", "0");
+  $("xp-meter").setAttribute("aria-valuemax", state.xpToNext || 1);
+  if (knownWeapons) {
+    for (const weapon of p.weapons || [])
+      if (!knownWeapons.includes(weapon))
+        toast(`${WEAPONS[weapon]?.name || weapon} acquired`);
+  }
+  knownWeapons = [...(p.weapons || [])];
+  for (const effect of state.effects || []) {
+    if (
+      effect.type !== "haste" ||
+      effect.owner !== id ||
+      seenPowerups.has(effect.id)
+    )
+      continue;
+    seenPowerups.add(effect.id);
+    toast("Speed boost");
+  }
+  $("touch-cast").textContent = character.ability;
+  const abilityArt = $("ability").querySelector("canvas");
+  if (abilityArt.dataset.character !== character.id) {
+    abilityArt.dataset.character = character.id;
+    drawCurio(abilityArt.getContext("2d"), character.icon);
+  }
   iconText(
     $("health"),
     "heart",
@@ -857,8 +1028,8 @@ function updateHud() {
   $("ability").style.opacity = String(1 - 0.88 * meterOverlap);
   $("ability-label").textContent =
     p.castCooldown > 0
-      ? `SWEEP · ${p.castCooldown.toFixed(1)}s`
-      : `${castKey} · SWEEP`;
+      ? `${character.ability.toUpperCase()} · ${p.castCooldown.toFixed(1)}s`
+      : `${castKey} · ${character.ability.toUpperCase()}`;
   pixelMeter(
     $("ability-meter"),
     p.castCooldown > 0
@@ -870,11 +1041,11 @@ function updateHud() {
   $("downed").textContent =
     `${p.revive ? `Helping up ${Math.round(p.revive * 100)}%` : "Stay close to a colleague to help them up."}`;
   $("lesson").textContent = !lessonProgress.moved
-    ? "Keep moving. Your slingshot fires automatically."
+    ? "Keep moving. Collect XP from defeated exhibits."
     : !lessonProgress.cast
-      ? `${castKey}: Sweep damages and pushes back nearby enemies. Hold to repeat.`
+      ? `${castKey}: ${character.description} Hold to repeat.`
       : !(p.stats?.catches > 0)
-        ? "Your broom also clears red shots."
+        ? "Your special ability also clears red shots."
         : !(p.stats?.blooms > 0)
           ? "Stand near a supply cart to recover health."
           : "";
@@ -922,7 +1093,7 @@ function frame(now) {
   if (now - uiAt > 100) {
     uiAt = now;
     if (screen === "play" || screen === "draft") updateHud();
-    audio.update(state, id);
+    audio.update(state, id, { screen, paused: paused || document.hidden });
   }
   requestAnimationFrame(frame);
 }
