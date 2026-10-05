@@ -731,6 +731,9 @@ function drawEffect(ctx, effect, map) {
     return;
   }
   if (kind === "storm") {
+    const strike = progress < 0.2;
+    // Keep the impact immediate, then let enemy silhouettes emerge beneath it.
+    ctx.globalAlpha = progress < 0.55 ? 1 : Math.max(0, (1 - progress) / 0.45);
     const x0 = Number.isFinite(effect.fromX) ? effect.fromX : x,
       y0 = Number.isFinite(effect.fromY) ? effect.fromY : y,
       dx = x - x0,
@@ -744,9 +747,9 @@ function drawEffect(ctx, effect, map) {
         jitter = i === steps ? 0 : i % 2 ? 3 : -3,
         nx = x0 + dx * t - (dy / length) * jitter,
         ny = y0 + dy * t + (dx / length) * jitter;
-      line(ctx, px, py, nx, ny, P.ink, 5);
-      line(ctx, px, py, nx, ny, i % 2 ? P.blue : P.tealLight, 3);
-      line(ctx, px, py, nx, ny, P.white);
+      line(ctx, px, py, nx, ny, P.ink, strike ? 5 : 3);
+      line(ctx, px, py, nx, ny, i % 2 ? P.blue : P.tealLight, strike ? 3 : 1);
+      if (strike) line(ctx, px, py, nx, ny, P.white);
       px = nx;
       py = ny;
     }
@@ -754,9 +757,18 @@ function drawEffect(ctx, effect, map) {
       [x0, y0],
       [x, y],
     ]) {
-      pixel(ctx, ex - 1, ey - 5, 3, 11, P.white);
-      pixel(ctx, ex - 5, ey - 1, 11, 3, P.blue);
+      const reach = strike ? 5 : progress < 0.55 ? 3 : 1;
+      pixel(
+        ctx,
+        ex,
+        ey - reach,
+        1,
+        reach * 2 + 1,
+        strike ? P.white : P.tealLight,
+      );
+      pixel(ctx, ex - reach, ey, reach * 2 + 1, 1, P.blue);
     }
+    ctx.globalAlpha = 1;
     return;
   }
   if (kind === "xp" || kind === "weapon" || kind === "haste") {

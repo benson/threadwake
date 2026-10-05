@@ -18,6 +18,8 @@ async page => {
     for(const effects of [
       [{id:4,type:'lantern',x:600,y:400,radius:115,life:.28,maxLife:.28}],
       [{id:5,type:'storm',x:640,y:388,fromX:560,fromY:388,life:.18,maxLife:.18}],
+      [{id:5,type:'storm',x:640,y:388,fromX:560,fromY:388,life:.08,maxLife:.35}],
+      [{id:5,type:'storm',x:640,y:388,fromX:560,fromY:388,life:.01,maxLife:.35}],
       [{id:6,type:'sweep',ability:'restore',x:600,y:400,radius:110,life:.35,maxLife:.35}],
       [{id:7,type:'sweep',ability:'repel',x:600,y:400,radius:132,life:.35,maxLife:.35}],
     ]){
