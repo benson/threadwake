@@ -20,7 +20,7 @@ async page => {
       p.castAge = row > 1 ? age : 999; p.shotAge = row < 2 ? age : 999;
       p.weapons = [kind === 'storm' ? 'storm' : kind === 'repel' ? 'disc' : 'lantern']; p.lastWeapon = p.weapons[0];
       s.phase = 'playing'; s.wave = 1; s.time = age;
-      const maxLife = row < 2 ? .28 : .35;
+      const maxLife = .35;
       s.effects = [{id: 1, type: row < 2 ? kind : 'sweep', ability: kind,
         x: kind === 'storm' ? 685 : 600, y: kind === 'storm' ? 350 : 400,
         fromX: 616, fromY: 387, radius: kind === 'repel' ? 132 : kind === 'restore' ? 110 : 115,

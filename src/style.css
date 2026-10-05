@@ -452,7 +452,20 @@ dialog::backdrop {
   pointer-events: none;
   padding: max(20px, env(safe-area-inset-top))
     max(22px, env(safe-area-inset-right));
-  text-shadow: 2px 2px #0b2027;
+  text-shadow:
+    -1px -1px #101722,
+    0 -1px #101722,
+    1px -1px #101722,
+    -1px 0 #101722,
+    1px 0 #101722,
+    -1px 1px #101722,
+    0 1px #101722,
+    1px 1px #101722,
+    2px 2px #101722;
+}
+#hud .pixel-icon {
+  filter: drop-shadow(1px 0 #101722) drop-shadow(-1px 0 #101722)
+    drop-shadow(0 1px #101722) drop-shadow(0 -1px #101722);
 }
 #hud button {
   pointer-events: auto;
