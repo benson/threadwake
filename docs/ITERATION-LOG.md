@@ -1,5 +1,11 @@
 # Continuing craft work
 
+## 2026-10-05 — side boundary visibility
+
+Real keyboard movement to `x=18` exposed a clipped broom tip and side panels drawn on walkable floor. The side wall art now sits beyond the existing west/east collision boundaries, and the camera includes 49 pixels of exterior wall at either edge. Neither the playable area nor combat geometry changes. A second real keyboard pass confirmed the entire broom remains visible at the west edge.
+
+The gallery boundary browser check now covers both sides in all four rooms, verifies full weapon clearance and pointer mapping, and retains north/south checks. The eight-panel side sheet was visually inspected alongside the actual gameplay screenshot. No UI or copy was added.
+
 ## 2026-10-05 — north wall and camera boundary
 
 Fresh-profile keyboard play cleared waves one and two, earned four credits, chose Padded waistcoat and Tin soldier, and entered Natural History with the expected health and one companion. Moving to the north boundary then exposed a rendering mismatch: the decorative back wall occupied the top 125 pixels of playable floor, and the camera clipped the custodian at `y=18`.

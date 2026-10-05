@@ -14,7 +14,8 @@ import { bodyCircle, weaponMuzzle } from "./combat-geometry.js";
 
 const W = 1200,
   H = 800,
-  BACK_WALL = 125;
+  BACK_WALL = 125,
+  SIDE_WALL = 49;
 function random(seed) {
   let s = seed >>> 0;
   return () => {
@@ -152,10 +153,11 @@ function exhibitSprite(o, gallery) {
   return c;
 }
 function bake(seed, gallery) {
-  const c = surface(W, H + BACK_WALL),
+  const c = surface(W + SIDE_WALL * 2, H + BACK_WALL),
     ctx = c.getContext("2d"),
     r = random(seed || 42);
-  ctx.translate(0, BACK_WALL);
+  ctx.translate(SIDE_WALL, BACK_WALL);
+  pixel(ctx, -SIDE_WALL, -BACK_WALL, W + SIDE_WALL * 2, H + BACK_WALL, "#1a2633");
   const sculpture = gallery === "sculpture_court",
     clock = gallery === "clock_gallery",
     natural = gallery === "natural_history",
@@ -321,11 +323,12 @@ function bake(seed, gallery) {
   // The wall sits beyond the north floor boundary, never on walkable tiles.
   ctx.save();
   ctx.translate(0, -BACK_WALL);
-  pixel(ctx, 0, 0, W, 125, "#1a2633");
-  for (let y = 0; y < 125; y += 24) pixel(ctx, 0, y, W, 2, "#293848");
-  pixel(ctx, 0, 112, W, 8, P.wood);
-  pixel(ctx, 0, 112, W, 2, P.gold);
-  pixel(ctx, 0, 120, W, 6, P.shadow);
+  pixel(ctx, -SIDE_WALL, 0, W + SIDE_WALL * 2, 125, "#1a2633");
+  for (let y = 0; y < 125; y += 24)
+    pixel(ctx, -SIDE_WALL, y, W + SIDE_WALL * 2, 2, "#293848");
+  pixel(ctx, -SIDE_WALL, 112, W + SIDE_WALL * 2, 8, P.wood);
+  pixel(ctx, -SIDE_WALL, 112, W + SIDE_WALL * 2, 2, P.gold);
+  pixel(ctx, -SIDE_WALL, 120, W + SIDE_WALL * 2, 6, P.shadow);
   for (let x = 42; x < W; x += 190) {
     pixel(ctx, x, 0, 18, 116, P.ink);
     pixel(ctx, x + 2, 0, 14, 113, P.stone);
@@ -344,7 +347,7 @@ function bake(seed, gallery) {
   ctx.restore();
   // Low wall panels and a few ceiling-light reflections appear at the sides.
   for (let y = 160; y < H; y += 128)
-    for (const x of [12, W - 49]) {
+    for (const x of [-SIDE_WALL + 6, W + 6]) {
       pixel(ctx, x, y, 37, 76, "#263444");
       pixel(ctx, x + 3, y + 3, 31, 70, P.stone);
       pixel(ctx, x + 6, y + 6, 25, 64, P.shadow);
@@ -717,10 +720,11 @@ export function createRenderer(canvas) {
       ty = player?.y ?? 400,
       follow = 1 - Math.exp(-dt * 8);
     if (galleryChanged) {
-      camera.x = Math.max(320, Math.min(W - 320, tx));
+      camera.x = Math.max(320 - SIDE_WALL, Math.min(W - 320 + SIDE_WALL, tx));
       camera.y = Math.max(180 - BACK_WALL, Math.min(H - 180, ty));
     }
-    camera.x += (Math.max(320, Math.min(W - 320, tx)) - camera.x) * follow;
+    camera.x +=
+      (Math.max(320 - SIDE_WALL, Math.min(W - 320 + SIDE_WALL, tx)) - camera.x) * follow;
     camera.y +=
       (Math.max(180 - BACK_WALL, Math.min(H - 180, ty)) - camera.y) * follow;
     if (player && previousHP !== null && player.hp < previousHP) damage = 0.15;
@@ -735,7 +739,7 @@ export function createRenderer(canvas) {
     pixel(ctx, 0, 0, 640, 360, P.shadow);
     ctx.save();
     ctx.translate(-ox, -oy);
-    ctx.drawImage(art.ground, 0, -BACK_WALL);
+    ctx.drawImage(art.ground, -SIDE_WALL, -BACK_WALL);
     for (const station of state?.flowers || []) drawFlower(ctx, station, time);
     sorted.length = 0;
     for (const prop of art.props)
