@@ -1,5 +1,11 @@
 # Continuing craft work
 
+## 2026-10-05 — co-op protection readability
+
+Four real browser clients joined a disposable local room, started together and swept together. The opaque protection shield covered most of each coat during overlapping sweeps. Its existing silhouette is now a hollow outline, preserving the body underneath while retaining the protection cue.
+
+The reusable four-client check verifies four distinct palette assignments, all four authoritative sweep states and no page errors. Before/after full game screenshots were inspected. The overlap pixel check confirms that the protection interior preserves the underlying custodian pixel and that all 29 hostile-shot pixels remain visible through the effect. No protection, damage, networking or progression rules changed.
+
 ## 2026-10-05 — Grand Clock foot animation
 
 The temporal inventory now includes the Grand Clock and porcelain beetle. It exposed fixed wooden feet under the translating clock. The clock now uses a slow alternating stride/lift while moving, with subtle body weight shift and a visible toe cap. Its feet stay fixed when stationary; the shared combat body and weapon rim remain unchanged.

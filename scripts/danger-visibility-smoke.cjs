@@ -14,6 +14,14 @@ async page => {
     const result={clearDangerPixels:count(clear),overlapDangerPixels:count(covered)};
     if(!result.clearDangerPixels)throw Error('Fixture did not locate hostile projectile');
     if(result.overlapDangerPixels<result.clearDangerPixels)throw Error('Friendly effect hides hostile projectile: '+JSON.stringify(result));
-    return result;
+    s.shots=[];s.effects=[];
+    s.players=[{id:'a',x:600,y:400,hp:110,maxHp:110,color:0,castAge:999}];
+    renderer.draw(s,'a',0,{reducedMotion:true,shake:false});
+    const body=Array.from(c.getContext('2d').getImageData(318,167,1,1).data);
+    s.effects=[{id:3,type:'resonance',x:600,y:400,life:.35,maxLife:.35}];
+    renderer.draw(s,'a',0,{reducedMotion:true,shake:false});
+    const protectedBody=Array.from(c.getContext('2d').getImageData(318,167,1,1).data);
+    if(body.join(',')!==protectedBody.join(','))throw Error('Protection shield fills over the custodian body');
+    return {...result,protectionInteriorTransparent:true};
   });
 }

@@ -618,10 +618,16 @@ function drawEffect(ctx, effect, map) {
       sy = y - 19 - rise;
     for (let row = 0; row < 15; row++) {
       const half = row < 8 ? 8 : Math.max(1, 8 - (row - 7));
-      pixel(ctx, x - half - 1, sy + row, half * 2 + 3, 1, P.ink);
-      pixel(ctx, x - half, sy + row, half * 2 + 1, 1, P.tealLight);
-      if (row > 1 && row < 11 && half > 3)
-        pixel(ctx, x - half + 2, sy + row, half * 2 - 3, 1, P.tealDark);
+      if (row < 2 || half <= 3) {
+        pixel(ctx, x - half - 1, sy + row, half * 2 + 3, 1, P.ink);
+        pixel(ctx, x - half, sy + row, half * 2 + 1, 1, P.tealLight);
+      } else {
+        // Leave the coat visible inside the protection outline in co-op.
+        pixel(ctx, x - half - 1, sy + row, 4, 1, P.ink);
+        pixel(ctx, x + half - 2, sy + row, 4, 1, P.ink);
+        pixel(ctx, x - half, sy + row, 2, 1, P.tealLight);
+        pixel(ctx, x + half - 1, sy + row, 2, 1, P.tealLight);
+      }
     }
     return;
   }
