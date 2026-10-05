@@ -10,6 +10,7 @@ import {
   shadow,
 } from "./art.js";
 import { lineBlocked, mapById } from "./maps.js";
+import { bodyCircle, weaponMuzzle } from "./combat-geometry.js";
 
 const W = 1200,
   H = 800;
@@ -372,14 +373,47 @@ function drawAttackTelegraph(ctx, enemy, time) {
     enemy.fireIn >= 0.9
   )
     return;
+  if (enemy.type === "warden") {
+    const charge = Math.max(0, 1 - enemy.fireIn / 0.9),
+      center = bodyCircle(enemy),
+      stage = enemy.stage || 1,
+      count = stage === 1 ? 12 : stage === 2 ? 8 : 16,
+      // Preview the radial orientation at discharge, not an unrelated spin.
+      phase = ((enemy.phase || 0) + enemy.fireIn) * (stage === 3 ? 0.65 : 0.3),
+      radius = 37 + charge * 5,
+      color = charge > 0.7 ? P.redLight : P.red;
+    for (let i = 0; i < count; i++) {
+      const a = phase + (i * Math.PI * 2) / count,
+        x = center.x + Math.cos(a) * radius,
+        y = center.y + Math.sin(a) * radius;
+      line(ctx, x, y, x + Math.cos(a) * 3, y + Math.sin(a) * 3, P.ink, 3);
+      line(ctx, x, y, x + Math.cos(a) * 3, y + Math.sin(a) * 3, color, 1);
+    }
+    if (enemy.fireIn <= 0.65) {
+      const muzzle = weaponMuzzle(enemy),
+        aim = Math.atan2(
+          Number.isFinite(enemy.aimY) ? enemy.aimY : 0,
+          Number.isFinite(enemy.aimX) ? enemy.aimX : enemy.face || 1,
+        ),
+        rays = stage === 1 ? 1 : stage === 2 ? 5 : 3;
+      for (let j = 0; j < rays; j++) {
+        const a = aim + (j - (rays - 1) / 2) * 0.2;
+        for (let d = 8; d <= 24; d += 8) {
+          const x = muzzle.x + Math.cos(a) * d,
+            y = muzzle.y + Math.sin(a) * d;
+          pixel(ctx, x - 1, y - 1, 4, 4, P.ink);
+          pixel(ctx, x, y, 2, 2, color);
+        }
+      }
+    }
+    return;
+  }
   const charge = Math.max(0, 1 - enemy.fireIn / 0.9),
-    boss = enemy.type === "warden",
-    radius = (boss ? 34 : 17) - charge * 5,
-    centerY = enemy.y - (boss ? 25 : enemy.type === "thorn" ? 18 : 12),
+    radius = 17 - charge * 5,
+    centerY = enemy.y - (enemy.type === "thorn" ? 18 : 12),
     cue = charge > 0.7 ? P.white : P.redLight;
-  for (let i = 0; i < (boss ? 16 : 10); i++) {
-    const a =
-      (i * Math.PI * 2) / (boss ? 16 : 10) + Math.floor(time * 12) * 0.12;
+  for (let i = 0; i < 10; i++) {
+    const a = (i * Math.PI * 2) / 10 + Math.floor(time * 12) * 0.12;
     pixel(
       ctx,
       enemy.x + Math.cos(a) * radius,
@@ -394,35 +428,12 @@ function drawAttackTelegraph(ctx, enemy, time) {
       Number.isFinite(enemy.aimX) ? enemy.aimX : enemy.face || 1,
     ),
     attack =
-      enemy.attack ||
-      (boss ? "ring" : enemy.type === "thorn" ? "fan" : "needle"),
-    reach = (boss ? 44 : 38) * (0.55 + charge * 0.45);
-  if (boss)
-    for (let i = 0; i < (attack === "spiral" ? 12 : 8); i++) {
-      const a =
-        (i * Math.PI * 2) / (attack === "spiral" ? 12 : 8) +
-        (attack === "spiral" ? Math.floor(time * 8) * 0.13 : 0);
-      pixel(
-        ctx,
-        enemy.x + Math.cos(a) * reach,
-        centerY + Math.sin(a) * reach * 0.75,
-        2,
-        2,
-        cue,
-      );
-    }
+      enemy.attack || (enemy.type === "thorn" ? "fan" : "needle"),
+    reach = 38 * (0.55 + charge * 0.45);
   if (enemy.fireIn <= 0.65) {
-    const rays = boss
-      ? attack === "fan"
-        ? 5
-        : attack === "spiral"
-          ? 3
-          : 1
-      : attack === "fan"
-        ? 3
-        : 1;
+    const rays = attack === "fan" ? 3 : 1;
     for (let j = 0; j < rays; j++) {
-      const a = aim + (j - (rays - 1) / 2) * (boss ? 0.2 : 0.22);
+      const a = aim + (j - (rays - 1) / 2) * 0.22;
       for (let d = 10; d < reach; d += 7)
         pixel(
           ctx,

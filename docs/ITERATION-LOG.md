@@ -1,5 +1,13 @@
 # Continuing craft work
 
+## 2026-10-05 — readable Grand Clock warnings
+
+A real-keyboard wave-eight encounter with seven selected curios reached victory in 23.7 seconds, ending at 66/140 HP with five shots cleared. It covered movement, exhibit cover, held sweeping and all boss stages; this is one seeded workshop encounter, not a full-run difficulty judgment.
+
+The final-stage warning was visually tangled with the brass clock face. A bounded Gemini image review independently identified that overlap and the similarity between white warning dots and friendly marble flecks. The boss warning now uses outlined coral ticks outside the body, previews the actual radial count/orientation at discharge, and places the aimed spread beyond the shared weapon muzzle. Simulation, attack timing, damage and other enemy cues are unchanged. The review misread part of the decorative floor clock as a warning; that claim was rejected.
+
+Validation: all 77 tests and production build pass. `scripts/boss-warning-review.cjs` renders all three real stages immediately before/after discharge (13, 13 and 19 hostile shots); the complete six-panel sheet was visually inspected at native resolution. The tenth image review cost $0.0047595; cumulative spend is $0.1416025 against the existing $5 cap.
+
 ## 2026-10-04 — boss cues and workshop build repair
 
 The Grand Clock's aimed warning now shows five rays for its five-shot fan and three for its final three-shot spread. Attack timings and damage are unchanged. A wave-eight keyboard playtest exposed a separate workshop initialization bug: `startGame` replaces player objects, so selected curios were being assigned to a discarded reference. Workshop builds now apply to the active player. Replay version 5 rejects takes recorded with the old initialization.
